@@ -47,9 +47,9 @@
 <p>D. B, D, E, G, F</p>
 </li>
 </ol>
-<div align="center"><img src="7.png" width=70% ></div>
+<img src="/images/7.png" width=80% height=50% align=center/>
 
-<ol start="8">
+<ol>
 <li><p>对如下无向图进行遍历，下列选项中<strong>不可能</strong>是广度优先遍历的是________。</p>
 <p>A. a, b, h, e, c, d, f, g</p>
 <p>B. e, g, f, a, h, b, c, d</p>
@@ -57,7 +57,7 @@
 <p>D. g, e, f, a, b, h, c, d</p>
 </li>
 </ol>
-<div align="center"><img src="8.png" width=70%></div>
+<img src="/images/8.png" width=80% height=50% align=center/>
 
 <ol start="9">
 <li><p>若符号 <code>PUSH</code>和 <code>POP</code>分别表示1次进栈与1次出栈操作，则进栈和出栈的操作序列可以表示为仅由 <code>PUSH</code>和 <code>POP</code>组成的序列。对于初态为空的栈，下面给出的操作序列中，________序列<strong>不能</strong>使栈的终态为空。</p>
@@ -95,12 +95,12 @@
 <li>为解决程序执行过程中函数调用与返回的上下文管理问题，通常需要维护一个特殊的数据区，当调用子函数时，系统会将当前函数的返回地址、局部变量及参数等依次存入该数据区，而子函数执行完毕后则按相反顺序从数据区中读取内容恢复调用环境。该数据区的逻辑结构是________。</li>
 <li>已知一棵3阶B-树如图所示，若在此B-树上插入关键字 <code>5</code>，则根节点序列为________。</li>
 </ol>
-<div align="center"><img src="16.png" width=70%></div>
+<img src="/images/16.png" width=80% height=50% align=center/>
 
 <ol start="5">
 <li>已知无向带权图的结构如下图所示。其最小生成树中，各边权重之和为________。</li>
 </ol>
-<div align="center"><img src="17.png" width=70%></div>
+<img src="/images/17.png" width=80% height=50% align=center/>
 
 <ol start="6">
 <li>一棵完全二叉树，根节点为第1层，第5层叶子结点个数为6，该二叉树最多有________个结点。</li>
@@ -188,7 +188,7 @@
 
 <p><strong>【样例说明】</strong></p>
 <p>该样例输入了12个位置顶点和14条边，形成了如下所示的地图：</p>
-<div align="center"><img src="cx3.jpg" width=70%></div>
+<img src="/images/cx3.jpg" width=80% height=50% align=center/>
 
 <p>图中的圆表示顶点，顶点中上方的数字表示顶点编号，下方的数字表示该顶点包含的兴趣点，顶点之间连线上的数字是其边的长度。</p>
 <p>要求从当前位置顶点18开始查找包含兴趣点为2的所有位置顶点。</p>
