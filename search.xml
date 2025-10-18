@@ -213,6 +213,7 @@
 <li><p>若双向链表结点类型定义为：</p>
  <figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">node</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    ElemType data;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">node</span> *<span class="title">rlink</span>,*<span class="title">llink</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
 <p> 那么在双向链表中，要在结点<code>p</code>后插入结点<code>s</code>，以下代码执行顺序正确的是：________。</p>
+ <span id="more"></span>
 <p> ①<code>s-&gt;llink=p;</code></p>
 <p> ②<code>p-&gt;rlink=s;</code></p>
 <p> ③<code>s-&gt;rlink=p-&gt;rlink;</code></p>
