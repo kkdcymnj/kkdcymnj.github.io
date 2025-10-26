@@ -246,7 +246,7 @@
       <span class="post-meta-item-text">发表于</span>
       
 
-      <time title="创建时间：2025-10-26 09:29:34 / 修改时间：11:07:59" itemprop="dateCreated datePublished" datetime="2025-10-26T09:29:34+08:00">2025-10-26</time>
+      <time title="创建时间：2025-10-26 09:29:34 / 修改时间：11:22:39" itemprop="dateCreated datePublished" datetime="2025-10-26T09:29:34+08:00">2025-10-26</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -285,97 +285,14 @@
     <div class="post-body" itemprop="articleBody">
           <h3 id="题面回顾"><a href="#题面回顾" class="headerlink" title="题面回顾"></a>题面回顾</h3><p>运用 MIPS 汇编编写一个计算阶乘的程序。阶乘的结果在 1000 位以内。</p>
 <p>程序的执行步数限制在 <strong>200,000</strong> 以内。</p>
-<h3 id="思路建构"><a href="#思路建构" class="headerlink" title="思路建构"></a>思路建构</h3><p>很明显我们需要运用<strong>高精度乘法</strong>完成本题。首先让我们复习一下如何进行两个大数的高精度乘法，下面给出了对应的C语言代码，至于其汇编代码的编写就麻烦大家自行完成了。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;bits/stdc++.h&gt;</span></span></span><br><span class="line">using namespace <span class="built_in">std</span>;</span><br><span class="line"><span class="type">char</span> a[<span class="number">1005</span>],b[<span class="number">1005</span>];</span><br><span class="line"><span class="type">int</span> A[<span class="number">1005</span>],B[<span class="number">1005</span>],C[<span class="number">1005</span>],temp;</span><br><span class="line"><span class="type">char</span> out[<span class="number">1005</span>];</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="built_in">cin</span>&gt;&gt;a;</span><br><span class="line">    <span class="built_in">cin</span>&gt;&gt;b;</span><br><span class="line">    <span class="type">int</span> lena=<span class="built_in">strlen</span>(a),lenb=<span class="built_in">strlen</span>(b);</span><br><span class="line">    <span class="type">int</span> len_out=lena+lenb;  <span class="comment">//a位与b位的数字相乘，结果最多为(a+b)位</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i=<span class="number">0</span>;i&lt;lena;i++)&#123;</span><br><span class="line">        A[i]=a[lena-i<span class="number">-1</span>]-<span class="string">&#x27;0&#x27;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i=<span class="number">0</span>;i&lt;lenb;i++)&#123;</span><br><span class="line">        B[i]=b[lenb-i<span class="number">-1</span>]-<span class="string">&#x27;0&#x27;</span>;</span><br><span class="line">    &#125;                       <span class="comment">//类似于写竖式时，乘数的低位要对齐</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i=<span class="number">0</span>;i&lt;lena;i++)&#123;</span><br><span class="line">        temp=<span class="number">0</span>;             <span class="comment">//记录进位</span></span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> j=<span class="number">0</span>;j&lt;lenb;j++)&#123;</span><br><span class="line">            C[i+j]=A[i]*B[j]+temp+C[i+j];</span><br><span class="line">            temp=C[i+j]/<span class="number">10</span>;</span><br><span class="line">            C[i+j]%=<span class="number">10</span>;     <span class="comment">//想想竖式乘法是怎么计算的</span></span><br><span class="line">        &#125;</span><br><span class="line">        C[i+lenb]=temp;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="type">int</span> k;</span><br><span class="line">    <span class="keyword">for</span>(k=<span class="number">1004</span>;k&gt;<span class="number">0</span>;k--)&#123;</span><br><span class="line">        <span class="keyword">if</span>(C[k<span class="number">-1</span>]!=<span class="number">0</span>)&#123;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;                       <span class="comment">//输出时注意去除前导0</span></span><br><span class="line">    <span class="keyword">for</span>(;k&gt;=<span class="number">0</span>;k--)&#123;</span><br><span class="line">        <span class="built_in">cout</span>&lt;&lt;C[k];</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>解决了高精度乘法这一问题后，编写计算阶乘的程序似乎就很简单了。我们可以声明三个“数组”A，B 和 C，A 中存放上一次阶乘运算的结果，B 中存放当前乘数，C 中存放本次阶乘的结果。若需要再进行一次阶乘，则将 C 的内容复制到 A，将 A 乘以 B，再得出新的 C 即可。如此一来，我们只需要编写一个三重循环就可以完成任务。</p>
-<h3 id="发现问题"><a href="#发现问题" class="headerlink" title="发现问题"></a>发现问题</h3><p>相信有的读者已经发现了问题：三重循环还是太逆天了，毕竟我们只有 200,000 步。事实也确实如此，我使用 mars 中的 Instruction Counter 工具得到了计算 40，60 和 100 的阶乘所需要的步数。结果大致如下表所示。</p>
-<table>
-<thead>
-<tr>
-<th>阶乘</th>
-<th>计算步数</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>40!</td>
-<td>64,069</td>
-</tr>
-<tr>
-<td>60!</td>
-<td>164,903</td>
-</tr>
-<tr>
-<td>100!</td>
-<td>538,489</td>
-</tr>
-</tbody></table>
-<p>通过这一份表我们可以看到，我们的代码在计算 60! 时就快要达到最大步数限制了，计算 100! 时就已经严重超出了步数限制——而此时阶乘的结果不过 158 位，远少于 1000 位。目前的这份“三重循环”代码显然不能完成这道题的任务。</p>
-<h3 id="解决问题"><a href="#解决问题" class="headerlink" title="解决问题"></a>解决问题</h3><p>重新审视一下在“三重循环”代码中我们做了什么。在计算 $(n-1)!\times n$ 的循环中，我们做了以下几步：</p>
-<ol>
-<li><p>C 中原先存放了 $(n-1)!$ 的结果，将这一结果复制到 A</p>
-</li>
-<li><p>将这一次需要的 $n$ 复制到 B</p>
-</li>
-<li><p>两重循环计算出 $n!$，这一结果存储到 C 中</p>
-</li>
-</ol>
-<p>在以上三个步骤中，1 看起来是比较累赘的，但是某种程度上我们又难以避免。考虑下面的一个场景：</p>
-<p>如果我们不将上一次 C 中的内容复制到 A，则 <code>C[i+j]</code> 是这样计算的：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">C[i+j] = C[i] * B[j] + temp + C[i+j]</span><br></pre></td></tr></table></figure>
-
-<p>如果我们还需要计算 <code>C[(i+j)+k]</code> 中的内容，程序会执行以下语句：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">C[(i+j)+k] = C[i+j] * B[k] + temp + C[(i+j)+k]</span><br></pre></td></tr></table></figure>
-
-<p>此时计算出的 <code>C[(i+j)+k]</code> 大约是不正确的，因为 <code>C[i+j]</code> 的值已经被改变，也就是说我们没有用原来的乘数乘以新的乘数。</p>
-<p><strong>如何“避开”步骤 1 来节省步数？</strong></p>
-<p>设想每次的 B 只有 1 位，则我们其实没有必要执行步骤 1 的操作。在这种情况下，循环体中的 <code>j</code> 只可能为 0，新的 C 中第 <code>k</code> 位的结果只另外依赖于 <code>B[0]</code> 和 <code>A[k]</code>。即使我们不将 C 的原有内容复制到 A，即 <code>C[k] = C[k] * B[0] + temp + C[k]</code>，<code>C[k]</code> 的改变也不会影响到 C 中其他位的结果——因为计算其他位的结果根本用不到 <code>C[k]</code>。这样一来，我们的程序也被简化为了<strong>二重循环</strong>（因为 <code>j</code> 只能取 0）。</p>
-<p><strong>如何让 B 只有“1位”？</strong></p>
-<p>我们不一定需要进行十进制乘法，可以进行 <strong>1000 进制</strong>的乘法。由于阶乘结果限制在 1000 位以内，B 不会超过 450（450! 的结果为 1001 位）。在 1000 进制的表示下，如果 $B\leq 450$，那么 B 必然只有“1位”。</p>
-<p>进行 1000 进制的乘法也很简单——只需将 <code>%10</code> 改为 <code>%1000</code>。不过，输出计算结果时需要小心一点。</p>
-<p><strong>如何输出 1000 进制乘法的结果？</strong></p>
-<p>假设乘法结果在 1000 进制下最高位是第 $m$ 位，我们需要按照第 $m$ 位至第 0 位的顺序依次“拼接”输出。</p>
-<p>输出第 $m$ 位：注意不能输出前导 0，输出 <code>C[m] % 1000</code> 即可。</p>
-<p>输出第 $k$ 位（$0\leq k\leq m-1$）：注意需要输出前导 0。可以根据 <code>C[k]</code> 的大小来确定需要补充的前导 0 数量。例如，若 <code>C[k]</code> 是两位数，则需要补充 1 个前导 0。</p>
-<h3 id="效果验证"><a href="#效果验证" class="headerlink" title="效果验证"></a>效果验证</h3><p>运用新的代码计算大数阶乘，阶乘数以及对应计算步数如下表所示。</p>
-<table>
-<thead>
-<tr>
-<th>阶乘数</th>
-<th>计算步数</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>40!</td>
-<td>5,574</td>
-</tr>
-<tr>
-<td>60!</td>
-<td>13,214</td>
-</tr>
-<tr>
-<td>100!</td>
-<td>40,157</td>
-</tr>
-<tr>
-<td>200!</td>
-<td>185,014</td>
-</tr>
-<tr>
-<td>300!</td>
-<td>452,305</td>
-</tr>
-</tbody></table>
-<p>可以看到，如果步数限制为 200,000，这一份代码可以成功计算 200!，相比第一版“三重循环”代码有了显著进步。不过，这离计算 450! 的目标还有比较大的差距。若还想进一步压缩程序执行步数，可以从以下方面考虑：</p>
-<ol>
-<li><p>“增大”进制，例如计算 10,000 进制乘法。不过进制也不能随意“增大”，毕竟一个字只能存放 <code>int</code> 大小的数据，这一量级是 $10^9$。</p>
-</li>
-<li><p>修改指令，减少不必要的寄存器赋值以及非基本指令的使用。</p>
-</li>
-</ol>
-<p>如果只是想通过课程平台的评测，修改后的代码已经足够，数据点还是给得比较松弛的。</p>
-<h3 id="最终代码"><a href="#最终代码" class="headerlink" title="最终代码"></a>最终代码</h3><p>下面给出这一题的参考代码。这一份代码只供参考和学习用，请不要随意抄袭。抄袭可能会导致你本次作业记为 0 分，甚至是受到处分。</p>
-<p>请批判地学习这份代码。这一份代码只不过是通过了评测，其中体现出的恶劣代码编写习惯请尽量避免（包括但不限于寄存器的随意使用）。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br></pre></td><td class="code"><pre><span class="line">.data</span><br><span class="line">C:.space 5000</span><br><span class="line"></span><br><span class="line">.macro print_int(%sc)</span><br><span class="line">move $a0,%sc</span><br><span class="line">li $v0,1</span><br><span class="line">syscall</span><br><span class="line">.end_macro </span><br><span class="line"></span><br><span class="line">.macro read_int(%out)</span><br><span class="line">li $v0,5</span><br><span class="line">syscall</span><br><span class="line">move %out,$v0</span><br><span class="line">.end_macro </span><br><span class="line"></span><br><span class="line">.macro push(%sc)</span><br><span class="line">subi $sp,$sp,4</span><br><span class="line">sw %sc,0($sp)</span><br><span class="line">.end_macro </span><br><span class="line"></span><br><span class="line">.macro pop(%out)</span><br><span class="line">lw %out,0($sp)</span><br><span class="line">addi $sp,$sp,4</span><br><span class="line">.end_macro </span><br><span class="line"></span><br><span class="line">.macro end</span><br><span class="line">li $v0,10</span><br><span class="line">syscall</span><br><span class="line">.end_macro </span><br><span class="line"></span><br><span class="line">.text</span><br><span class="line">li $k0,1</span><br><span class="line">read_int($s0)	#阶乘数</span><br><span class="line">li $t1,2	#控制阶乘的循环变量</span><br><span class="line">sw $k0,C($0)	#结果初始值为1</span><br><span class="line">ble $s0,1,special	#输入0或1，直接特判即可</span><br><span class="line"></span><br><span class="line">li $t7,1	#C的位数</span><br><span class="line">jal loop_start</span><br><span class="line"></span><br><span class="line">sub $t2,$t7,1	#开始结果打印</span><br><span class="line">subi $t7,$t7,1</span><br><span class="line">li $v0,1</span><br><span class="line">j print_loop</span><br><span class="line"></span><br><span class="line">loop_start:</span><br><span class="line">    push($ra)</span><br><span class="line">    j loop_body</span><br><span class="line">    loop_body:</span><br><span class="line">    jal mult_loop_start</span><br><span class="line">    addi $t1,$t1,1	#B</span><br><span class="line">    ble $t1,$s0,loop_body</span><br><span class="line">    j back</span><br><span class="line"></span><br><span class="line">mult_loop_start:</span><br><span class="line">    push($ra)</span><br><span class="line">    li $t2,0	#高精度乘法的循环变量</span><br><span class="line">    li $t4,0	#进位记录</span><br><span class="line">    j mult_loop_body</span><br><span class="line">mult_loop_body:	#B的值存储在t1中</span><br><span class="line">    sll $t3,$t2,2	#获取C这一块内存的数值</span><br><span class="line">    lw $s1,C($t3)</span><br><span class="line"></span><br><span class="line">    mul $s1,$s1,$t1</span><br><span class="line">    add $s1,$s1,$t4	#C[i]*B+进位t4</span><br><span class="line">    div $t4,$s1,1000</span><br><span class="line">    mfhi $s2	#余数存入C</span><br><span class="line">    sw $s2,C($t3)</span><br><span class="line"></span><br><span class="line">    addi $t2,$t2,1</span><br><span class="line">    blt $t2,$t7,mult_loop_body</span><br><span class="line"></span><br><span class="line">    beq $t4,0,back	#如果当前进位不为0，C还需要增加一位</span><br><span class="line">    sll $t3,$t7,2</span><br><span class="line">    sw $t4,C($t3)</span><br><span class="line">    addi $t7,$t7,1</span><br><span class="line">    j back</span><br><span class="line"></span><br><span class="line">print_loop:</span><br><span class="line">    sll $t3,$t2,2</span><br><span class="line">    lw $t4,C($t3)</span><br><span class="line">    div $t4,$t4,1000</span><br><span class="line">    mfhi $t4</span><br><span class="line">    jal print_with_front_zero</span><br><span class="line">    print_int($t4)</span><br><span class="line">    subi $t2,$t2,1</span><br><span class="line">    bge $t2,0,print_loop</span><br><span class="line">    end</span><br><span class="line"></span><br><span class="line">print_with_front_zero:</span><br><span class="line">    push($ra)</span><br><span class="line">    beq $t2,$t7,back</span><br><span class="line">    bge $t4,100,back</span><br><span class="line">    bge $t4,10,print_ten</span><br><span class="line">    j print_digit</span><br><span class="line"></span><br><span class="line">print_ten:</span><br><span class="line">    print_int($0)</span><br><span class="line">    print_int($t4)</span><br><span class="line">    pop($ra)</span><br><span class="line">    subi $t2,$t2,1</span><br><span class="line">    bge $t2,0,print_loop</span><br><span class="line">    end</span><br><span class="line"></span><br><span class="line">print_digit:</span><br><span class="line">    print_int($0)</span><br><span class="line">    print_int($0)</span><br><span class="line">    print_int($t4)</span><br><span class="line">    pop($ra)</span><br><span class="line">    subi $t2,$t2,1</span><br><span class="line">    bge $t2,0,print_loop</span><br><span class="line">    end</span><br><span class="line"></span><br><span class="line">special:</span><br><span class="line">    print_int($k0)</span><br><span class="line">    end</span><br><span class="line"></span><br><span class="line">back:</span><br><span class="line">    pop($ra)</span><br><span class="line">    jr $ra</span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2025/10/26/P2_off_factorial/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
