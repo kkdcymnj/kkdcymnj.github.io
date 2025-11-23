@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 8.0.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"kkdcymnj.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":false,"version":"8.25.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="写在前面在 BUAA CO 课程中，要求使用 Logisim 实现单周期 CPU，使用 Verilog 实现单周期 &#x2F; 流水线 CPU。为了给自己的 CPU 进行较为可靠的测试，我们需要生成具有一定强度的数据，自动化地评测自己的 CPU 是否能够正常工作。 CPU 评测机的架构大致是：数据生成 → 程序运行 → 结果判断。自动评测 Logisim 和 Verilog 实现的 CPU 的主">
+<meta property="og:type" content="article">
+<meta property="og:title" content="搭建属于你的 CPU 评测机——单周期 CPU">
+<meta property="og:url" content="https://kkdcymnj.github.io/2025/11/23/checker_build/index.html">
+<meta property="og:site_name" content="kkdcymnj&#39;s Blog">
+<meta property="og:description" content="写在前面在 BUAA CO 课程中，要求使用 Logisim 实现单周期 CPU，使用 Verilog 实现单周期 &#x2F; 流水线 CPU。为了给自己的 CPU 进行较为可靠的测试，我们需要生成具有一定强度的数据，自动化地评测自己的 CPU 是否能够正常工作。 CPU 评测机的架构大致是：数据生成 → 程序运行 → 结果判断。自动评测 Logisim 和 Verilog 实现的 CPU 的主">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-11-23T04:23:48.551Z">
+<meta property="article:modified_time" content="2025-11-23T04:29:03.301Z">
+<meta property="article:author" content="kkdcymnj">
+<meta property="article:tag" content="CO 评测机">
+<meta property="article:tag" content="单周期 CPU">
+<meta property="article:tag" content="计算机组成">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://kkdcymnj.github.io/2025/11/23/checker_build/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://kkdcymnj.github.io/2025/11/23/checker_build/","path":"2025/11/23/checker_build/","title":"搭建属于你的 CPU 评测机——单周期 CPU"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>搭建属于你的 CPU 评测机——单周期 CPU | kkdcymnj's Blog</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js" defer></script>
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">kkdcymnj's Blog</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%99%E5%9C%A8%E5%89%8D%E9%9D%A2"><span class="nav-number">1.</span> <span class="nav-text">写在前面</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95%E6%A0%B7%E4%BE%8B%E6%9E%84%E5%BB%BA"><span class="nav-number">2.</span> <span class="nav-text">测试样例构建</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%90%88%E6%B3%95%E6%80%A7"><span class="nav-number">2.1.</span> <span class="nav-text">合法性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E5%BC%BA%E5%BA%A6"><span class="nav-number">2.2.</span> <span class="nav-text">数据强度</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E7%94%9F%E6%88%90"><span class="nav-number">2.3.</span> <span class="nav-text">数据生成</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%B1%87%E7%BC%96%E6%96%87%E4%BB%B6%E5%8F%8A%E6%9C%BA%E5%99%A8%E7%A0%81%E7%94%9F%E6%88%90"><span class="nav-number">2.4.</span> <span class="nav-text">汇编文件及机器码生成</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C-CPU-%E5%B9%B6%E5%AE%9E%E7%8E%B0%E5%AF%B9%E6%8B%8D"><span class="nav-number">3.</span> <span class="nav-text">运行 CPU 并实现对拍</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95%E6%A8%A1%E5%9D%97%E5%87%86%E5%A4%87"><span class="nav-number">3.1.</span> <span class="nav-text">测试模块准备</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A0%B7%E4%BE%8B%E8%BD%BD%E5%85%A5"><span class="nav-number">3.2.</span> <span class="nav-text">样例载入</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C-CPU-%E5%B9%B6%E8%8E%B7%E5%BE%97%E8%BE%93%E5%87%BA"><span class="nav-number">3.3.</span> <span class="nav-text">运行 CPU 并获得输出</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C%E2%80%9C%E9%AD%94%E6%94%B9%E7%89%88%E2%80%9D-MARS-%E8%8E%B7%E5%BE%97%E8%BE%93%E5%87%BA"><span class="nav-number">3.4.</span> <span class="nav-text">运行“魔改版” MARS 获得输出</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%AF%94%E8%BE%83%E8%BE%93%E5%87%BA"><span class="nav-number">3.5.</span> <span class="nav-text">比较输出</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%93%E8%AF%AD"><span class="nav-number">4.</span> <span class="nav-text">结语</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="kkdcymnj"
+      src="/images/tsumiki.jpg">
+  <p class="site-author-name" itemprop="name">kkdcymnj</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">5</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/kkdcymnj" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;kkdcymnj" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:3268478805@qq.com" title="E-Mail → mailto:3268478805@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://kkdcymnj.github.io/2025/11/23/checker_build/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/tsumiki.jpg">
+      <meta itemprop="name" content="kkdcymnj">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="kkdcymnj's Blog">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="搭建属于你的 CPU 评测机——单周期 CPU | kkdcymnj's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          搭建属于你的 CPU 评测机——单周期 CPU
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+      
+
+      <time title="创建时间：2025-11-23 12:23:48 / 修改时间：12:29:03" itemprop="dateCreated datePublished" datetime="2025-11-23T12:23:48+08:00">2025-11-23</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BB%84%E6%88%90%E8%AF%BE%E4%B8%8B/" itemprop="url" rel="index"><span itemprop="name">计算机组成课下</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>8.6k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>14 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h3 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h3><p>在 BUAA CO 课程中，要求使用 Logisim 实现单周期 CPU，使用 Verilog 实现单周期 &#x2F; 流水线 CPU。为了给自己的 CPU 进行较为可靠的测试，我们需要生成具有一定强度的数据，自动化地评测自己的 CPU 是否能够正常工作。</p>
+<p>CPU 评测机的架构大致是：数据生成 → 程序运行 → 结果判断。自动评测 Logisim 和 Verilog 实现的 CPU 的主要区别就在后两个环节上，在接下来的文字中我们将详细地介绍。</p>
+<span id="more"></span>
+
+<p>本篇博客只涉及单周期 CPU 评测机的搭建工作。搭建好单周期 CPU 的评测机后，搭建流水线 CPU 的评测机也就不是难事了——我们只需要按照要求修改数据生成代码。所以流水线 CPU 评测机的搭建就不另外写一篇博客了，具体的代码和样例请见本人仓库。</p>
+<h3 id="测试样例构建"><a href="#测试样例构建" class="headerlink" title="测试样例构建"></a>测试样例构建</h3><p>这里我们讲解如何自动构造具有<strong>一定强度</strong>且<strong>合法</strong>的测试数据，这也是评测机最为重要的一个环节。</p>
+<h4 id="合法性"><a href="#合法性" class="headerlink" title="合法性"></a>合法性</h4><p>这一点在 P4 的评测中尤其重要。P4 时我们会利用“魔改版” MARS 生成样例对应的正确结果，所以我们需要保证程序能够被正确编译，且能被正常执行（主要体现在<strong>不能有死循环</strong>）。</p>
+<p>为了解决这个问题，我们一般采用分块构造 + 公共跳转块的办法。我们生成的评测程序大体可以被切分为多个循环块，每个循环块执行完毕后，会跳转到公共跳转块，执行完公共跳转块的程序后，再进入下一个循环块……如此往复，直到到达 <code>end</code> 块，程序执行完毕。在这个过程中，我们可以对 <code>beq</code>、<code>jal</code>、<code>jr</code> 这样的特殊语句进行测试——如果我们没能正确执行这些语句，循环块内的代码很可能不被执行，输出的结果自然也就不正确。</p>
+<p>下面以一种“抽象”的方式给出了程序的大致结构，如果看不太明白，仓库中放了一份示例代码，大家可以去参考。可能有的读者注意到了，<code>beq</code>、<code>jal</code>、<code>jr</code> 语句后都添加了 <code>nop</code>，这是为后续流水线 CPU 测试准备的，目前不用太在意这个细节。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line">########</span><br><span class="line">    初始化代码</span><br><span class="line">########</span><br><span class="line"></span><br><span class="line">jal label_begin</span><br><span class="line">nop</span><br><span class="line"></span><br><span class="line">label_begin:</span><br><span class="line">    ########</span><br><span class="line">        循环体代码</span><br><span class="line">    ########</span><br><span class="line"></span><br><span class="line">    ori $1,$0,1</span><br><span class="line">    add $loop_var,$1,$loop_var</span><br><span class="line"></span><br><span class="line">    #跳转测试</span><br><span class="line">    beq $loop_var, $cycle_num, label_end</span><br><span class="line">    nop</span><br><span class="line"></span><br><span class="line">    #跳回测试</span><br><span class="line">    jr $ra</span><br><span class="line">    nop</span><br><span class="line"></span><br><span class="line">label_end:</span><br><span class="line">    ########</span><br><span class="line">        循环结束区代码</span><br><span class="line">    ########</span><br><span class="line"></span><br><span class="line">    #跳转链接测试</span><br><span class="line">    jal common_block</span><br><span class="line">    nop</span><br><span class="line"></span><br><span class="line">    #初始化下一个循环块的变量</span><br><span class="line">    ori $loop_var_1,$0,0</span><br><span class="line">    </span><br><span class="line">    #进入下一个循环块</span><br><span class="line">    jal label_begin_1</span><br><span class="line">    nop</span><br><span class="line"></span><br><span class="line">########</span><br><span class="line">    省略多个循环块 </span><br><span class="line">########</span><br><span class="line"></span><br><span class="line">label_last_end:</span><br><span class="line">    ########</span><br><span class="line">        循环结束区代码</span><br><span class="line">    ########</span><br><span class="line"></span><br><span class="line">    #程序即将终止</span><br><span class="line">    ori $5,$0,5 </span><br><span class="line">    jal end</span><br><span class="line">    nop</span><br><span class="line"></span><br><span class="line">common_block:</span><br><span class="line">    ########</span><br><span class="line">        公共跳转区代码</span><br><span class="line">    ########</span><br><span class="line"></span><br><span class="line">    #跳回测试</span><br><span class="line">    jr $ra</span><br><span class="line">    nop</span><br><span class="line"></span><br><span class="line">end:</span><br><span class="line">    beq $0,$5,common_block  </span><br><span class="line">    nop</span><br></pre></td></tr></table></figure>
+
+<p>需要注意的是，每一个循环块的执行都会涉及到一个“循环变量”。在循环块内不要操纵“循环变量”，否则很容易产生死循环。</p>
+<p>解决了合法性的问题后，我们就可以大胆生成数据，填充循环主体代码了。</p>
+<p>注：P3 时我们可以不过多考虑“死循环”问题，因为我们采用两个 Logisim 电路同时对拍的方法，经过一定周期后评测会自动停止。但是到 P4 的评测这个问题就必须纳入考虑，理由已经在上文中说明。</p>
+<h4 id="数据强度"><a href="#数据强度" class="headerlink" title="数据强度"></a>数据强度</h4><p>对于数据强度的评价，我们可以从以下几个基本角度评判：</p>
+<ol>
+<li><p>是否覆盖了所有指令（这是最基本的要求）</p>
+</li>
+<li><p>是否能够随机地测试大部分寄存器（这主要体现在 P3 的评测，群里有同学的 GRF 模块漏接线问题没有被课程组的测试测出，尽管这是一个相当明显且严重的问题）</p>
+</li>
+<li><p>对于内存的读写操作的评判是否真正有效（例如，如果所有内存块内的值都为 0，这时即使你没能正确读出内存内的值，返回的结果也可能为 0，导致无法定位问题）</p>
+</li>
+<li><p>对于分支 &#x2F; 跳转的评测是否有效、全面（例如 <code>beq</code> 不能从来没有执行过，此种情况下无法查出分支的潜在问题；跳转应该覆盖向前、向后的情况）</p>
+</li>
+<li><p>是否覆盖了边界值的情况（例如 <code>int</code> 数据范围上下界，0 附近，内存地址上下界等，可以通过手动构造特殊样例来解决）</p>
+</li>
+<li><p>……</p>
+</li>
+</ol>
+<p>总的来说，我们的测试数据应该有较强的随机性，能够覆盖到比较“极端”的情况；应该有较好的有效性，即如果没能正确执行某条指令，会对输出结果产生比较明显的影响。对于数据的生成，我提出一些我的见解，大家可以参考。当然，如果你有比这聪明得多的想法，下面的内容可以忽略。</p>
+<ol>
+<li><p>随机初始化，包括寄存器和内存。这里可以对 <code>ori</code>、<code>lui</code>、<code>lw</code>、<code>sw</code> 指令进行测试。如此一来，后面针对寄存器的运算一旦出错，对结果会有比较明显的影响，能够起到“评测”的作用。</p>
+</li>
+<li><p>对少部分寄存器 &#x2F; 内存地址进行频繁操作。对于寄存器 &#x2F; 内存的频繁操作会频繁地改变其中存储的内容，指令执行不正确可以很快被发现。</p>
+</li>
+<li><p>涉及到立即数的指令，可以在较大的范围随机生成立即数。例如我通过 <code>randint(immediate_max // 2, immediate)</code> 来生成立即数。当然，也可以设置一定概率，直接生成 <code>immediate_max</code> 作为立即数，其余情况下随机生成。</p>
+</li>
+<li><p>尽量不要生成无法控制的分支 &#x2F; 跳转指令。极端情况下，PC 可以直接跳到程序末尾，这起不到任何评测的作用。</p>
+</li>
+<li><p>……</p>
+</li>
+</ol>
+<h4 id="数据生成"><a href="#数据生成" class="headerlink" title="数据生成"></a>数据生成</h4><p>下面来讲解一下数据生成的代码实现，这里会给出一个简单的框架，完整的代码请查看仓库。类似的生成办法可以推广到其他评测机的制作中（例如 OO 课程的），希望大家多加尝试，形成自己的体会。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">supported_instr = [...] <span class="comment">#列表中存储支持的指令类型</span></span><br><span class="line">instr_probs = [...] <span class="comment">#每个指令生成几率，分支、跳转、空指令的几率可以适当小一些</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">generate_loop</span>(<span class="params">loop_var, cycle_num, body_len, label_num, allowed_instr, generate_prop, instr_list</span>):</span><br><span class="line">    <span class="comment">#循环变量、循环次数、循环体长度、标签、允许在循环体中出现的指令、生成几率、指令列表</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">#初始化循环变量</span></span><br><span class="line">    ...</span><br><span class="line">    </span><br><span class="line">    <span class="comment">#添加标签</span></span><br><span class="line">    cur_label = <span class="string">f&quot;label<span class="subst">&#123;label_num&#125;</span>&quot;</span></span><br><span class="line">    instr_list.append(<span class="string">f&quot;jal <span class="subst">&#123;cur_label&#125;</span>_begin&quot;</span>) <span class="comment">#向指令列表中添加指令</span></span><br><span class="line">    instr_list.append(<span class="string">f&quot;<span class="subst">&#123;cur_label&#125;</span>_begin:&quot;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">#循环体内容生成</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(body_len):</span><br><span class="line"></span><br><span class="line">        <span class="comment">#选择需要操作的寄存器</span></span><br><span class="line">        choice_range = [i <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(reg_size) <span class="keyword">if</span> <span class="number">2</span> &lt;= i &lt;= <span class="number">25</span> <span class="keyword">and</span> i != loop_var]</span><br><span class="line">        rs = random.choice(choice_range)</span><br><span class="line">        rt = random.choice(choice_range)</span><br><span class="line">        rd = random.choice(choice_range)</span><br><span class="line"></span><br><span class="line">        cur_instr = random.choices(allowed_instr, generate_prop)[<span class="number">0</span>]</span><br><span class="line">        <span class="keyword">match</span> cur_instr:</span><br><span class="line">            <span class="keyword">case</span> <span class="string">&quot;add&quot;</span> | <span class="string">&quot;sub&quot;</span>:</span><br><span class="line">                instr_list.append(<span class="string">f&quot;<span class="subst">&#123;cur_instr&#125;</span> $<span class="subst">&#123;rd&#125;</span>,$<span class="subst">&#123;rs&#125;</span>,$<span class="subst">&#123;rt&#125;</span>&quot;</span>)</span><br><span class="line">            <span class="keyword">case</span> <span class="string">&quot;lw&quot;</span> | <span class="string">&quot;sw&quot;</span>:</span><br><span class="line">                <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">                    address = random.randint(<span class="number">0</span>, mem_size)</span><br><span class="line">                    <span class="keyword">if</span> address % <span class="number">4</span> == <span class="number">0</span>:</span><br><span class="line">                        <span class="keyword">break</span></span><br><span class="line">                instr_list.append(<span class="string">f&quot;<span class="subst">&#123;cur_instr&#125;</span> $<span class="subst">&#123;rt&#125;</span>,<span class="subst">&#123;address&#125;</span>($<span class="subst">&#123;<span class="number">0</span>&#125;</span>)&quot;</span>)</span><br><span class="line">            <span class="keyword">case</span> <span class="string">&quot;ori&quot;</span>:</span><br><span class="line">                immediate = random.randint(max_immediate // <span class="number">2</span>, max_immediate)</span><br><span class="line">                instr_list.append(<span class="string">f&quot;ori $<span class="subst">&#123;rt&#125;</span>,$<span class="subst">&#123;rs&#125;</span>,<span class="subst">&#123;immediate&#125;</span>&quot;</span>)</span><br><span class="line">            <span class="keyword">case</span> <span class="string">&quot;nop&quot;</span>:</span><br><span class="line">                instr_list.append(<span class="string">f&quot;nop&quot;</span>)</span><br><span class="line">            <span class="keyword">case</span> <span class="string">&quot;lui&quot;</span>:</span><br><span class="line">                immediate = random.randint(max_immediate // <span class="number">2</span>, max_immediate)</span><br><span class="line">                instr_list.append(<span class="string">f&quot;lui $<span class="subst">&#123;rt&#125;</span>,<span class="subst">&#123;immediate&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">#循环尾部代码</span></span><br><span class="line">    ...</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h4 id="汇编文件及机器码生成"><a href="#汇编文件及机器码生成" class="headerlink" title="汇编文件及机器码生成"></a>汇编文件及机器码生成</h4><p>执行完数据生成的代码后，我们会获得一个 <code>list</code>，我们需要用 <code>\n</code> 拼接 <code>list</code> 中各元素形成一个 <code>str</code>，并导出到 <code>.asm</code> 文件中。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">test_case = <span class="string">&#x27;\n&#x27;</span>.join(instr_list)</span><br><span class="line"></span><br><span class="line"><span class="keyword">with</span> <span class="built_in">open</span>(<span class="string">f&#x27;sample.asm&#x27;</span>, <span class="string">&#x27;w&#x27;</span>, encoding=<span class="string">&#x27;utf-8&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">    f.write(test_case)</span><br></pre></td></tr></table></figure>
+
+<p>接着，我们需要将 <code>.asm</code> 文件在 MARS 中进行编译，生成机器码的 <code>.txt</code> 文件，并进行保存。这一步利用命令行完成会比较方便。注意，如果你想直接使用以下代码，请保证你已经准备好了“魔改版”MARS。官方的 MARS 并没有 <code>CompactLargeText</code> 选项，最多只能支持 1024 条指令。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">cmd = <span class="string">f&quot;java -jar <span class="subst">&#123;mars_jar&#125;</span> a mc CompactLargeText dump .text HexText <span class="subst">&#123;output_file&#125;</span> <span class="subst">&#123;input_file&#125;</span>&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">   <span class="built_in">print</span>(<span class="string">f&quot;正在汇编: <span class="subst">&#123;filename&#125;</span>&quot;</span>)</span><br><span class="line">   result = subprocess.run(cmd, shell=<span class="literal">True</span>, capture_output=<span class="literal">True</span>, text=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line">   <span class="keyword">if</span> result.returncode == <span class="number">0</span>:</span><br><span class="line">       <span class="built_in">print</span>(<span class="string">f&quot;成功生成: <span class="subst">&#123;output_file&#125;</span>&quot;</span>)</span><br><span class="line">   <span class="keyword">else</span>:</span><br><span class="line">       <span class="built_in">print</span>(<span class="string">f&quot;汇编失败: <span class="subst">&#123;filename&#125;</span>&quot;</span>)</span><br><span class="line">       <span class="built_in">print</span>(<span class="string">f&quot;错误信息: <span class="subst">&#123;result.stderr&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">   <span class="built_in">print</span>(<span class="string">f&quot;错误: <span class="subst">&#123;filename&#125;</span> - <span class="subst">&#123;e&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<h3 id="运行-CPU-并实现对拍"><a href="#运行-CPU-并实现对拍" class="headerlink" title="运行 CPU 并实现对拍"></a>运行 CPU 并实现对拍</h3><h4 id="测试模块准备"><a href="#测试模块准备" class="headerlink" title="测试模块准备"></a>测试模块准备</h4><p>这一部分比较简单。Logisim 的测试电路搭建请参考教程，注意不要忘了 <code>halt</code> 信号，否则评测无法终止；Verilog 的 testbench 可以直接用下面这个，注意仿真时间不能设定得太短，否则样例还没执行完仿真就停止了。不要忘记添加 <code>$finish</code> 语句，因为 iVerilog 的仿真是默认一直进行的。</p>
+<figure class="highlight verilog"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">module</span> test;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Inputs</span></span><br><span class="line">	<span class="keyword">reg</span> clk;</span><br><span class="line">	<span class="keyword">reg</span> reset;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Instantiate the Unit Under Test (UUT)</span></span><br><span class="line">	mips uut (</span><br><span class="line">		<span class="variable">.clk</span>(clk), </span><br><span class="line">		<span class="variable">.reset</span>(reset)</span><br><span class="line">	);</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">always</span> #<span class="number">1</span> clk=~clk;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">initial</span> <span class="keyword">begin</span></span><br><span class="line">		<span class="comment">// Initialize Inputs</span></span><br><span class="line">		clk = <span class="number">0</span>;</span><br><span class="line">		reset = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Wait 100 ns for global reset to finish</span></span><br><span class="line">		#<span class="number">100</span>;</span><br><span class="line">		reset=<span class="number">0</span>;</span><br><span class="line">        </span><br><span class="line">		<span class="comment">// Add stimulus here</span></span><br><span class="line">		#<span class="number">100000</span>;</span><br><span class="line">		<span class="built_in">$finish</span>;</span><br><span class="line">	<span class="keyword">end</span></span><br><span class="line">      </span><br><span class="line"><span class="keyword">endmodule</span></span><br></pre></td></tr></table></figure>
+
+<p>此外，你还需要准备好 <code>logisim-generic-2.7.1.jar</code> 以及 iVerilog，这两项内容均可以在教程中找到资源链接。</p>
+<h4 id="样例载入"><a href="#样例载入" class="headerlink" title="样例载入"></a>样例载入</h4><p>Logisim 的样例载入会略微复杂一点，需要修改 <code>.xml</code> 文件。其实你的 <code>.circ</code> 电路就是一种 <code>.xml</code> 文件，可以尝试用 VSCode 查看。</p>
+<p>我们需要将机器码注入到 IFU 模块的 ROM 中。在 <code>.circ</code> 文件中定位到 ROM 处，“…”表示了机器码应当被填充的位置。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">comp</span> <span class="attr">lib</span>=<span class="string">&quot;4&quot;</span> <span class="attr">loc</span>=<span class="string">&quot;(750,1020)&quot;</span> <span class="attr">name</span>=<span class="string">&quot;ROM&quot;</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">a</span> <span class="attr">name</span>=<span class="string">&quot;addrWidth&quot;</span> <span class="attr">val</span>=<span class="string">&quot;12&quot;</span>/&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">a</span> <span class="attr">name</span>=<span class="string">&quot;dataWidth&quot;</span> <span class="attr">val</span>=<span class="string">&quot;32&quot;</span>/&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">a</span> <span class="attr">name</span>=<span class="string">&quot;contents&quot;</span>&gt;</span>addr/data: 12 32</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;/<span class="name">comp</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>我们可以使用<strong>正则表达式</strong>来匹配这一部分的内容，然后利用 <code>re.sub</code> 将匹配到的内容、机器码内容进行拼接，这样我们就成功注入了机器码。注意各个 32 位机器码间应该用空格分隔，亲身实践用 <code>\n</code> 分隔会报错。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">with</span> <span class="built_in">open</span>(machine_code_file, <span class="string">&#x27;r&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">        new_content = f.read()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(file_a, <span class="string">&#x27;r&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">        circ_a = f.read()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(file_b, <span class="string">&#x27;r&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">        circ_b = f.read()</span><br><span class="line"></span><br><span class="line">    ptn = (<span class="string">r&#x27;(&lt;comp lib=&quot;\d+&quot; loc=&quot;\(\d+,\d+\)&quot; name=&quot;ROM&quot;&gt;&#x27;</span></span><br><span class="line">           <span class="string">r&#x27;\s*&lt;a name=&quot;addrWidth&quot; val=&quot;\d+&quot;/&gt;&#x27;</span></span><br><span class="line">           <span class="string">r&#x27;\s*&lt;a name=&quot;dataWidth&quot; val=&quot;\d+&quot;/&gt;&#x27;</span></span><br><span class="line">           <span class="string">r&#x27;\s*&lt;a name=&quot;contents&quot;&gt;)[\s\S]*?(&lt;/a&gt;)&#x27;</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">#()中存放了两“块”正则匹配到的内容，match.group(1) 和 match.group(2) 分别对应这两块内容。</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">match</span> = re.search(ptn, circ_a)</span><br><span class="line">    <span class="comment">#我的电路中 ROM 地址宽度是 12 位，使用这个程序时注意地址宽度能否匹配</span></span><br><span class="line">    replacement = <span class="keyword">match</span>.group(<span class="number">1</span>) + <span class="string">&quot;addr/data: 12 32\n&quot;</span> + new_content + <span class="string">&quot;\n&quot;</span> + </span><br><span class="line">    <span class="keyword">match</span>.group(<span class="number">2</span>)</span><br><span class="line">    new_circ_a = re.sub(ptn, replacement, circ_a)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">match</span> = re.search(ptn, circ_b)</span><br><span class="line">    replacement = <span class="keyword">match</span>.group(<span class="number">1</span>) + <span class="string">&quot;addr/data: 12 32\n&quot;</span> + new_content + <span class="string">&quot;\n&quot;</span> + <span class="keyword">match</span>.group(<span class="number">2</span>)</span><br><span class="line">    new_circ_b = re.sub(ptn, replacement, circ_b)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(file_a, <span class="string">&#x27;w&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">        f.write(new_circ_a)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(file_b, <span class="string">&#x27;w&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">        f.write(new_circ_b)</span><br></pre></td></tr></table></figure>
+
+<p>Verilog 的样例载入就要简单很多。我们只需要将生成的机器码文件复制到与 Verilog 源代码在同一目录下的 <code>code.txt</code> 中，这一步还是通过命令行完成。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$copy</span> &#123;machine_code&#125;  &#123;injection_file&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="运行-CPU-并获得输出"><a href="#运行-CPU-并获得输出" class="headerlink" title="运行 CPU 并获得输出"></a>运行 CPU 并获得输出</h4><p>运行 Logisim 测试电路时，我们需要将我们搭建的 CPU 作为一个模块导入。<code>machine</code> 在这里即为 <code>logisim-generic-2.7.1.jar</code>，<code>testbench</code> 为测试电路文件名，<code>file_name</code> 为待评测电路文件的文件名。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$java</span> -jar &#123;machine&#125; &#123;testbench&#125; -load &#123;file_name&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后我们以最快速度运行测试电路，以表格形式输出结果。表格中每一列代表一个输出端口在每一个时钟周期的输出值，每一列的具体含义取决于电路中端口的排列顺序。CO 平台上会要求你将输出端口按照给定顺序排列，因为评测时会直接比较你的电路输出的二进制文件是否与正确输出完全一致，若你的端口排列顺序不同，那么每一列的对应关系就“乱”了，评测自然也不会通过。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$java</span> -jar &#123;machine&#125; &#123;testbench&#125; -<span class="built_in">tty</span> table</span><br></pre></td></tr></table></figure>
+
+<p>运行 Verilog 测试模块前，先要使用 Icarus Verilog 编译器将多个 Verilog 文件编译成一个可执行的仿真文件。<code>*.v</code> 会包含当前目录下所有的 Verilog 源文件，<code>-s</code> 参数告诉编译器哪个模块是测试的顶层模块，生成的输出文件 <code>.out</code> 是一个可以在终端直接运行的仿真程序。</p>
+<blockquote>
+<p>注意：这里的 <code>test_module_name</code> 应该是测试文件的<strong>模块名称</strong>，而不是测试文件的文件名。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">iverilog -s &#123;test_module_name&#125; -o &#123;test_module_name&#125;.out *.v</span><br></pre></td></tr></table></figure>
+
+<p>然后运行仿真程序。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vvp &#123;test_module_name&#125;.out</span><br></pre></td></tr></table></figure>
+
+<p>最后，别忘了把获得的输出写到输出文件中，这一步就交给大家自行完成。</p>
+<h4 id="运行“魔改版”-MARS-获得输出"><a href="#运行“魔改版”-MARS-获得输出" class="headerlink" title="运行“魔改版” MARS 获得输出"></a>运行“魔改版” MARS 获得输出</h4><p>在 P3 的评测中这一步其实可以省略，我们可以直接对拍两份电路，然后比对输出的二进制文件。当然，由于“表格”中每一列对应关系明确，我们可以另外写一份解析程序来获得寄存器和内存的操作信息，与魔改版 MARS 的输出作比对。这一步骤相信对大家来说并不困难，这里就不提供代码了。</p>
+<p>在 P3 和 P4 中，我们的 <code>add</code> 和 <code>sub</code> 指令并不考虑溢出异常，所以我们运行“魔改版” MARS 时也需要忽略溢出，命令行中 <code>ig</code> 参数就起到了这一作用。使用 <code>coL1</code> 参数能够输出对内存和寄存器的操作，<code>coL2</code> 参数能够获得更为详细的输出信息以便 debug，评测时我们只需要使用 <code>coL1</code>。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$java</span> -jar &#123;machine&#125; &#123;file&#125; mc CompactLargeText coL1 ig</span><br></pre></td></tr></table></figure>
+
+<h4 id="比较输出"><a href="#比较输出" class="headerlink" title="比较输出"></a>比较输出</h4><p>这一部分只需要对输出进行简单的比较。在 P3 和 P4 中，直接比较两份文件（测试模块输出、对拍对象输出）的输出是否相同就可以；P5 中由于同一时刻可能对内存、寄存器均有操作，所以对内存、寄存器的操作需要分开来比较。</p>
+<h3 id="结语"><a href="#结语" class="headerlink" title="结语"></a>结语</h3><p>写到这里，评测机的构造也就慢慢清晰了——无非是数据生成、运行标准程序和待测程序、比较输出这几步，这也是评测机最为常见且容易实现的架构。</p>
+<p>万事开头难，当你初次完成了评测机的搭建，“对拍”部分的代码一般就不会有大的变动了（至少对于 CO 课程来说如此），后续迭代只需要对“数据生成”代码进行调整。数据生成可以说是评测机的“灵魂”——评测效果如何，几乎全看数据强度如何。本文虽然介绍了如何随机生成数据，但是随机的数据并不能覆盖到所有的边界情况。<strong>随机生成结合“手搓”往往才是最优解</strong>。</p>
+<p>希望这篇文章能够“抛砖引玉”，帮助大家搭建起自己的评测机。当你有了不错的评测机，意味着每次课下你都可以进行“强测”，能够尽量多地发现设计中的细节问题，从而可以将更能经受住考验的架构带到课上——上机时不用以 debug 课下“开局”，能将全部心思投入到新增指令上，“一遍过”这时不再是幻想。</p>
+<p>希望在评测机的辅助下，大家能够准备好 bug-free 的设计，能够更有底气、更有自信地进入课上环节，顺利地推进上机测试。</p>
+<p><strong>祝愿大家在计算机组成实验的道路上稳步前行！</strong></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BB%84%E6%88%90/" rel="tag"># 计算机组成</a>
+              <a href="/tags/%E5%8D%95%E5%91%A8%E6%9C%9F-CPU/" rel="tag"># 单周期 CPU</a>
+              <a href="/tags/CO-%E8%AF%84%E6%B5%8B%E6%9C%BA/" rel="tag"># CO 评测机</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/11/23/p3p4_learn/" rel="prev" title="计算机组成 P3 &#x2F; P4 课下——单周期 CPU">
+                  <i class="fa fa-angle-left"></i> 计算机组成 P3 / P4 课下——单周期 CPU
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">kkdcymnj</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">29k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">49 分钟</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

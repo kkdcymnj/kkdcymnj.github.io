@@ -341,7 +341,7 @@
 <h3 id="思路建构"><a href="#思路建构" class="headerlink" title="思路建构"></a>思路建构</h3><p>很明显我们需要运用<strong>高精度乘法</strong>完成本题。首先让我们复习一下如何进行两个大数的高精度乘法，下面给出了对应的C语言代码，至于其汇编代码的编写就麻烦大家自行完成了。</p>
 <figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;bits/stdc++.h&gt;</span></span></span><br><span class="line">using namespace <span class="built_in">std</span>;</span><br><span class="line"><span class="type">char</span> a[<span class="number">1005</span>],b[<span class="number">1005</span>];</span><br><span class="line"><span class="type">int</span> A[<span class="number">1005</span>],B[<span class="number">1005</span>],C[<span class="number">1005</span>],temp;</span><br><span class="line"><span class="type">char</span> out[<span class="number">1005</span>];</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="built_in">cin</span>&gt;&gt;a;</span><br><span class="line">    <span class="built_in">cin</span>&gt;&gt;b;</span><br><span class="line">    <span class="type">int</span> lena=<span class="built_in">strlen</span>(a),lenb=<span class="built_in">strlen</span>(b);</span><br><span class="line">    <span class="type">int</span> len_out=lena+lenb;  <span class="comment">//a位与b位的数字相乘，结果最多为(a+b)位</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i=<span class="number">0</span>;i&lt;lena;i++)&#123;</span><br><span class="line">        A[i]=a[lena-i<span class="number">-1</span>]-<span class="string">&#x27;0&#x27;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i=<span class="number">0</span>;i&lt;lenb;i++)&#123;</span><br><span class="line">        B[i]=b[lenb-i<span class="number">-1</span>]-<span class="string">&#x27;0&#x27;</span>;</span><br><span class="line">    &#125;                       <span class="comment">//类似于写竖式时，乘数的低位要对齐</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i=<span class="number">0</span>;i&lt;lena;i++)&#123;</span><br><span class="line">        temp=<span class="number">0</span>;             <span class="comment">//记录进位</span></span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> j=<span class="number">0</span>;j&lt;lenb;j++)&#123;</span><br><span class="line">            C[i+j]=A[i]*B[j]+temp+C[i+j];</span><br><span class="line">            temp=C[i+j]/<span class="number">10</span>;</span><br><span class="line">            C[i+j]%=<span class="number">10</span>;     <span class="comment">//想想竖式乘法是怎么计算的</span></span><br><span class="line">        &#125;</span><br><span class="line">        C[i+lenb]=temp;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="type">int</span> k;</span><br><span class="line">    <span class="keyword">for</span>(k=<span class="number">1004</span>;k&gt;<span class="number">0</span>;k--)&#123;</span><br><span class="line">        <span class="keyword">if</span>(C[k<span class="number">-1</span>]!=<span class="number">0</span>)&#123;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;                       <span class="comment">//输出时注意去除前导0</span></span><br><span class="line">    <span class="keyword">for</span>(;k&gt;=<span class="number">0</span>;k--)&#123;</span><br><span class="line">        <span class="built_in">cout</span>&lt;&lt;C[k];</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>解决了高精度乘法这一问题后，编写计算阶乘的程序似乎就很简单了。我们可以声明三个“数组”A，B 和 C，A 中存放上一次阶乘运算的结果，B 中存放当前乘数，C 中存放本次阶乘的结果。若需要再进行一次阶乘，则将 C 的内容复制到 A，将 A 乘以 B，再得出新的 C 即可。如此一来，我们只需要编写一个三重循环就可以完成任务。</p>
-<h3 id="发现问题"><a href="#发现问题" class="headerlink" title="发现问题"></a>发现问题</h3><p>相信有的读者已经发现了问题：三重循环还是太逆天了，毕竟我们只有 200,000 步。事实也确实如此，我使用 mars 中的 Instruction Counter 工具得到了计算 40，60 和 100 的阶乘所需要的步数。结果大致如下表所示。</p>
+<h3 id="发现问题"><a href="#发现问题" class="headerlink" title="发现问题"></a>发现问题</h3><p>相信有的读者已经发现了问题：三重循环效率太低，在 200,000 的步数限制下似乎很难完成任务。事实也确实如此。我使用 mars 中的 Instruction Counter 工具得到了计算 40，60 和 100 的阶乘所需要的步数。结果大致如下表所示。</p>
 <table>
 <thead>
 <tr>
@@ -362,14 +362,14 @@
 <td>538,489</td>
 </tr>
 </tbody></table>
-<p>通过这一份表我们可以看到，我们的代码在计算 60! 时就快要达到最大步数限制了，计算 100! 时就已经严重超出了步数限制——而此时阶乘的结果不过 158 位，远少于 1000 位。目前的这份“三重循环”代码显然不能完成这道题的任务。</p>
+<p>通过这一份表我们可以看到，我们的代码在计算 60! 时就快要达到最大步数限制了，计算 100! 时就已经严重超出了步数限制——而此时阶乘的结果不过 158 位，远少于 1000 位。目前的这份“三重循环”代码显然需要一定优化。</p>
 <h3 id="解决问题"><a href="#解决问题" class="headerlink" title="解决问题"></a>解决问题</h3><p>重新审视一下在“三重循环”代码中我们做了什么。在计算 $(n-1)!\times n$ 的循环中，我们做了以下几步：</p>
 <ol>
-<li><p>C 中原先存放了 $(n-1)!$ 的结果，将这一结果复制到 A</p>
+<li><p>一开始 C 中存放了 $(n-1)!$ 的结果，将这一结果复制到 A</p>
 </li>
 <li><p>将这一次需要的 $n$ 复制到 B</p>
 </li>
-<li><p>两重循环计算出 $n!$，这一结果存储到 C 中</p>
+<li><p>两重循环计算出 $n!$，相应结果存储到 C 中</p>
 </li>
 </ol>
 <p>在以上三个步骤中，1 看起来是比较累赘的，但是某种程度上我们又难以避免。考虑下面的一个场景：</p>
@@ -379,15 +379,16 @@
 <p>如果我们还需要计算 <code>C[(i+j)+k]</code> 中的内容，程序会执行以下语句：</p>
 <figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">C[(i+j)+k] = C[i+j] * B[k] + temp + C[(i+j)+k]</span><br></pre></td></tr></table></figure>
 
-<p>此时计算出的 <code>C[(i+j)+k]</code> 大约是不正确的，因为 <code>C[i+j]</code> 的值已经被改变，也就是说我们没有用原来的乘数乘以新的乘数。</p>
+<p>此时计算出的 <code>C[(i+j)+k]</code> 大约是不正确的，因为 <code>C[i+j]</code> 的值在之前已经被改变，并不等于所谓 <code>A[i+j]</code>，也就是说我们没有用原来的乘数乘以新的乘数。</p>
+<p>既然如此，有没有什么方法可以尽量避开第 1 步的复制操作呢？以下是我的一些简单思考。</p>
 <p><strong>如何“避开”步骤 1 来节省步数？</strong></p>
-<p>设想每次的 B 只有 1 位，则我们其实没有必要执行步骤 1 的操作。在这种情况下，循环体中的 <code>j</code> 只可能为 0，新的 C 中第 <code>k</code> 位的结果只另外依赖于 <code>B[0]</code> 和 <code>A[k]</code>。即使我们不将 C 的原有内容复制到 A，即 <code>C[k] = C[k] * B[0] + temp + C[k]</code>，<code>C[k]</code> 的改变也不会影响到 C 中其他位的结果——因为计算其他位的结果根本用不到 <code>C[k]</code>。这样一来，我们的程序也被简化为了<strong>二重循环</strong>（因为 <code>j</code> 只能取 0）。</p>
-<p><strong>如何让 B 只有“1位”？</strong></p>
-<p>我们不一定需要进行十进制乘法，可以进行 <strong>1000 进制</strong>的乘法。由于阶乘结果限制在 1000 位以内，B 不会超过 450（450! 的结果为 1001 位）。在 1000 进制的表示下，如果 $B\leq 450$，那么 B 必然只有“1位”。</p>
-<p>进行 1000 进制的乘法也很简单——只需将 <code>%10</code> 改为 <code>%1000</code>。不过，输出计算结果时需要小心一点。</p>
+<p>设想每次的 B 只有 1 位，则我们其实没有必要执行步骤 1 的操作。在这种情况下，循环体中的 <code>j</code> 只可能为 0，新的 C 中第 <code>k</code> 位的结果只另外依赖于 <code>B[0]</code>，<code>A[k]</code> 以及进位 <code>temp</code>。即使我们不将 C 的原有内容复制到 A，即 <code>C[k] = C[k] * B[0] + temp + C[k]</code>，<code>C[k]</code> 的改变也不会影响到 C 中其他位的结果——因为计算其他位的结果根本用不到 <code>C[k]</code>。这样一来，我们的程序也被简化为了<strong>二重循环</strong>，效率上应该有一定提升（因为 <code>j</code> 只能取 0，这一层循环退化掉了）。</p>
+<p><strong>如何让 B 只有“1 位”？</strong></p>
+<p>我们不一定需要进行 10 进制乘法，可以进行 <strong>1000 进制</strong>的乘法。由于阶乘结果限制在 1000 位以内，B 不会超过 450（450! 的结果为 1001 位）。在 1000 进制的表示下，如果 $B\leq 450$，那么 B 必然只有“1 位”。</p>
+<p>进行 1000 进制的乘法也很简单——基本思想和做 10 进制乘法类似，只需作出诸如“<code>%10</code> 改为 <code>%1000</code>”的改变。不过，输出计算结果时需要小心一点，这在下面一点中会提及。</p>
 <p><strong>如何输出 1000 进制乘法的结果？</strong></p>
-<p>假设乘法结果在 1000 进制下最高位是第 $m$ 位，我们需要按照第 $m$ 位至第 0 位的顺序依次“拼接”输出。</p>
-<p>输出第 $m$ 位：注意不能输出前导 0，输出 <code>C[m] % 1000</code> 即可。</p>
+<p>假设阶乘结果在 1000 进制下最高位是第 $m$ 位，我们需要按照第 $m$ 位至第 0 位的顺序依次“拼接”输出。</p>
+<p>输出第 $m$ 位（即最高位）：注意不能输出前导 0，也就是说输出 <code>C[m] % 1000</code> 即可。</p>
 <p>输出第 $k$ 位（$0\leq k\leq m-1$）：注意需要输出前导 0。可以根据 <code>C[k]</code> 的大小来确定需要补充的前导 0 数量。例如，若 <code>C[k]</code> 是两位数，则需要补充 1 个前导 0。</p>
 <h3 id="效果验证"><a href="#效果验证" class="headerlink" title="效果验证"></a>效果验证</h3><p>运用新的代码计算大数阶乘，阶乘数以及对应计算步数如下表所示。</p>
 <table>
@@ -418,11 +419,11 @@
 <td>452,305</td>
 </tr>
 </tbody></table>
-<p>可以看到，如果步数限制为 200,000，这一份代码可以成功计算 200!，相比第一版“三重循环”代码有了显著进步。不过，这离计算 450! 的目标还有比较大的差距。若还想进一步压缩程序执行步数，可以从以下方面考虑：</p>
+<p>可以看到，如果步数限制为 200,000，这一份代码可以成功计算 200!，效率上相比第一版“三重循环”代码有了显著进步。不过，这离计算 450! 的目标还有比较大的差距。若还想进一步压缩程序执行步数，可以从以下方面考虑：</p>
 <ol>
-<li><p>“增大”进制，例如计算 10,000 进制乘法。不过进制也不能随意“增大”，毕竟一个字只能存放 <code>int</code> 大小的数据，这一量级是 $10^9$。</p>
+<li><p>“增大”进制，例如计算 10,000 进制乘法。不过进制也不能随意“增大”，毕竟一个字只能存放 <code>int</code> 范围的数据，这一量级是 $10^9$。</p>
 </li>
-<li><p>修改指令，减少不必要的寄存器赋值以及非基本指令的使用。</p>
+<li><p>减少不必要的寄存器赋值语句，或是适当修改所使用的指令。例如，<code>beq</code> 是基本指令，而 <code>blt</code> 会被展开为 <code>slt</code> 与 <code>bne</code>，实际执行时运行步数就多了。这一点很多时候体现在怎么用 MIPS 书写循环上。</p>
 </li>
 </ol>
 <p>如果只是想通过课程平台的评测，修改后的代码已经足够，数据点还是给得比较松弛的。</p>
@@ -436,6 +437,747 @@
         <tag>计算机组成</tag>
         <tag>高精度乘法</tag>
         <tag>MIPS 汇编</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>搭建属于你的 CPU 评测机——单周期 CPU</title>
+    <url>/2025/11/23/checker_build/</url>
+    <content><![CDATA[<h3 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h3><p>在 BUAA CO 课程中，要求使用 Logisim 实现单周期 CPU，使用 Verilog 实现单周期 &#x2F; 流水线 CPU。为了给自己的 CPU 进行较为可靠的测试，我们需要生成具有一定强度的数据，自动化地评测自己的 CPU 是否能够正常工作。</p>
+<p>CPU 评测机的架构大致是：数据生成 → 程序运行 → 结果判断。自动评测 Logisim 和 Verilog 实现的 CPU 的主要区别就在后两个环节上，在接下来的文字中我们将详细地介绍。</p>
+<span id="more"></span>
+
+<p>本篇博客只涉及单周期 CPU 评测机的搭建工作。搭建好单周期 CPU 的评测机后，搭建流水线 CPU 的评测机也就不是难事了——我们只需要按照要求修改数据生成代码。所以流水线 CPU 评测机的搭建就不另外写一篇博客了，具体的代码和样例请见本人仓库。</p>
+<h3 id="测试样例构建"><a href="#测试样例构建" class="headerlink" title="测试样例构建"></a>测试样例构建</h3><p>这里我们讲解如何自动构造具有<strong>一定强度</strong>且<strong>合法</strong>的测试数据，这也是评测机最为重要的一个环节。</p>
+<h4 id="合法性"><a href="#合法性" class="headerlink" title="合法性"></a>合法性</h4><p>这一点在 P4 的评测中尤其重要。P4 时我们会利用“魔改版” MARS 生成样例对应的正确结果，所以我们需要保证程序能够被正确编译，且能被正常执行（主要体现在<strong>不能有死循环</strong>）。</p>
+<p>为了解决这个问题，我们一般采用分块构造 + 公共跳转块的办法。我们生成的评测程序大体可以被切分为多个循环块，每个循环块执行完毕后，会跳转到公共跳转块，执行完公共跳转块的程序后，再进入下一个循环块……如此往复，直到到达 <code>end</code> 块，程序执行完毕。在这个过程中，我们可以对 <code>beq</code>、<code>jal</code>、<code>jr</code> 这样的特殊语句进行测试——如果我们没能正确执行这些语句，循环块内的代码很可能不被执行，输出的结果自然也就不正确。</p>
+<p>下面以一种“抽象”的方式给出了程序的大致结构，如果看不太明白，仓库中放了一份示例代码，大家可以去参考。可能有的读者注意到了，<code>beq</code>、<code>jal</code>、<code>jr</code> 语句后都添加了 <code>nop</code>，这是为后续流水线 CPU 测试准备的，目前不用太在意这个细节。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">########</span><br><span class="line">    初始化代码</span><br><span class="line">########</span><br><span class="line"></span><br><span class="line">jal label_begin</span><br><span class="line">nop</span><br><span class="line"></span><br><span class="line">label_begin:</span><br><span class="line">    ########</span><br><span class="line">        循环体代码</span><br><span class="line">    ########</span><br><span class="line"></span><br><span class="line">    ori $1,$0,1</span><br><span class="line">    add $loop_var,$1,$loop_var</span><br><span class="line"></span><br><span class="line">    #跳转测试</span><br><span class="line">    beq $loop_var, $cycle_num, label_end</span><br><span class="line">    nop</span><br><span class="line"></span><br><span class="line">    #跳回测试</span><br><span class="line">    jr $ra</span><br><span class="line">    nop</span><br><span class="line"></span><br><span class="line">label_end:</span><br><span class="line">    ########</span><br><span class="line">        循环结束区代码</span><br><span class="line">    ########</span><br><span class="line"></span><br><span class="line">    #跳转链接测试</span><br><span class="line">    jal common_block</span><br><span class="line">    nop</span><br><span class="line"></span><br><span class="line">    #初始化下一个循环块的变量</span><br><span class="line">    ori $loop_var_1,$0,0</span><br><span class="line">    </span><br><span class="line">    #进入下一个循环块</span><br><span class="line">    jal label_begin_1</span><br><span class="line">    nop</span><br><span class="line"></span><br><span class="line">########</span><br><span class="line">    省略多个循环块 </span><br><span class="line">########</span><br><span class="line"></span><br><span class="line">label_last_end:</span><br><span class="line">    ########</span><br><span class="line">        循环结束区代码</span><br><span class="line">    ########</span><br><span class="line"></span><br><span class="line">    #程序即将终止</span><br><span class="line">    ori $5,$0,5 </span><br><span class="line">    jal end</span><br><span class="line">    nop</span><br><span class="line"></span><br><span class="line">common_block:</span><br><span class="line">    ########</span><br><span class="line">        公共跳转区代码</span><br><span class="line">    ########</span><br><span class="line"></span><br><span class="line">    #跳回测试</span><br><span class="line">    jr $ra</span><br><span class="line">    nop</span><br><span class="line"></span><br><span class="line">end:</span><br><span class="line">    beq $0,$5,common_block  </span><br><span class="line">    nop</span><br></pre></td></tr></table></figure>
+
+<p>需要注意的是，每一个循环块的执行都会涉及到一个“循环变量”。在循环块内不要操纵“循环变量”，否则很容易产生死循环。</p>
+<p>解决了合法性的问题后，我们就可以大胆生成数据，填充循环主体代码了。</p>
+<p>注：P3 时我们可以不过多考虑“死循环”问题，因为我们采用两个 Logisim 电路同时对拍的方法，经过一定周期后评测会自动停止。但是到 P4 的评测这个问题就必须纳入考虑，理由已经在上文中说明。</p>
+<h4 id="数据强度"><a href="#数据强度" class="headerlink" title="数据强度"></a>数据强度</h4><p>对于数据强度的评价，我们可以从以下几个基本角度评判：</p>
+<ol>
+<li><p>是否覆盖了所有指令（这是最基本的要求）</p>
+</li>
+<li><p>是否能够随机地测试大部分寄存器（这主要体现在 P3 的评测，群里有同学的 GRF 模块漏接线问题没有被课程组的测试测出，尽管这是一个相当明显且严重的问题）</p>
+</li>
+<li><p>对于内存的读写操作的评判是否真正有效（例如，如果所有内存块内的值都为 0，这时即使你没能正确读出内存内的值，返回的结果也可能为 0，导致无法定位问题）</p>
+</li>
+<li><p>对于分支 &#x2F; 跳转的评测是否有效、全面（例如 <code>beq</code> 不能从来没有执行过，此种情况下无法查出分支的潜在问题；跳转应该覆盖向前、向后的情况）</p>
+</li>
+<li><p>是否覆盖了边界值的情况（例如 <code>int</code> 数据范围上下界，0 附近，内存地址上下界等，可以通过手动构造特殊样例来解决）</p>
+</li>
+<li><p>……</p>
+</li>
+</ol>
+<p>总的来说，我们的测试数据应该有较强的随机性，能够覆盖到比较“极端”的情况；应该有较好的有效性，即如果没能正确执行某条指令，会对输出结果产生比较明显的影响。对于数据的生成，我提出一些我的见解，大家可以参考。当然，如果你有比这聪明得多的想法，下面的内容可以忽略。</p>
+<ol>
+<li><p>随机初始化，包括寄存器和内存。这里可以对 <code>ori</code>、<code>lui</code>、<code>lw</code>、<code>sw</code> 指令进行测试。如此一来，后面针对寄存器的运算一旦出错，对结果会有比较明显的影响，能够起到“评测”的作用。</p>
+</li>
+<li><p>对少部分寄存器 &#x2F; 内存地址进行频繁操作。对于寄存器 &#x2F; 内存的频繁操作会频繁地改变其中存储的内容，指令执行不正确可以很快被发现。</p>
+</li>
+<li><p>涉及到立即数的指令，可以在较大的范围随机生成立即数。例如我通过 <code>randint(immediate_max // 2, immediate)</code> 来生成立即数。当然，也可以设置一定概率，直接生成 <code>immediate_max</code> 作为立即数，其余情况下随机生成。</p>
+</li>
+<li><p>尽量不要生成无法控制的分支 &#x2F; 跳转指令。极端情况下，PC 可以直接跳到程序末尾，这起不到任何评测的作用。</p>
+</li>
+<li><p>……</p>
+</li>
+</ol>
+<h4 id="数据生成"><a href="#数据生成" class="headerlink" title="数据生成"></a>数据生成</h4><p>下面来讲解一下数据生成的代码实现，这里会给出一个简单的框架，完整的代码请查看仓库。类似的生成办法可以推广到其他评测机的制作中（例如 OO 课程的），希望大家多加尝试，形成自己的体会。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">supported_instr = [...] <span class="comment">#列表中存储支持的指令类型</span></span><br><span class="line">instr_probs = [...] <span class="comment">#每个指令生成几率，分支、跳转、空指令的几率可以适当小一些</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">generate_loop</span>(<span class="params">loop_var, cycle_num, body_len, label_num, allowed_instr, generate_prop, instr_list</span>):</span><br><span class="line">    <span class="comment">#循环变量、循环次数、循环体长度、标签、允许在循环体中出现的指令、生成几率、指令列表</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">#初始化循环变量</span></span><br><span class="line">    ...</span><br><span class="line">    </span><br><span class="line">    <span class="comment">#添加标签</span></span><br><span class="line">    cur_label = <span class="string">f&quot;label<span class="subst">&#123;label_num&#125;</span>&quot;</span></span><br><span class="line">    instr_list.append(<span class="string">f&quot;jal <span class="subst">&#123;cur_label&#125;</span>_begin&quot;</span>) <span class="comment">#向指令列表中添加指令</span></span><br><span class="line">    instr_list.append(<span class="string">f&quot;<span class="subst">&#123;cur_label&#125;</span>_begin:&quot;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">#循环体内容生成</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(body_len):</span><br><span class="line"></span><br><span class="line">        <span class="comment">#选择需要操作的寄存器</span></span><br><span class="line">        choice_range = [i <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(reg_size) <span class="keyword">if</span> <span class="number">2</span> &lt;= i &lt;= <span class="number">25</span> <span class="keyword">and</span> i != loop_var]</span><br><span class="line">        rs = random.choice(choice_range)</span><br><span class="line">        rt = random.choice(choice_range)</span><br><span class="line">        rd = random.choice(choice_range)</span><br><span class="line"></span><br><span class="line">        cur_instr = random.choices(allowed_instr, generate_prop)[<span class="number">0</span>]</span><br><span class="line">        <span class="keyword">match</span> cur_instr:</span><br><span class="line">            <span class="keyword">case</span> <span class="string">&quot;add&quot;</span> | <span class="string">&quot;sub&quot;</span>:</span><br><span class="line">                instr_list.append(<span class="string">f&quot;<span class="subst">&#123;cur_instr&#125;</span> $<span class="subst">&#123;rd&#125;</span>,$<span class="subst">&#123;rs&#125;</span>,$<span class="subst">&#123;rt&#125;</span>&quot;</span>)</span><br><span class="line">            <span class="keyword">case</span> <span class="string">&quot;lw&quot;</span> | <span class="string">&quot;sw&quot;</span>:</span><br><span class="line">                <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">                    address = random.randint(<span class="number">0</span>, mem_size)</span><br><span class="line">                    <span class="keyword">if</span> address % <span class="number">4</span> == <span class="number">0</span>:</span><br><span class="line">                        <span class="keyword">break</span></span><br><span class="line">                instr_list.append(<span class="string">f&quot;<span class="subst">&#123;cur_instr&#125;</span> $<span class="subst">&#123;rt&#125;</span>,<span class="subst">&#123;address&#125;</span>($<span class="subst">&#123;<span class="number">0</span>&#125;</span>)&quot;</span>)</span><br><span class="line">            <span class="keyword">case</span> <span class="string">&quot;ori&quot;</span>:</span><br><span class="line">                immediate = random.randint(max_immediate // <span class="number">2</span>, max_immediate)</span><br><span class="line">                instr_list.append(<span class="string">f&quot;ori $<span class="subst">&#123;rt&#125;</span>,$<span class="subst">&#123;rs&#125;</span>,<span class="subst">&#123;immediate&#125;</span>&quot;</span>)</span><br><span class="line">            <span class="keyword">case</span> <span class="string">&quot;nop&quot;</span>:</span><br><span class="line">                instr_list.append(<span class="string">f&quot;nop&quot;</span>)</span><br><span class="line">            <span class="keyword">case</span> <span class="string">&quot;lui&quot;</span>:</span><br><span class="line">                immediate = random.randint(max_immediate // <span class="number">2</span>, max_immediate)</span><br><span class="line">                instr_list.append(<span class="string">f&quot;lui $<span class="subst">&#123;rt&#125;</span>,<span class="subst">&#123;immediate&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">#循环尾部代码</span></span><br><span class="line">    ...</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h4 id="汇编文件及机器码生成"><a href="#汇编文件及机器码生成" class="headerlink" title="汇编文件及机器码生成"></a>汇编文件及机器码生成</h4><p>执行完数据生成的代码后，我们会获得一个 <code>list</code>，我们需要用 <code>\n</code> 拼接 <code>list</code> 中各元素形成一个 <code>str</code>，并导出到 <code>.asm</code> 文件中。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">test_case = <span class="string">&#x27;\n&#x27;</span>.join(instr_list)</span><br><span class="line"></span><br><span class="line"><span class="keyword">with</span> <span class="built_in">open</span>(<span class="string">f&#x27;sample.asm&#x27;</span>, <span class="string">&#x27;w&#x27;</span>, encoding=<span class="string">&#x27;utf-8&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">    f.write(test_case)</span><br></pre></td></tr></table></figure>
+
+<p>接着，我们需要将 <code>.asm</code> 文件在 MARS 中进行编译，生成机器码的 <code>.txt</code> 文件，并进行保存。这一步利用命令行完成会比较方便。注意，如果你想直接使用以下代码，请保证你已经准备好了“魔改版”MARS。官方的 MARS 并没有 <code>CompactLargeText</code> 选项，最多只能支持 1024 条指令。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">cmd = <span class="string">f&quot;java -jar <span class="subst">&#123;mars_jar&#125;</span> a mc CompactLargeText dump .text HexText <span class="subst">&#123;output_file&#125;</span> <span class="subst">&#123;input_file&#125;</span>&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">   <span class="built_in">print</span>(<span class="string">f&quot;正在汇编: <span class="subst">&#123;filename&#125;</span>&quot;</span>)</span><br><span class="line">   result = subprocess.run(cmd, shell=<span class="literal">True</span>, capture_output=<span class="literal">True</span>, text=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line">   <span class="keyword">if</span> result.returncode == <span class="number">0</span>:</span><br><span class="line">       <span class="built_in">print</span>(<span class="string">f&quot;成功生成: <span class="subst">&#123;output_file&#125;</span>&quot;</span>)</span><br><span class="line">   <span class="keyword">else</span>:</span><br><span class="line">       <span class="built_in">print</span>(<span class="string">f&quot;汇编失败: <span class="subst">&#123;filename&#125;</span>&quot;</span>)</span><br><span class="line">       <span class="built_in">print</span>(<span class="string">f&quot;错误信息: <span class="subst">&#123;result.stderr&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">   <span class="built_in">print</span>(<span class="string">f&quot;错误: <span class="subst">&#123;filename&#125;</span> - <span class="subst">&#123;e&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<h3 id="运行-CPU-并实现对拍"><a href="#运行-CPU-并实现对拍" class="headerlink" title="运行 CPU 并实现对拍"></a>运行 CPU 并实现对拍</h3><h4 id="测试模块准备"><a href="#测试模块准备" class="headerlink" title="测试模块准备"></a>测试模块准备</h4><p>这一部分比较简单。Logisim 的测试电路搭建请参考教程，注意不要忘了 <code>halt</code> 信号，否则评测无法终止；Verilog 的 testbench 可以直接用下面这个，注意仿真时间不能设定得太短，否则样例还没执行完仿真就停止了。不要忘记添加 <code>$finish</code> 语句，因为 iVerilog 的仿真是默认一直进行的。</p>
+<figure class="highlight verilog"><table><tr><td class="code"><pre><span class="line"><span class="keyword">module</span> test;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Inputs</span></span><br><span class="line">	<span class="keyword">reg</span> clk;</span><br><span class="line">	<span class="keyword">reg</span> reset;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Instantiate the Unit Under Test (UUT)</span></span><br><span class="line">	mips uut (</span><br><span class="line">		<span class="variable">.clk</span>(clk), </span><br><span class="line">		<span class="variable">.reset</span>(reset)</span><br><span class="line">	);</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">always</span> #<span class="number">1</span> clk=~clk;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">initial</span> <span class="keyword">begin</span></span><br><span class="line">		<span class="comment">// Initialize Inputs</span></span><br><span class="line">		clk = <span class="number">0</span>;</span><br><span class="line">		reset = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Wait 100 ns for global reset to finish</span></span><br><span class="line">		#<span class="number">100</span>;</span><br><span class="line">		reset=<span class="number">0</span>;</span><br><span class="line">        </span><br><span class="line">		<span class="comment">// Add stimulus here</span></span><br><span class="line">		#<span class="number">100000</span>;</span><br><span class="line">		<span class="built_in">$finish</span>;</span><br><span class="line">	<span class="keyword">end</span></span><br><span class="line">      </span><br><span class="line"><span class="keyword">endmodule</span></span><br></pre></td></tr></table></figure>
+
+<p>此外，你还需要准备好 <code>logisim-generic-2.7.1.jar</code> 以及 iVerilog，这两项内容均可以在教程中找到资源链接。</p>
+<h4 id="样例载入"><a href="#样例载入" class="headerlink" title="样例载入"></a>样例载入</h4><p>Logisim 的样例载入会略微复杂一点，需要修改 <code>.xml</code> 文件。其实你的 <code>.circ</code> 电路就是一种 <code>.xml</code> 文件，可以尝试用 VSCode 查看。</p>
+<p>我们需要将机器码注入到 IFU 模块的 ROM 中。在 <code>.circ</code> 文件中定位到 ROM 处，“…”表示了机器码应当被填充的位置。</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">comp</span> <span class="attr">lib</span>=<span class="string">&quot;4&quot;</span> <span class="attr">loc</span>=<span class="string">&quot;(750,1020)&quot;</span> <span class="attr">name</span>=<span class="string">&quot;ROM&quot;</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">a</span> <span class="attr">name</span>=<span class="string">&quot;addrWidth&quot;</span> <span class="attr">val</span>=<span class="string">&quot;12&quot;</span>/&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">a</span> <span class="attr">name</span>=<span class="string">&quot;dataWidth&quot;</span> <span class="attr">val</span>=<span class="string">&quot;32&quot;</span>/&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">a</span> <span class="attr">name</span>=<span class="string">&quot;contents&quot;</span>&gt;</span>addr/data: 12 32</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;/<span class="name">comp</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>我们可以使用<strong>正则表达式</strong>来匹配这一部分的内容，然后利用 <code>re.sub</code> 将匹配到的内容、机器码内容进行拼接，这样我们就成功注入了机器码。注意各个 32 位机器码间应该用空格分隔，亲身实践用 <code>\n</code> 分隔会报错。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">with</span> <span class="built_in">open</span>(machine_code_file, <span class="string">&#x27;r&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">        new_content = f.read()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(file_a, <span class="string">&#x27;r&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">        circ_a = f.read()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(file_b, <span class="string">&#x27;r&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">        circ_b = f.read()</span><br><span class="line"></span><br><span class="line">    ptn = (<span class="string">r&#x27;(&lt;comp lib=&quot;\d+&quot; loc=&quot;\(\d+,\d+\)&quot; name=&quot;ROM&quot;&gt;&#x27;</span></span><br><span class="line">           <span class="string">r&#x27;\s*&lt;a name=&quot;addrWidth&quot; val=&quot;\d+&quot;/&gt;&#x27;</span></span><br><span class="line">           <span class="string">r&#x27;\s*&lt;a name=&quot;dataWidth&quot; val=&quot;\d+&quot;/&gt;&#x27;</span></span><br><span class="line">           <span class="string">r&#x27;\s*&lt;a name=&quot;contents&quot;&gt;)[\s\S]*?(&lt;/a&gt;)&#x27;</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">#()中存放了两“块”正则匹配到的内容，match.group(1) 和 match.group(2) 分别对应这两块内容。</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">match</span> = re.search(ptn, circ_a)</span><br><span class="line">    <span class="comment">#我的电路中 ROM 地址宽度是 12 位，使用这个程序时注意地址宽度能否匹配</span></span><br><span class="line">    replacement = <span class="keyword">match</span>.group(<span class="number">1</span>) + <span class="string">&quot;addr/data: 12 32\n&quot;</span> + new_content + <span class="string">&quot;\n&quot;</span> + </span><br><span class="line">    <span class="keyword">match</span>.group(<span class="number">2</span>)</span><br><span class="line">    new_circ_a = re.sub(ptn, replacement, circ_a)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">match</span> = re.search(ptn, circ_b)</span><br><span class="line">    replacement = <span class="keyword">match</span>.group(<span class="number">1</span>) + <span class="string">&quot;addr/data: 12 32\n&quot;</span> + new_content + <span class="string">&quot;\n&quot;</span> + <span class="keyword">match</span>.group(<span class="number">2</span>)</span><br><span class="line">    new_circ_b = re.sub(ptn, replacement, circ_b)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(file_a, <span class="string">&#x27;w&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">        f.write(new_circ_a)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(file_b, <span class="string">&#x27;w&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">        f.write(new_circ_b)</span><br></pre></td></tr></table></figure>
+
+<p>Verilog 的样例载入就要简单很多。我们只需要将生成的机器码文件复制到与 Verilog 源代码在同一目录下的 <code>code.txt</code> 中，这一步还是通过命令行完成。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="variable">$copy</span> &#123;machine_code&#125;  &#123;injection_file&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="运行-CPU-并获得输出"><a href="#运行-CPU-并获得输出" class="headerlink" title="运行 CPU 并获得输出"></a>运行 CPU 并获得输出</h4><p>运行 Logisim 测试电路时，我们需要将我们搭建的 CPU 作为一个模块导入。<code>machine</code> 在这里即为 <code>logisim-generic-2.7.1.jar</code>，<code>testbench</code> 为测试电路文件名，<code>file_name</code> 为待评测电路文件的文件名。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="variable">$java</span> -jar &#123;machine&#125; &#123;testbench&#125; -load &#123;file_name&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后我们以最快速度运行测试电路，以表格形式输出结果。表格中每一列代表一个输出端口在每一个时钟周期的输出值，每一列的具体含义取决于电路中端口的排列顺序。CO 平台上会要求你将输出端口按照给定顺序排列，因为评测时会直接比较你的电路输出的二进制文件是否与正确输出完全一致，若你的端口排列顺序不同，那么每一列的对应关系就“乱”了，评测自然也不会通过。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="variable">$java</span> -jar &#123;machine&#125; &#123;testbench&#125; -<span class="built_in">tty</span> table</span><br></pre></td></tr></table></figure>
+
+<p>运行 Verilog 测试模块前，先要使用 Icarus Verilog 编译器将多个 Verilog 文件编译成一个可执行的仿真文件。<code>*.v</code> 会包含当前目录下所有的 Verilog 源文件，<code>-s</code> 参数告诉编译器哪个模块是测试的顶层模块，生成的输出文件 <code>.out</code> 是一个可以在终端直接运行的仿真程序。</p>
+<blockquote>
+<p>注意：这里的 <code>test_module_name</code> 应该是测试文件的<strong>模块名称</strong>，而不是测试文件的文件名。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">iverilog -s &#123;test_module_name&#125; -o &#123;test_module_name&#125;.out *.v</span><br></pre></td></tr></table></figure>
+
+<p>然后运行仿真程序。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vvp &#123;test_module_name&#125;.out</span><br></pre></td></tr></table></figure>
+
+<p>最后，别忘了把获得的输出写到输出文件中，这一步就交给大家自行完成。</p>
+<h4 id="运行“魔改版”-MARS-获得输出"><a href="#运行“魔改版”-MARS-获得输出" class="headerlink" title="运行“魔改版” MARS 获得输出"></a>运行“魔改版” MARS 获得输出</h4><p>在 P3 的评测中这一步其实可以省略，我们可以直接对拍两份电路，然后比对输出的二进制文件。当然，由于“表格”中每一列对应关系明确，我们可以另外写一份解析程序来获得寄存器和内存的操作信息，与魔改版 MARS 的输出作比对。这一步骤相信对大家来说并不困难，这里就不提供代码了。</p>
+<p>在 P3 和 P4 中，我们的 <code>add</code> 和 <code>sub</code> 指令并不考虑溢出异常，所以我们运行“魔改版” MARS 时也需要忽略溢出，命令行中 <code>ig</code> 参数就起到了这一作用。使用 <code>coL1</code> 参数能够输出对内存和寄存器的操作，<code>coL2</code> 参数能够获得更为详细的输出信息以便 debug，评测时我们只需要使用 <code>coL1</code>。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="variable">$java</span> -jar &#123;machine&#125; &#123;file&#125; mc CompactLargeText coL1 ig</span><br></pre></td></tr></table></figure>
+
+<h4 id="比较输出"><a href="#比较输出" class="headerlink" title="比较输出"></a>比较输出</h4><p>这一部分只需要对输出进行简单的比较。在 P3 和 P4 中，直接比较两份文件（测试模块输出、对拍对象输出）的输出是否相同就可以；P5 中由于同一时刻可能对内存、寄存器均有操作，所以对内存、寄存器的操作需要分开来比较。</p>
+<h3 id="结语"><a href="#结语" class="headerlink" title="结语"></a>结语</h3><p>写到这里，评测机的构造也就慢慢清晰了——无非是数据生成、运行标准程序和待测程序、比较输出这几步，这也是评测机最为常见且容易实现的架构。</p>
+<p>万事开头难，当你初次完成了评测机的搭建，“对拍”部分的代码一般就不会有大的变动了（至少对于 CO 课程来说如此），后续迭代只需要对“数据生成”代码进行调整。数据生成可以说是评测机的“灵魂”——评测效果如何，几乎全看数据强度如何。本文虽然介绍了如何随机生成数据，但是随机的数据并不能覆盖到所有的边界情况。<strong>随机生成结合“手搓”往往才是最优解</strong>。</p>
+<p>希望这篇文章能够“抛砖引玉”，帮助大家搭建起自己的评测机。当你有了不错的评测机，意味着每次课下你都可以进行“强测”，能够尽量多地发现设计中的细节问题，从而可以将更能经受住考验的架构带到课上——上机时不用以 debug 课下“开局”，能将全部心思投入到新增指令上，“一遍过”这时不再是幻想。</p>
+<p>希望在评测机的辅助下，大家能够准备好 bug-free 的设计，能够更有底气、更有自信地进入课上环节，顺利地推进上机测试。</p>
+<p><strong>祝愿大家在计算机组成实验的道路上稳步前行！</strong></p>
+]]></content>
+      <categories>
+        <category>计算机组成课下</category>
+      </categories>
+      <tags>
+        <tag>计算机组成</tag>
+        <tag>单周期 CPU</tag>
+        <tag>CO 评测机</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>计算机组成 P3 / P4 课下——单周期 CPU</title>
+    <url>/2025/11/23/p3p4_learn/</url>
+    <content><![CDATA[<h3 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h3><p>通过阅读这篇帖子，你能够学习到如何搭建一个单周期的 CPU，并能对其中的一些重要问题加以认识。由于 P3 和 P4 课下任务相似度高，所以这里将两次课下作业的学习内容合并到同一篇帖子中来讲述。</p>
+<span id="more"></span>
+
+<h3 id="任务描述"><a href="#任务描述" class="headerlink" title="任务描述"></a>任务描述</h3><p>搭建支持 <code>add</code>，<code>sub</code>，<code>ori</code>，<code>lui</code>，<code>lw</code>，<code>sw</code>，<code>beq</code>，<code>jal</code>，<code>jr</code>，<code>nop</code> 指令的<strong>单周期</strong> CPU。</p>
+<h3 id="明确设计"><a href="#明确设计" class="headerlink" title="明确设计"></a>明确设计</h3><p>先从 P3 的 Logisim CPU 开始，因为它比较直观，能够为 P4：用 Verilog 描述 CPU 提供较大的帮助。根据教程，我们的 CPU 大致由这几个模块构成：IFU、CTRL、GRF、EXT、ALU、DM。这些缩写对应的组件及其功能在教程中都有详细的说明，这里不再赘述。</p>
+<h4 id="IFU"><a href="#IFU" class="headerlink" title="IFU"></a>IFU</h4><p>内部包含了 IM、PC、nPC 组件。IM 根据当前 PC 值取出对应的指令；PC 中有寄存器，在时钟上升沿时写入下一个 PC 值；nPC 则是一个状态转移单元，根据当前 PC 以及其他信号的输出判断下一个 PC 值。</p>
+<ul>
+<li>IM</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PC</td>
+<td>input</td>
+<td>32</td>
+<td>当前 PC 值</td>
+</tr>
+<tr>
+<td>Instr</td>
+<td>output</td>
+<td>32</td>
+<td>取出的指令</td>
+</tr>
+</tbody></table>
+<p>这里需要注意，在实际的 MIPS 架构中，PC 的起始地址是 0x00003000，对应存储单元的地址是 0；PC 每增加4，对应存储单元的地址增加 1。无论是在 Logisim 还是在 Verilog 中都需要注意这一映射关系。</p>
+<ul>
+<li>PC</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>clk</td>
+<td>input</td>
+<td>1</td>
+<td>时钟信号</td>
+</tr>
+<tr>
+<td>reset</td>
+<td>input</td>
+<td>1</td>
+<td>复位信号</td>
+</tr>
+<tr>
+<td>nPC</td>
+<td>input</td>
+<td>32</td>
+<td>下一个 PC 值</td>
+</tr>
+<tr>
+<td>PC</td>
+<td>output</td>
+<td>32</td>
+<td>当前 PC 值</td>
+</tr>
+</tbody></table>
+<ul>
+<li>nPC</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PC</td>
+<td>input</td>
+<td>32</td>
+<td>当前 PC 值</td>
+</tr>
+<tr>
+<td>offset</td>
+<td>input</td>
+<td>16</td>
+<td>16 位立即数</td>
+</tr>
+<tr>
+<td>instr_index</td>
+<td>input</td>
+<td>26</td>
+<td>26 位立即数</td>
+</tr>
+<tr>
+<td>PC_from_rs</td>
+<td>input</td>
+<td>32</td>
+<td>rs 寄存器中存储的 PC（<code>jr</code> 使用）</td>
+</tr>
+<tr>
+<td>branch</td>
+<td>input</td>
+<td>1</td>
+<td>是否分支</td>
+</tr>
+<tr>
+<td>jump</td>
+<td>input</td>
+<td>1</td>
+<td>是否跳转</td>
+</tr>
+<tr>
+<td>jump_back</td>
+<td>input</td>
+<td>1</td>
+<td>是否跳回</td>
+</tr>
+<tr>
+<td>nPC</td>
+<td>output</td>
+<td>32</td>
+<td>下一个 PC 值</td>
+</tr>
+<tr>
+<td>PCwith4</td>
+<td>output</td>
+<td>32</td>
+<td>PC + 4（<code>jal</code> 使用）</td>
+</tr>
+</tbody></table>
+<ul>
+<li>IM</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PC</td>
+<td>input</td>
+<td>32</td>
+<td>当前 PC 值</td>
+</tr>
+<tr>
+<td>Instr</td>
+<td>output</td>
+<td>32</td>
+<td>当前指令</td>
+</tr>
+</tbody></table>
+<ul>
+<li>Decode</li>
+</ul>
+<p>由于后续过程中我们需要用到 rs、rt、rd 等值，这里我们新增 Decode 模块，根据当前指令“翻译”出这些值。</p>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Instr</td>
+<td>input</td>
+<td>32</td>
+<td>当前指令</td>
+</tr>
+<tr>
+<td>op</td>
+<td>output</td>
+<td>6</td>
+<td>[31:26]</td>
+</tr>
+<tr>
+<td>func</td>
+<td>output</td>
+<td>6</td>
+<td>[5:0]</td>
+</tr>
+<tr>
+<td>rs</td>
+<td>output</td>
+<td>5</td>
+<td>[25:21]</td>
+</tr>
+<tr>
+<td>rt</td>
+<td>output</td>
+<td>5</td>
+<td>[20:16]</td>
+</tr>
+<tr>
+<td>rd</td>
+<td>output</td>
+<td>5</td>
+<td>[15:11]</td>
+</tr>
+<tr>
+<td>shamt</td>
+<td>output</td>
+<td>5</td>
+<td>[10:6]（供 <code>nop</code> 和 <code>sll</code> 等使用）</td>
+</tr>
+<tr>
+<td>immediate16</td>
+<td>output</td>
+<td>16</td>
+<td>[15:0]</td>
+</tr>
+<tr>
+<td>immediate26</td>
+<td>output</td>
+<td>26</td>
+<td>[25:0]</td>
+</tr>
+</tbody></table>
+<h4 id="CTRL"><a href="#CTRL" class="headerlink" title="CTRL"></a>CTRL</h4><p>CTRL 用于根据当前指令生成控制信号，这里我们采用和教程中相同的 AND-OR 方法，即现根据 op 和 func 判断当前指令，再生成对应控制信号。</p>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>op</td>
+<td>input</td>
+<td>6</td>
+<td></td>
+</tr>
+<tr>
+<td>func</td>
+<td>input</td>
+<td>6</td>
+<td></td>
+</tr>
+<tr>
+<td>RegDst</td>
+<td>output</td>
+<td>1</td>
+<td>写入寄存器是否是 rd</td>
+</tr>
+<tr>
+<td>RegWrite</td>
+<td>output</td>
+<td>1</td>
+<td>是否写寄存器</td>
+</tr>
+<tr>
+<td>MemRead</td>
+<td>output</td>
+<td>1</td>
+<td>是否读内存</td>
+</tr>
+<tr>
+<td>MemWrite</td>
+<td>output</td>
+<td>1</td>
+<td>是否写内存</td>
+</tr>
+<tr>
+<td>ExtOp</td>
+<td>output</td>
+<td>1</td>
+<td>零扩展（0），符号扩展（1）</td>
+</tr>
+<tr>
+<td>ALUSrc</td>
+<td>output</td>
+<td>1</td>
+<td>第二个操作数源于 rt（0），源于扩展后立即数（1）</td>
+</tr>
+<tr>
+<td>ALUOp</td>
+<td>output</td>
+<td>3</td>
+<td>ALU 运算类型</td>
+</tr>
+<tr>
+<td>MemToReg</td>
+<td>output</td>
+<td>1</td>
+<td>是否将内存读出的内容写入寄存器</td>
+</tr>
+<tr>
+<td>branch</td>
+<td>output</td>
+<td>1</td>
+<td>是否分支</td>
+</tr>
+<tr>
+<td>jump</td>
+<td>output</td>
+<td>1</td>
+<td>是否跳转</td>
+</tr>
+<tr>
+<td>jump_back</td>
+<td>output</td>
+<td>1</td>
+<td>是否跳回</td>
+</tr>
+<tr>
+<td>link</td>
+<td>output</td>
+<td>1</td>
+<td>是否链接 PC + 4</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>注意这里的 <code>branch</code> 信号的含义其实是“是否是<strong>分支类型的指令</strong>”，NPC 中 <code>branch</code> 的实际含义是“是否<strong>执行分支</strong>”，执行分支的条件是：是分支类型的指令，且满足某个条件。</p>
+<p>对于 <code>jump</code>、<code>jump_back</code> 等信号也是类似的，执行跳转、跳回可能也是需要条件的，这一点在课上部分会有所体现。</p>
+</blockquote>
+<h4 id="GRF"><a href="#GRF" class="headerlink" title="GRF"></a>GRF</h4><p>具有 32 个寄存器的寄存器堆，这一部分可以直接把 P0 课下的设计挪用过来。</p>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>clk</td>
+<td>input</td>
+<td>1</td>
+<td>时钟信号</td>
+</tr>
+<tr>
+<td>reset</td>
+<td>input</td>
+<td>1</td>
+<td>复位信号</td>
+</tr>
+<tr>
+<td>A1</td>
+<td>input</td>
+<td>5</td>
+<td>读寄存器地址 1</td>
+</tr>
+<tr>
+<td>A2</td>
+<td>input</td>
+<td>5</td>
+<td>读寄存器地址 2</td>
+</tr>
+<tr>
+<td>A3</td>
+<td>input</td>
+<td>5</td>
+<td>写寄存器地址</td>
+</tr>
+<tr>
+<td>WD</td>
+<td>input</td>
+<td>32</td>
+<td>写寄存器数据</td>
+</tr>
+<tr>
+<td>write_enable</td>
+<td>input</td>
+<td>1</td>
+<td>是否写寄存器</td>
+</tr>
+<tr>
+<td>WD1</td>
+<td>output</td>
+<td>32</td>
+<td>读寄存器数据 1</td>
+</tr>
+<tr>
+<td>WD2</td>
+<td>output</td>
+<td>32</td>
+<td>读寄存器数据 2</td>
+</tr>
+</tbody></table>
+<h4 id="EXT"><a href="#EXT" class="headerlink" title="EXT"></a>EXT</h4><p>对 16 位立即数进行扩展，有零扩展、符号扩展两种选项。</p>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>immediate16</td>
+<td>input</td>
+<td>16</td>
+<td>16 位立即数</td>
+</tr>
+<tr>
+<td>ExtOp</td>
+<td>input</td>
+<td>1</td>
+<td>零扩展（0），符号扩展（1）</td>
+</tr>
+<tr>
+<td>extended</td>
+<td>output</td>
+<td>32</td>
+<td>扩展结果</td>
+</tr>
+</tbody></table>
+<h4 id="ALU"><a href="#ALU" class="headerlink" title="ALU"></a>ALU</h4><p>根据输入的操作数及 ALUOp 进行运算。</p>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A</td>
+<td>input</td>
+<td>32</td>
+<td>操作数 1</td>
+</tr>
+<tr>
+<td>B</td>
+<td>input</td>
+<td>32</td>
+<td>操作数 2</td>
+</tr>
+<tr>
+<td>S</td>
+<td>input</td>
+<td>5</td>
+<td>shamt</td>
+</tr>
+<tr>
+<td>ALUOp</td>
+<td>input</td>
+<td>3</td>
+<td>运算类型</td>
+</tr>
+<tr>
+<td>ALUOut</td>
+<td>output</td>
+<td>32</td>
+<td>运算结果</td>
+</tr>
+<tr>
+<td>Zero</td>
+<td>output</td>
+<td>1</td>
+<td>运算结果是否为0（<code>beq</code> 使用）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>ALUOp 值及对应的运算类型</p>
+<table>
+<thead>
+<tr>
+<th>编码</th>
+<th>操作</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>A + B</td>
+</tr>
+<tr>
+<td>1</td>
+<td>A - B</td>
+</tr>
+<tr>
+<td>2</td>
+<td>A | B</td>
+</tr>
+<tr>
+<td>3</td>
+<td>B &lt;&lt; 16</td>
+</tr>
+<tr>
+<td>4</td>
+<td>B &lt;&lt; S</td>
+</tr>
+<tr>
+<td>5</td>
+<td>预留</td>
+</tr>
+</tbody></table>
+</blockquote>
+<h4 id="DM"><a href="#DM" class="headerlink" title="DM"></a>DM</h4><table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>clk</td>
+<td>input</td>
+<td>1</td>
+<td>时钟信号</td>
+</tr>
+<tr>
+<td>reset</td>
+<td>input</td>
+<td>1</td>
+<td>复位信号</td>
+</tr>
+<tr>
+<td>address</td>
+<td>input</td>
+<td>32</td>
+<td>操作地址</td>
+</tr>
+<tr>
+<td>write_data</td>
+<td>input</td>
+<td>32</td>
+<td>写入数据</td>
+</tr>
+<tr>
+<td>write_enable</td>
+<td>input</td>
+<td>32</td>
+<td>是否写内存</td>
+</tr>
+<tr>
+<td>out_data</td>
+<td>output</td>
+<td>32</td>
+<td>读出数据</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>Logisim 中，我们的 DM 利用 RAM 实现，RAM 的地址按照字编号，但是在实际的 MIPS 架构中，<code>.space</code> 的地址按照字节编号，这中间差了一个 4 倍。所以如果我们想要读出对应的字，需要将 <code>address</code> 右移 2 位得到 RAM 中对应字的地址。</p>
+</blockquote>
+<h3 id="电路及代码参考"><a href="#电路及代码参考" class="headerlink" title="电路及代码参考"></a>电路及代码参考</h3><p>对应的作业电路以及代码已经放到了我的 Github 仓库中，都能通过课上强测（但也不代表其设计完全合理）。建议大家批判性地参考仓库中内容。</p>
+<p>顶层电路的连接如下图所示，这一工作也可以参考“黑书“和老师的 PPT 来完成。P4 和 P3 没有本质上的区别，完成 P4 比较容易的方式就是对照 P3 的设计图直接实例化各个模块，然后接线。</p>
+<img src="/images/p3p4learn_mips.png" width=100% height=100% align=center/>
+
+<h3 id="设计建议"><a href="#设计建议" class="headerlink" title="设计建议"></a>设计建议</h3><ol>
+<li><p>我们在课下作业中已经实现了 <code>lw</code> 和 <code>sw</code>，那么也可以利用类似的思路实现对 <code>byte</code> 和 <code>half</code> 的读写，具体读写哪些位由 <code>address</code> 的低两位决定，具体内容参见 MIPS 指令集手册。</p>
+</li>
+<li><p>课上会要求新增一些奇怪的指令，可以试着做如下预留：</p>
+<ul>
+<li>在 CTRL 模块预留 <code>new</code> 输出（判断是否为新增指令）。</li>
+<li>在 ALU 模块预留输出，用于输出其他的判断信号等</li>
+<li>在 DM 模块预留输入接口，应对课上奇怪指令</li>
+</ul>
+<p>新增的指令在寄存器读写、内存读写上的逻辑会比较“独特”，下面我举出一例：</p>
+<blockquote>
+<p>对于新增指令 <code>new</code>，若满足一定条件才写寄存器</p>
+</blockquote>
+<p> 应对方法：改造 <code>RegWrite</code> 信号的生成逻辑，写寄存器的条件是：“是新指令且满足某个条件”或“是一定会写寄存器的指令”。注意输出的“写寄存器”的信号是<strong>经过或门的</strong>！</p>
+ <img src="/images/p3p4learn_1.png" width=60% height=35% align=center/>
+</li>
+<li><p>课下的电路图不要画得太局促，以免课上新增数据通路时难以操作，这一点在 P3 中需要格外注意。P4 及以后都是用 Verilog 描述 CPU，应该不会存在这个问题。</p>
+</li>
+</ol>
+<h3 id="P3-思考题"><a href="#P3-思考题" class="headerlink" title="P3 思考题"></a>P3 思考题</h3><h4 id="问题-1"><a href="#问题-1" class="headerlink" title="问题 1"></a>问题 1</h4><p><strong>上面我们介绍了通过 FSM 理解单周期 CPU 的基本方法。请大家指出单周期 CPU 所用到的模块中，哪些发挥状态存储功能，哪些发挥状态转移功能。</strong></p>
+<ul>
+<li>状态存储：GRF 和 DM 部分。GRF 模块中保存了 32 个寄存器的当前值，这是我们判断自己的 CPU 能够正确工作的重要部分；DM 模块中存储了从指定寄存器加载的数据；GRF、DM 中存储的内容与输入一起，决定了如何向下一个状态转移。</li>
+<li>状态转移：其他能够产生控制信号的部分。控制信号决定我们在这一时刻是否需要读写寄存器、是否需要读写数据存储单元、从哪些寄存器取出值、ALU 作什么运算…… 它们与当前状态存储部分一起，决定了下一个状态应该是什么。</li>
+</ul>
+<h4 id="问题-2"><a href="#问题-2" class="headerlink" title="问题 2"></a>问题 2</h4><p><strong>现在我们的模块中 IM 使用 ROM， DM 使用 RAM， GRF 使用 Register，这种做法合理吗？ 请给出分析，若有改进意见也请一并给出。</strong></p>
+<p>在这个阶段大体是合理的，由于我们不会对指令进行写操作，所以用 ROM 来存储指令足矣。不过，在实际的 MIPS 架构中，指令的起始地址为 0x00003000，而我们 ROM 的起始地址为 0x00000000，这稍显不符合；并且，我们将指令和数据段（data）分开在两个元件中存放，且二者的地址并不连续，这也和实际中的 MIPS 架构有所不同。</p>
+<h4 id="问题-3"><a href="#问题-3" class="headerlink" title="问题 3"></a>问题 3</h4><p><strong>在上述提示的模块之外，你是否在实际实现时设计了其他的模块？如果是的话，请给出介绍和设计的思路。</strong></p>
+<p>具体描述见 Decoder 部分。</p>
+<h4 id="问题-4"><a href="#问题-4" class="headerlink" title="问题 4"></a>问题 4</h4><p><strong>事实上，实现 <code>nop</code> 空指令，我们并不需要将它加入控制信号真值表，为什么？</strong></p>
+<p><code>nop</code> 对应机器码的各个位均为 0，且本质是 <code>sll</code> 指令，这并不在本次课下作业的范围中。并且，若我们不将 <code>nop</code> 指令加入控制信号真值表：</p>
+<ul>
+<li>指定读入的寄存器 rt 为 0，而 <code>$0</code> 的值一直保持为 0，不会发生改变</li>
+<li>信号 <code>MemWrite</code> 设置为 0，不会向 DM 中读入数据，DM 状态不改变</li>
+</ul>
+<p>因此，执行 <code>nop</code> 指令后，电路中状态不会有改变，这也就是执行“空指令”的体现。</p>
+<h4 id="问题-5"><a href="#问题-5" class="headerlink" title="问题 5"></a>问题 5</h4><p><strong>阅读 Pre 的 <a href="http://cscore.buaa.edu.cn/tutorial/mips/mips-6/mips6-1/">“MIPS 指令集及汇编语言”</a> 一节中给出的测试样例，评价其强度（可从各个指令的覆盖情况，单一指令各种行为的覆盖情况等方面分析），并指出具体的不足之处。</strong></p>
+<p>这些样例一定程度上能够完成检测工作，且可以发现 CPU 设计中较明显的问题。不过还有一些不足：</p>
+<ul>
+<li>对于 <code>add</code> 指令，对边界条件（例如 <code>int_max</code> 附近）的测试不够</li>
+<li>对于 <code>lw</code> 和 <code>sw</code> 指令，没有在靠近最大地址的地方进行测试，且设置的 offset 均为 0，不能很好地检测对 base 和 offset 的运算。不过，由于本次实验没有实现 <code>li</code>，<code>addi</code> 等指令，offset 直接设为 0 无疑是最方便的。</li>
+<li>对于  <code>lui</code> 和 <code>ori</code> 指令，可以适当多考虑一些更一般的值（无论正负）</li>
+<li>对于 <code>beq</code> 指令，教程中的样例都是向后跳转，可以考虑添加向前 &#x2F; 原地跳转的情况</li>
+</ul>
+<h3 id="P4-思考题"><a href="#P4-思考题" class="headerlink" title="P4 思考题"></a>P4 思考题</h3><h4 id="问题-1-1"><a href="#问题-1-1" class="headerlink" title="问题 1"></a>问题 1</h4><p><strong>阅读下面给出的 DM 的输入示例中（示例 DM 容量为 4KB，即 32bit × 1024字），根据你的理解回答，这个 addr 信号又是从哪里来的？地址信号 addr 位数为什么是 [11:2] 而不是 [9:0] ？</strong></p>
+<ul>
+<li>addr 信号来自于 ALU，ALU 要对 offset 和 base 作加法运算；</li>
+<li>输入地址是以字为单位寻址的，要求为 4 的整数倍，对应到 DM 元件中需要除以 4 来寻址（即右移 2 位）。[1:0] 这两位可以用于半字、字节为单位的寻址，能预留用于添加 lh，lb 等指令。</li>
+</ul>
+<h4 id="问题-2-1"><a href="#问题-2-1" class="headerlink" title="问题 2"></a>问题 2</h4><p><strong>思考上述两种控制器设计的译码方式，给出代码示例，并尝试对比各方式的优劣。</strong></p>
+<ul>
+<li><p>将指令对应到信号：每个指令需要产生哪些控制信号一目了然，但是代码量较大；</p>
+</li>
+<li><p>将信号对应到指令：可以清楚地看到某个特定信号对应的指令，例如对于 <code>RegWrite</code>，我们可以很快就知道哪些指令需要写寄存器的操作。不过编程时要比较小心，因为不能直观地看到一个指令产生了什么控制信号，容易漏接线。</p>
+</li>
+<li><p>示例代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">//信号到指令</span><br><span class="line">assign RegDst = </span><br><span class="line">(add || sub || nop) ? `rd:</span><br><span class="line">(ori || lw || lui) ? `rt:</span><br><span class="line">(jal) ? `ra:</span><br><span class="line">`rd;</span><br><span class="line"></span><br><span class="line">assign ALUSrc = (ori || lw || sw || lui);</span><br><span class="line"></span><br><span class="line">assign RegDataSrc =</span><br><span class="line">(add || sub || ori || lui || nop) ? `alu:</span><br><span class="line">(lw) ? `mem:</span><br><span class="line">(jal) ? `pc:</span><br><span class="line">`alu;</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">//指令到信号</span><br><span class="line">if (add) begin</span><br><span class="line">        MemWrite    =   0       ;</span><br><span class="line">        RegWrite    =   1       ;</span><br><span class="line">        Jr          =   0       ;</span><br><span class="line">        Jump        =   0       ;</span><br><span class="line">        Branch      =   0	;</span><br><span class="line">        ExtOp       =   0	;</span><br><span class="line">        ALUSrc      =   0	;</span><br><span class="line">        ALUOp       =   `ADD	；</span><br><span class="line">        RegDst      =   `rd	；</span><br><span class="line">end</span><br><span class="line">...</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h4 id="问题-3-1"><a href="#问题-3-1" class="headerlink" title="问题 3"></a>问题 3</h4><p><strong>在相应的部件中，复位信号的设计都是同步复位 ，这与 P3 中的设计要求不同。请对比同步复位与异步复位这两种方式的 reset 信号与 clk 信号优先级的关系。</strong></p>
+<ul>
+<li>同步复位：reset 信号低级于 clk 信号，因为只有 clk 处于上升沿时 reset 信号才可能有效；</li>
+<li>异步复位：reset 信号高级于 clk 信号，因为一旦 reset 信号在高电平就复位，无所谓 clk 是否在上升沿。</li>
+</ul>
+<h4 id="问题-4-1"><a href="#问题-4-1" class="headerlink" title="问题 4"></a>问题 4</h4><p><strong>C 语言是一种弱类型程序设计语言。C 语言中不对计算结果溢出进行处理，这意味着 C 语言要求程序员必须很清楚计算结果是否会导致溢出。因此，如果仅仅支持 C 语言，MIPS 指令的所有计算指令均可以忽略溢出。 请说明为什么在忽略溢出的前提下，addi 与 addiu 是等价的，add 与 addu 是等价的。提示：阅读《MIPS32® Architecture For Programmers Volume II: The MIPS32® Instruction Set》中相关指令的 Operation 部分。</strong></p>
+<ul>
+<li>如何判断溢出：将  GPR[rs] 的第 31 位拼接到 GPR[rs] 之前，加法结果记为 temp，如果产生了进位就会溢出，这体现为 temp[32] ≠ temp[31]。</li>
+<li>如果我们不考虑溢出，temp[32] 不会发生变化，也不会被存入到寄存器中，此时存入的结果仍然是两个 32 位数加法得到的结果，addi 与 addiu &#x2F; add 与 addu 是等价的。</li>
+</ul>
+<h3 id="上机提示"><a href="#上机提示" class="headerlink" title="上机提示"></a>上机提示</h3><p>上机一开始就可以将课下提交的电路提交到各题的窗口中进行评测，每道题都有大约一半的数据点是对课下内容的强测，不涉及任何新增指令。如果提交后发现每道题均有约一半的测试点可以通过，那么上机时就不要多去考虑课下的 bug 了。</p>
+]]></content>
+      <categories>
+        <category>计算机组成课下</category>
+      </categories>
+      <tags>
+        <tag>计算机组成</tag>
+        <tag>单周期 CPU</tag>
       </tags>
   </entry>
 </search>

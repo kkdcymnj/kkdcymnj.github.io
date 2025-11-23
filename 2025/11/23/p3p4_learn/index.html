@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 8.0.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"kkdcymnj.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":false,"version":"8.25.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="写在前面通过阅读这篇帖子，你能够学习到如何搭建一个单周期的 CPU，并能对其中的一些重要问题加以认识。由于 P3 和 P4 课下任务相似度高，所以这里将两次课下作业的学习内容合并到同一篇帖子中来讲述。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="计算机组成 P3 &#x2F; P4 课下——单周期 CPU">
+<meta property="og:url" content="https://kkdcymnj.github.io/2025/11/23/p3p4_learn/index.html">
+<meta property="og:site_name" content="kkdcymnj&#39;s Blog">
+<meta property="og:description" content="写在前面通过阅读这篇帖子，你能够学习到如何搭建一个单周期的 CPU，并能对其中的一些重要问题加以认识。由于 P3 和 P4 课下任务相似度高，所以这里将两次课下作业的学习内容合并到同一篇帖子中来讲述。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://kkdcymnj.github.io/images/p3p4learn_mips.png">
+<meta property="og:image" content="https://kkdcymnj.github.io/images/p3p4learn_1.png">
+<meta property="article:published_time" content="2025-11-23T04:23:17.494Z">
+<meta property="article:modified_time" content="2025-11-23T04:28:13.482Z">
+<meta property="article:author" content="kkdcymnj">
+<meta property="article:tag" content="单周期 CPU">
+<meta property="article:tag" content="计算机组成">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://kkdcymnj.github.io/images/p3p4learn_mips.png">
+
+
+<link rel="canonical" href="https://kkdcymnj.github.io/2025/11/23/p3p4_learn/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://kkdcymnj.github.io/2025/11/23/p3p4_learn/","path":"2025/11/23/p3p4_learn/","title":"计算机组成 P3 / P4 课下——单周期 CPU"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>计算机组成 P3 / P4 课下——单周期 CPU | kkdcymnj's Blog</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js" defer></script>
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">kkdcymnj's Blog</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%99%E5%9C%A8%E5%89%8D%E9%9D%A2"><span class="nav-number">1.</span> <span class="nav-text">写在前面</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%BB%E5%8A%A1%E6%8F%8F%E8%BF%B0"><span class="nav-number">2.</span> <span class="nav-text">任务描述</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%98%8E%E7%A1%AE%E8%AE%BE%E8%AE%A1"><span class="nav-number">3.</span> <span class="nav-text">明确设计</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#IFU"><span class="nav-number">3.1.</span> <span class="nav-text">IFU</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#CTRL"><span class="nav-number">3.2.</span> <span class="nav-text">CTRL</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#GRF"><span class="nav-number">3.3.</span> <span class="nav-text">GRF</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#EXT"><span class="nav-number">3.4.</span> <span class="nav-text">EXT</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#ALU"><span class="nav-number">3.5.</span> <span class="nav-text">ALU</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#DM"><span class="nav-number">3.6.</span> <span class="nav-text">DM</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%B5%E8%B7%AF%E5%8F%8A%E4%BB%A3%E7%A0%81%E5%8F%82%E8%80%83"><span class="nav-number">4.</span> <span class="nav-text">电路及代码参考</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%BE%E8%AE%A1%E5%BB%BA%E8%AE%AE"><span class="nav-number">5.</span> <span class="nav-text">设计建议</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#P3-%E6%80%9D%E8%80%83%E9%A2%98"><span class="nav-number">6.</span> <span class="nav-text">P3 思考题</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%97%AE%E9%A2%98-1"><span class="nav-number">6.1.</span> <span class="nav-text">问题 1</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%97%AE%E9%A2%98-2"><span class="nav-number">6.2.</span> <span class="nav-text">问题 2</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%97%AE%E9%A2%98-3"><span class="nav-number">6.3.</span> <span class="nav-text">问题 3</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%97%AE%E9%A2%98-4"><span class="nav-number">6.4.</span> <span class="nav-text">问题 4</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%97%AE%E9%A2%98-5"><span class="nav-number">6.5.</span> <span class="nav-text">问题 5</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#P4-%E6%80%9D%E8%80%83%E9%A2%98"><span class="nav-number">7.</span> <span class="nav-text">P4 思考题</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%97%AE%E9%A2%98-1-1"><span class="nav-number">7.1.</span> <span class="nav-text">问题 1</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%97%AE%E9%A2%98-2-1"><span class="nav-number">7.2.</span> <span class="nav-text">问题 2</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%97%AE%E9%A2%98-3-1"><span class="nav-number">7.3.</span> <span class="nav-text">问题 3</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%97%AE%E9%A2%98-4-1"><span class="nav-number">7.4.</span> <span class="nav-text">问题 4</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8A%E6%9C%BA%E6%8F%90%E7%A4%BA"><span class="nav-number">8.</span> <span class="nav-text">上机提示</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="kkdcymnj"
+      src="/images/tsumiki.jpg">
+  <p class="site-author-name" itemprop="name">kkdcymnj</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">5</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/kkdcymnj" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;kkdcymnj" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:3268478805@qq.com" title="E-Mail → mailto:3268478805@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://kkdcymnj.github.io/2025/11/23/p3p4_learn/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/tsumiki.jpg">
+      <meta itemprop="name" content="kkdcymnj">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="kkdcymnj's Blog">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="计算机组成 P3 &#x2F; P4 课下——单周期 CPU | kkdcymnj's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          计算机组成 P3 / P4 课下——单周期 CPU
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+      
+
+      <time title="创建时间：2025-11-23 12:23:17 / 修改时间：12:28:13" itemprop="dateCreated datePublished" datetime="2025-11-23T12:23:17+08:00">2025-11-23</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BB%84%E6%88%90%E8%AF%BE%E4%B8%8B/" itemprop="url" rel="index"><span itemprop="name">计算机组成课下</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>5.4k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>9 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h3 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h3><p>通过阅读这篇帖子，你能够学习到如何搭建一个单周期的 CPU，并能对其中的一些重要问题加以认识。由于 P3 和 P4 课下任务相似度高，所以这里将两次课下作业的学习内容合并到同一篇帖子中来讲述。</p>
+<span id="more"></span>
+
+<h3 id="任务描述"><a href="#任务描述" class="headerlink" title="任务描述"></a>任务描述</h3><p>搭建支持 <code>add</code>，<code>sub</code>，<code>ori</code>，<code>lui</code>，<code>lw</code>，<code>sw</code>，<code>beq</code>，<code>jal</code>，<code>jr</code>，<code>nop</code> 指令的<strong>单周期</strong> CPU。</p>
+<h3 id="明确设计"><a href="#明确设计" class="headerlink" title="明确设计"></a>明确设计</h3><p>先从 P3 的 Logisim CPU 开始，因为它比较直观，能够为 P4：用 Verilog 描述 CPU 提供较大的帮助。根据教程，我们的 CPU 大致由这几个模块构成：IFU、CTRL、GRF、EXT、ALU、DM。这些缩写对应的组件及其功能在教程中都有详细的说明，这里不再赘述。</p>
+<h4 id="IFU"><a href="#IFU" class="headerlink" title="IFU"></a>IFU</h4><p>内部包含了 IM、PC、nPC 组件。IM 根据当前 PC 值取出对应的指令；PC 中有寄存器，在时钟上升沿时写入下一个 PC 值；nPC 则是一个状态转移单元，根据当前 PC 以及其他信号的输出判断下一个 PC 值。</p>
+<ul>
+<li>IM</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PC</td>
+<td>input</td>
+<td>32</td>
+<td>当前 PC 值</td>
+</tr>
+<tr>
+<td>Instr</td>
+<td>output</td>
+<td>32</td>
+<td>取出的指令</td>
+</tr>
+</tbody></table>
+<p>这里需要注意，在实际的 MIPS 架构中，PC 的起始地址是 0x00003000，对应存储单元的地址是 0；PC 每增加4，对应存储单元的地址增加 1。无论是在 Logisim 还是在 Verilog 中都需要注意这一映射关系。</p>
+<ul>
+<li>PC</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>clk</td>
+<td>input</td>
+<td>1</td>
+<td>时钟信号</td>
+</tr>
+<tr>
+<td>reset</td>
+<td>input</td>
+<td>1</td>
+<td>复位信号</td>
+</tr>
+<tr>
+<td>nPC</td>
+<td>input</td>
+<td>32</td>
+<td>下一个 PC 值</td>
+</tr>
+<tr>
+<td>PC</td>
+<td>output</td>
+<td>32</td>
+<td>当前 PC 值</td>
+</tr>
+</tbody></table>
+<ul>
+<li>nPC</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PC</td>
+<td>input</td>
+<td>32</td>
+<td>当前 PC 值</td>
+</tr>
+<tr>
+<td>offset</td>
+<td>input</td>
+<td>16</td>
+<td>16 位立即数</td>
+</tr>
+<tr>
+<td>instr_index</td>
+<td>input</td>
+<td>26</td>
+<td>26 位立即数</td>
+</tr>
+<tr>
+<td>PC_from_rs</td>
+<td>input</td>
+<td>32</td>
+<td>rs 寄存器中存储的 PC（<code>jr</code> 使用）</td>
+</tr>
+<tr>
+<td>branch</td>
+<td>input</td>
+<td>1</td>
+<td>是否分支</td>
+</tr>
+<tr>
+<td>jump</td>
+<td>input</td>
+<td>1</td>
+<td>是否跳转</td>
+</tr>
+<tr>
+<td>jump_back</td>
+<td>input</td>
+<td>1</td>
+<td>是否跳回</td>
+</tr>
+<tr>
+<td>nPC</td>
+<td>output</td>
+<td>32</td>
+<td>下一个 PC 值</td>
+</tr>
+<tr>
+<td>PCwith4</td>
+<td>output</td>
+<td>32</td>
+<td>PC + 4（<code>jal</code> 使用）</td>
+</tr>
+</tbody></table>
+<ul>
+<li>IM</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PC</td>
+<td>input</td>
+<td>32</td>
+<td>当前 PC 值</td>
+</tr>
+<tr>
+<td>Instr</td>
+<td>output</td>
+<td>32</td>
+<td>当前指令</td>
+</tr>
+</tbody></table>
+<ul>
+<li>Decode</li>
+</ul>
+<p>由于后续过程中我们需要用到 rs、rt、rd 等值，这里我们新增 Decode 模块，根据当前指令“翻译”出这些值。</p>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Instr</td>
+<td>input</td>
+<td>32</td>
+<td>当前指令</td>
+</tr>
+<tr>
+<td>op</td>
+<td>output</td>
+<td>6</td>
+<td>[31:26]</td>
+</tr>
+<tr>
+<td>func</td>
+<td>output</td>
+<td>6</td>
+<td>[5:0]</td>
+</tr>
+<tr>
+<td>rs</td>
+<td>output</td>
+<td>5</td>
+<td>[25:21]</td>
+</tr>
+<tr>
+<td>rt</td>
+<td>output</td>
+<td>5</td>
+<td>[20:16]</td>
+</tr>
+<tr>
+<td>rd</td>
+<td>output</td>
+<td>5</td>
+<td>[15:11]</td>
+</tr>
+<tr>
+<td>shamt</td>
+<td>output</td>
+<td>5</td>
+<td>[10:6]（供 <code>nop</code> 和 <code>sll</code> 等使用）</td>
+</tr>
+<tr>
+<td>immediate16</td>
+<td>output</td>
+<td>16</td>
+<td>[15:0]</td>
+</tr>
+<tr>
+<td>immediate26</td>
+<td>output</td>
+<td>26</td>
+<td>[25:0]</td>
+</tr>
+</tbody></table>
+<h4 id="CTRL"><a href="#CTRL" class="headerlink" title="CTRL"></a>CTRL</h4><p>CTRL 用于根据当前指令生成控制信号，这里我们采用和教程中相同的 AND-OR 方法，即现根据 op 和 func 判断当前指令，再生成对应控制信号。</p>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>op</td>
+<td>input</td>
+<td>6</td>
+<td></td>
+</tr>
+<tr>
+<td>func</td>
+<td>input</td>
+<td>6</td>
+<td></td>
+</tr>
+<tr>
+<td>RegDst</td>
+<td>output</td>
+<td>1</td>
+<td>写入寄存器是否是 rd</td>
+</tr>
+<tr>
+<td>RegWrite</td>
+<td>output</td>
+<td>1</td>
+<td>是否写寄存器</td>
+</tr>
+<tr>
+<td>MemRead</td>
+<td>output</td>
+<td>1</td>
+<td>是否读内存</td>
+</tr>
+<tr>
+<td>MemWrite</td>
+<td>output</td>
+<td>1</td>
+<td>是否写内存</td>
+</tr>
+<tr>
+<td>ExtOp</td>
+<td>output</td>
+<td>1</td>
+<td>零扩展（0），符号扩展（1）</td>
+</tr>
+<tr>
+<td>ALUSrc</td>
+<td>output</td>
+<td>1</td>
+<td>第二个操作数源于 rt（0），源于扩展后立即数（1）</td>
+</tr>
+<tr>
+<td>ALUOp</td>
+<td>output</td>
+<td>3</td>
+<td>ALU 运算类型</td>
+</tr>
+<tr>
+<td>MemToReg</td>
+<td>output</td>
+<td>1</td>
+<td>是否将内存读出的内容写入寄存器</td>
+</tr>
+<tr>
+<td>branch</td>
+<td>output</td>
+<td>1</td>
+<td>是否分支</td>
+</tr>
+<tr>
+<td>jump</td>
+<td>output</td>
+<td>1</td>
+<td>是否跳转</td>
+</tr>
+<tr>
+<td>jump_back</td>
+<td>output</td>
+<td>1</td>
+<td>是否跳回</td>
+</tr>
+<tr>
+<td>link</td>
+<td>output</td>
+<td>1</td>
+<td>是否链接 PC + 4</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>注意这里的 <code>branch</code> 信号的含义其实是“是否是<strong>分支类型的指令</strong>”，NPC 中 <code>branch</code> 的实际含义是“是否<strong>执行分支</strong>”，执行分支的条件是：是分支类型的指令，且满足某个条件。</p>
+<p>对于 <code>jump</code>、<code>jump_back</code> 等信号也是类似的，执行跳转、跳回可能也是需要条件的，这一点在课上部分会有所体现。</p>
+</blockquote>
+<h4 id="GRF"><a href="#GRF" class="headerlink" title="GRF"></a>GRF</h4><p>具有 32 个寄存器的寄存器堆，这一部分可以直接把 P0 课下的设计挪用过来。</p>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>clk</td>
+<td>input</td>
+<td>1</td>
+<td>时钟信号</td>
+</tr>
+<tr>
+<td>reset</td>
+<td>input</td>
+<td>1</td>
+<td>复位信号</td>
+</tr>
+<tr>
+<td>A1</td>
+<td>input</td>
+<td>5</td>
+<td>读寄存器地址 1</td>
+</tr>
+<tr>
+<td>A2</td>
+<td>input</td>
+<td>5</td>
+<td>读寄存器地址 2</td>
+</tr>
+<tr>
+<td>A3</td>
+<td>input</td>
+<td>5</td>
+<td>写寄存器地址</td>
+</tr>
+<tr>
+<td>WD</td>
+<td>input</td>
+<td>32</td>
+<td>写寄存器数据</td>
+</tr>
+<tr>
+<td>write_enable</td>
+<td>input</td>
+<td>1</td>
+<td>是否写寄存器</td>
+</tr>
+<tr>
+<td>WD1</td>
+<td>output</td>
+<td>32</td>
+<td>读寄存器数据 1</td>
+</tr>
+<tr>
+<td>WD2</td>
+<td>output</td>
+<td>32</td>
+<td>读寄存器数据 2</td>
+</tr>
+</tbody></table>
+<h4 id="EXT"><a href="#EXT" class="headerlink" title="EXT"></a>EXT</h4><p>对 16 位立即数进行扩展，有零扩展、符号扩展两种选项。</p>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>immediate16</td>
+<td>input</td>
+<td>16</td>
+<td>16 位立即数</td>
+</tr>
+<tr>
+<td>ExtOp</td>
+<td>input</td>
+<td>1</td>
+<td>零扩展（0），符号扩展（1）</td>
+</tr>
+<tr>
+<td>extended</td>
+<td>output</td>
+<td>32</td>
+<td>扩展结果</td>
+</tr>
+</tbody></table>
+<h4 id="ALU"><a href="#ALU" class="headerlink" title="ALU"></a>ALU</h4><p>根据输入的操作数及 ALUOp 进行运算。</p>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A</td>
+<td>input</td>
+<td>32</td>
+<td>操作数 1</td>
+</tr>
+<tr>
+<td>B</td>
+<td>input</td>
+<td>32</td>
+<td>操作数 2</td>
+</tr>
+<tr>
+<td>S</td>
+<td>input</td>
+<td>5</td>
+<td>shamt</td>
+</tr>
+<tr>
+<td>ALUOp</td>
+<td>input</td>
+<td>3</td>
+<td>运算类型</td>
+</tr>
+<tr>
+<td>ALUOut</td>
+<td>output</td>
+<td>32</td>
+<td>运算结果</td>
+</tr>
+<tr>
+<td>Zero</td>
+<td>output</td>
+<td>1</td>
+<td>运算结果是否为0（<code>beq</code> 使用）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>ALUOp 值及对应的运算类型</p>
+<table>
+<thead>
+<tr>
+<th>编码</th>
+<th>操作</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>A + B</td>
+</tr>
+<tr>
+<td>1</td>
+<td>A - B</td>
+</tr>
+<tr>
+<td>2</td>
+<td>A | B</td>
+</tr>
+<tr>
+<td>3</td>
+<td>B &lt;&lt; 16</td>
+</tr>
+<tr>
+<td>4</td>
+<td>B &lt;&lt; S</td>
+</tr>
+<tr>
+<td>5</td>
+<td>预留</td>
+</tr>
+</tbody></table>
+</blockquote>
+<h4 id="DM"><a href="#DM" class="headerlink" title="DM"></a>DM</h4><table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>clk</td>
+<td>input</td>
+<td>1</td>
+<td>时钟信号</td>
+</tr>
+<tr>
+<td>reset</td>
+<td>input</td>
+<td>1</td>
+<td>复位信号</td>
+</tr>
+<tr>
+<td>address</td>
+<td>input</td>
+<td>32</td>
+<td>操作地址</td>
+</tr>
+<tr>
+<td>write_data</td>
+<td>input</td>
+<td>32</td>
+<td>写入数据</td>
+</tr>
+<tr>
+<td>write_enable</td>
+<td>input</td>
+<td>32</td>
+<td>是否写内存</td>
+</tr>
+<tr>
+<td>out_data</td>
+<td>output</td>
+<td>32</td>
+<td>读出数据</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>Logisim 中，我们的 DM 利用 RAM 实现，RAM 的地址按照字编号，但是在实际的 MIPS 架构中，<code>.space</code> 的地址按照字节编号，这中间差了一个 4 倍。所以如果我们想要读出对应的字，需要将 <code>address</code> 右移 2 位得到 RAM 中对应字的地址。</p>
+</blockquote>
+<h3 id="电路及代码参考"><a href="#电路及代码参考" class="headerlink" title="电路及代码参考"></a>电路及代码参考</h3><p>对应的作业电路以及代码已经放到了我的 Github 仓库中，都能通过课上强测（但也不代表其设计完全合理）。建议大家批判性地参考仓库中内容。</p>
+<p>顶层电路的连接如下图所示，这一工作也可以参考“黑书“和老师的 PPT 来完成。P4 和 P3 没有本质上的区别，完成 P4 比较容易的方式就是对照 P3 的设计图直接实例化各个模块，然后接线。</p>
+<img src="/images/p3p4learn_mips.png" width=100% height=100% align=center/>
+
+<h3 id="设计建议"><a href="#设计建议" class="headerlink" title="设计建议"></a>设计建议</h3><ol>
+<li><p>我们在课下作业中已经实现了 <code>lw</code> 和 <code>sw</code>，那么也可以利用类似的思路实现对 <code>byte</code> 和 <code>half</code> 的读写，具体读写哪些位由 <code>address</code> 的低两位决定，具体内容参见 MIPS 指令集手册。</p>
+</li>
+<li><p>课上会要求新增一些奇怪的指令，可以试着做如下预留：</p>
+<ul>
+<li>在 CTRL 模块预留 <code>new</code> 输出（判断是否为新增指令）。</li>
+<li>在 ALU 模块预留输出，用于输出其他的判断信号等</li>
+<li>在 DM 模块预留输入接口，应对课上奇怪指令</li>
+</ul>
+<p>新增的指令在寄存器读写、内存读写上的逻辑会比较“独特”，下面我举出一例：</p>
+<blockquote>
+<p>对于新增指令 <code>new</code>，若满足一定条件才写寄存器</p>
+</blockquote>
+<p> 应对方法：改造 <code>RegWrite</code> 信号的生成逻辑，写寄存器的条件是：“是新指令且满足某个条件”或“是一定会写寄存器的指令”。注意输出的“写寄存器”的信号是<strong>经过或门的</strong>！</p>
+ <img src="/images/p3p4learn_1.png" width=60% height=35% align=center/>
+</li>
+<li><p>课下的电路图不要画得太局促，以免课上新增数据通路时难以操作，这一点在 P3 中需要格外注意。P4 及以后都是用 Verilog 描述 CPU，应该不会存在这个问题。</p>
+</li>
+</ol>
+<h3 id="P3-思考题"><a href="#P3-思考题" class="headerlink" title="P3 思考题"></a>P3 思考题</h3><h4 id="问题-1"><a href="#问题-1" class="headerlink" title="问题 1"></a>问题 1</h4><p><strong>上面我们介绍了通过 FSM 理解单周期 CPU 的基本方法。请大家指出单周期 CPU 所用到的模块中，哪些发挥状态存储功能，哪些发挥状态转移功能。</strong></p>
+<ul>
+<li>状态存储：GRF 和 DM 部分。GRF 模块中保存了 32 个寄存器的当前值，这是我们判断自己的 CPU 能够正确工作的重要部分；DM 模块中存储了从指定寄存器加载的数据；GRF、DM 中存储的内容与输入一起，决定了如何向下一个状态转移。</li>
+<li>状态转移：其他能够产生控制信号的部分。控制信号决定我们在这一时刻是否需要读写寄存器、是否需要读写数据存储单元、从哪些寄存器取出值、ALU 作什么运算…… 它们与当前状态存储部分一起，决定了下一个状态应该是什么。</li>
+</ul>
+<h4 id="问题-2"><a href="#问题-2" class="headerlink" title="问题 2"></a>问题 2</h4><p><strong>现在我们的模块中 IM 使用 ROM， DM 使用 RAM， GRF 使用 Register，这种做法合理吗？ 请给出分析，若有改进意见也请一并给出。</strong></p>
+<p>在这个阶段大体是合理的，由于我们不会对指令进行写操作，所以用 ROM 来存储指令足矣。不过，在实际的 MIPS 架构中，指令的起始地址为 0x00003000，而我们 ROM 的起始地址为 0x00000000，这稍显不符合；并且，我们将指令和数据段（data）分开在两个元件中存放，且二者的地址并不连续，这也和实际中的 MIPS 架构有所不同。</p>
+<h4 id="问题-3"><a href="#问题-3" class="headerlink" title="问题 3"></a>问题 3</h4><p><strong>在上述提示的模块之外，你是否在实际实现时设计了其他的模块？如果是的话，请给出介绍和设计的思路。</strong></p>
+<p>具体描述见 Decoder 部分。</p>
+<h4 id="问题-4"><a href="#问题-4" class="headerlink" title="问题 4"></a>问题 4</h4><p><strong>事实上，实现 <code>nop</code> 空指令，我们并不需要将它加入控制信号真值表，为什么？</strong></p>
+<p><code>nop</code> 对应机器码的各个位均为 0，且本质是 <code>sll</code> 指令，这并不在本次课下作业的范围中。并且，若我们不将 <code>nop</code> 指令加入控制信号真值表：</p>
+<ul>
+<li>指定读入的寄存器 rt 为 0，而 <code>$0</code> 的值一直保持为 0，不会发生改变</li>
+<li>信号 <code>MemWrite</code> 设置为 0，不会向 DM 中读入数据，DM 状态不改变</li>
+</ul>
+<p>因此，执行 <code>nop</code> 指令后，电路中状态不会有改变，这也就是执行“空指令”的体现。</p>
+<h4 id="问题-5"><a href="#问题-5" class="headerlink" title="问题 5"></a>问题 5</h4><p><strong>阅读 Pre 的 <a target="_blank" rel="noopener" href="http://cscore.buaa.edu.cn/tutorial/mips/mips-6/mips6-1/">“MIPS 指令集及汇编语言”</a> 一节中给出的测试样例，评价其强度（可从各个指令的覆盖情况，单一指令各种行为的覆盖情况等方面分析），并指出具体的不足之处。</strong></p>
+<p>这些样例一定程度上能够完成检测工作，且可以发现 CPU 设计中较明显的问题。不过还有一些不足：</p>
+<ul>
+<li>对于 <code>add</code> 指令，对边界条件（例如 <code>int_max</code> 附近）的测试不够</li>
+<li>对于 <code>lw</code> 和 <code>sw</code> 指令，没有在靠近最大地址的地方进行测试，且设置的 offset 均为 0，不能很好地检测对 base 和 offset 的运算。不过，由于本次实验没有实现 <code>li</code>，<code>addi</code> 等指令，offset 直接设为 0 无疑是最方便的。</li>
+<li>对于  <code>lui</code> 和 <code>ori</code> 指令，可以适当多考虑一些更一般的值（无论正负）</li>
+<li>对于 <code>beq</code> 指令，教程中的样例都是向后跳转，可以考虑添加向前 &#x2F; 原地跳转的情况</li>
+</ul>
+<h3 id="P4-思考题"><a href="#P4-思考题" class="headerlink" title="P4 思考题"></a>P4 思考题</h3><h4 id="问题-1-1"><a href="#问题-1-1" class="headerlink" title="问题 1"></a>问题 1</h4><p><strong>阅读下面给出的 DM 的输入示例中（示例 DM 容量为 4KB，即 32bit × 1024字），根据你的理解回答，这个 addr 信号又是从哪里来的？地址信号 addr 位数为什么是 [11:2] 而不是 [9:0] ？</strong></p>
+<ul>
+<li>addr 信号来自于 ALU，ALU 要对 offset 和 base 作加法运算；</li>
+<li>输入地址是以字为单位寻址的，要求为 4 的整数倍，对应到 DM 元件中需要除以 4 来寻址（即右移 2 位）。[1:0] 这两位可以用于半字、字节为单位的寻址，能预留用于添加 lh，lb 等指令。</li>
+</ul>
+<h4 id="问题-2-1"><a href="#问题-2-1" class="headerlink" title="问题 2"></a>问题 2</h4><p><strong>思考上述两种控制器设计的译码方式，给出代码示例，并尝试对比各方式的优劣。</strong></p>
+<ul>
+<li><p>将指令对应到信号：每个指令需要产生哪些控制信号一目了然，但是代码量较大；</p>
+</li>
+<li><p>将信号对应到指令：可以清楚地看到某个特定信号对应的指令，例如对于 <code>RegWrite</code>，我们可以很快就知道哪些指令需要写寄存器的操作。不过编程时要比较小心，因为不能直观地看到一个指令产生了什么控制信号，容易漏接线。</p>
+</li>
+<li><p>示例代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">//信号到指令</span><br><span class="line">assign RegDst = </span><br><span class="line">(add || sub || nop) ? `rd:</span><br><span class="line">(ori || lw || lui) ? `rt:</span><br><span class="line">(jal) ? `ra:</span><br><span class="line">`rd;</span><br><span class="line"></span><br><span class="line">assign ALUSrc = (ori || lw || sw || lui);</span><br><span class="line"></span><br><span class="line">assign RegDataSrc =</span><br><span class="line">(add || sub || ori || lui || nop) ? `alu:</span><br><span class="line">(lw) ? `mem:</span><br><span class="line">(jal) ? `pc:</span><br><span class="line">`alu;</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">//指令到信号</span><br><span class="line">if (add) begin</span><br><span class="line">        MemWrite    =   0       ;</span><br><span class="line">        RegWrite    =   1       ;</span><br><span class="line">        Jr          =   0       ;</span><br><span class="line">        Jump        =   0       ;</span><br><span class="line">        Branch      =   0	;</span><br><span class="line">        ExtOp       =   0	;</span><br><span class="line">        ALUSrc      =   0	;</span><br><span class="line">        ALUOp       =   `ADD	；</span><br><span class="line">        RegDst      =   `rd	；</span><br><span class="line">end</span><br><span class="line">...</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h4 id="问题-3-1"><a href="#问题-3-1" class="headerlink" title="问题 3"></a>问题 3</h4><p><strong>在相应的部件中，复位信号的设计都是同步复位 ，这与 P3 中的设计要求不同。请对比同步复位与异步复位这两种方式的 reset 信号与 clk 信号优先级的关系。</strong></p>
+<ul>
+<li>同步复位：reset 信号低级于 clk 信号，因为只有 clk 处于上升沿时 reset 信号才可能有效；</li>
+<li>异步复位：reset 信号高级于 clk 信号，因为一旦 reset 信号在高电平就复位，无所谓 clk 是否在上升沿。</li>
+</ul>
+<h4 id="问题-4-1"><a href="#问题-4-1" class="headerlink" title="问题 4"></a>问题 4</h4><p><strong>C 语言是一种弱类型程序设计语言。C 语言中不对计算结果溢出进行处理，这意味着 C 语言要求程序员必须很清楚计算结果是否会导致溢出。因此，如果仅仅支持 C 语言，MIPS 指令的所有计算指令均可以忽略溢出。 请说明为什么在忽略溢出的前提下，addi 与 addiu 是等价的，add 与 addu 是等价的。提示：阅读《MIPS32® Architecture For Programmers Volume II: The MIPS32® Instruction Set》中相关指令的 Operation 部分。</strong></p>
+<ul>
+<li>如何判断溢出：将  GPR[rs] 的第 31 位拼接到 GPR[rs] 之前，加法结果记为 temp，如果产生了进位就会溢出，这体现为 temp[32] ≠ temp[31]。</li>
+<li>如果我们不考虑溢出，temp[32] 不会发生变化，也不会被存入到寄存器中，此时存入的结果仍然是两个 32 位数加法得到的结果，addi 与 addiu &#x2F; add 与 addu 是等价的。</li>
+</ul>
+<h3 id="上机提示"><a href="#上机提示" class="headerlink" title="上机提示"></a>上机提示</h3><p>上机一开始就可以将课下提交的电路提交到各题的窗口中进行评测，每道题都有大约一半的数据点是对课下内容的强测，不涉及任何新增指令。如果提交后发现每道题均有约一半的测试点可以通过，那么上机时就不要多去考虑课下的 bug 了。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BB%84%E6%88%90/" rel="tag"># 计算机组成</a>
+              <a href="/tags/%E5%8D%95%E5%91%A8%E6%9C%9F-CPU/" rel="tag"># 单周期 CPU</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/10/26/P2_off_factorial/" rel="prev" title="计算机组成 P2 课下“factorial”题解">
+                  <i class="fa fa-angle-left"></i> 计算机组成 P2 课下“factorial”题解
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2025/11/23/checker_build/" rel="next" title="搭建属于你的 CPU 评测机——单周期 CPU">
+                  搭建属于你的 CPU 评测机——单周期 CPU <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">kkdcymnj</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">29k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">49 分钟</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
