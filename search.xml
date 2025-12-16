@@ -1263,21 +1263,15 @@
 </tbody></table>
 <p>下面我们来分析一下从单周期 CPU 到流水线 CPU 的“变与不变”：</p>
 <ul>
-<li><p>F 级：涉及 PC 跳转以及取指令，这在流水线 CPU 中变化不大（但还是有细节差异，见下文）</p>
-</li>
-<li><p>D 级：涉及译码、立即数扩展、写寄存器，主要的变化还是在译码（可能要译出更多信号）</p>
-</li>
-<li><p>E 级：涉及运算，且单周期 CPU 中，我们通过 <code>sub</code> 运算完成 <code>beq</code> 逻辑。不过在流水线 CPU 中，我们要将<strong>分支提前到 D 级</strong>，所以 <code>beq</code> 的逻辑要从 ALU 中剥离，且我们需要在 D 级建立 CMP 模块执行 <code>beq</code> 及其类似指令</p>
-</li>
-<li><p>M 级：读写内存，变化不大</p>
-</li>
-<li><p>W 级：新增部分，接受 M 级传出的最终确认的<strong>正确</strong>信号，并完成对 D、E、M 级的数据转发 </p>
-</li>
-<li><p>流水寄存器：F → D、D → E、E → M、M → W 的<strong>信号流水</strong>，这是 P5 的重点工作</p>
-</li>
+<li>F 级：涉及 PC 跳转以及取指令，这在流水线 CPU 中变化不大（但还是有细节差异，见下文）</li>
+<li>D 级：涉及译码、立即数扩展、写寄存器，主要的变化还是在译码（可能要译出更多信号）</li>
+<li>E 级：涉及运算，且单周期 CPU 中，我们通过 <code>sub</code> 运算完成 <code>beq</code> 逻辑。不过在流水线 CPU 中，我们要将<strong>分支提前到 D 级</strong>，所以 <code>beq</code> 的逻辑要从 ALU 中剥离，且我们需要在 D 级建立 CMP 模块执行 <code>beq</code> 及其类似指令</li>
+<li>M 级：读写内存，变化不大</li>
+<li>W 级：新增部分，接受 M 级传出的最终确认的<strong>正确</strong>信号，并完成对 D、E、M 级的数据转发</li>
+<li>流水寄存器：F → D、D → E、E → M、M → W 的<strong>信号流水</strong>，这是 P5 的重点工作</li>
 </ul>
 <p>到这里我们应该大致对 P5 的工作有了一定认识。话不多说，开干！</p>
-<h3 id="完成各流水级模块"><a href="#完成各流水级模块" class="headerlink" title="完成各流水级模块"></a>完成各流水级模块</h3><h4 id="F-级"><a href="#F-级" class="headerlink" title="F 级"></a>F 级</h4><p>PC </p>
+<h3 id="完成各流水级模块"><a href="#完成各流水级模块" class="headerlink" title="完成各流水级模块"></a>完成各流水级模块</h3><h4 id="F-级"><a href="#F-级" class="headerlink" title="F 级"></a>F 级</h4><p>PC</p>
 <table>
 <thead>
 <tr>
@@ -1312,7 +1306,7 @@
 <td>传出当前 PC 值</td>
 </tr>
 </tbody></table>
-<p>IM </p>
+<p>IM</p>
 <table>
 <thead>
 <tr>
@@ -1417,14 +1411,10 @@
 <p>正常情况下，随着指令 1 进入 D 级，指令 2 会随之进入 F 级，这样一来，执行指令 1 意味着一定会执行紧随其后的指令 2，这就实现了<strong>延迟槽</strong>。在不需要跳转、分支的情况下，这一定程度地提高了流水线效率。</p>
 <p>从图上我们可以直观地看到，F_PC &#x3D; D_PC + 4。下面我们来讨论如何决定 nextPC：</p>
 <ul>
-<li><p>指令 1 不是分支、跳转指令：顺序执行，nextPC &#x3D; F_PC + 4</p>
-</li>
-<li><p>指令 1 是分支指令：若分支条件成立，nextPC &#x3D; D_PC + 4 + signExt(offset || $0^2$) &#x3D; F_PC + signExt(offset || $0^2$) ；若分支条件不成立，顺序执行，nextPC &#x3D; F_PC + 4</p>
-</li>
-<li><p>指令 1 是跳转指令：PC 跳转到 D_PC[31:28] || instr_index || $0^2$，若链接，则向对应寄存器写入 F_PC + 4 &#x3D; D_PC + 8，这是指令 2 紧跟着的下一条指令的 PC</p>
-</li>
-<li><p>指令 1 是跳回指令：PC 跳转到 rs 寄存器中的值</p>
-</li>
+<li>指令 1 不是分支、跳转指令：顺序执行，nextPC &#x3D; F_PC + 4</li>
+<li>指令 1 是分支指令：若分支条件成立，nextPC &#x3D; D_PC + 4 + signExt(offset || $0^2$) &#x3D; F_PC + signExt(offset || $0^2$) ；若分支条件不成立，顺序执行，nextPC &#x3D; F_PC + 4</li>
+<li>指令 1 是跳转指令：PC 跳转到 D_PC[31:28] || instr_index || $0^2$，若链接，则向对应寄存器写入 F_PC + 4 &#x3D; D_PC + 8，这是指令 2 紧跟着的下一条指令的 PC</li>
+<li>指令 1 是跳回指令：PC 跳转到 rs 寄存器中的值</li>
 </ul>
 <h4 id="D-级"><a href="#D-级" class="headerlink" title="D 级"></a>D 级</h4><p>Splitter</p>
 <table>
@@ -1517,19 +1507,19 @@
 <td>Tuse_rs</td>
 <td>3</td>
 <td>output</td>
-<td>rs 寄存器的 $T_\text{use}$</td>
+<td>rs 寄存器的$T_\text{use}$</td>
 </tr>
 <tr>
 <td>Tuse_rt</td>
 <td>3</td>
 <td>output</td>
-<td>rt 寄存器的 $T_\text{use}$</td>
+<td>rt 寄存器的$T_\text{use}$</td>
 </tr>
 <tr>
 <td>Tnew</td>
 <td>3</td>
 <td>output</td>
-<td>指令 $T_\text{new}$</td>
+<td>指令$T_\text{new}$</td>
 </tr>
 <tr>
 <td>nextPCSel</td>
@@ -1933,7 +1923,7 @@
 <td>E_Tnew</td>
 <td>3</td>
 <td>input</td>
-<td>E 级 $T_\text{new}$ 值</td>
+<td>E 级$T_\text{new}$ 值</td>
 </tr>
 </tbody></table>
 <p>这些信号用于 E 级完成运算工作，所以我们需要向 E 级传入操作数、ALUOp 等关键信号。</p>
@@ -1980,7 +1970,7 @@
 <td>M_Tnew</td>
 <td>3</td>
 <td>output</td>
-<td>M 级 $T_\text{new}$ 值</td>
+<td>M 级$T_\text{new}$ 值</td>
 </tr>
 </tbody></table>
 <p>对于 store 指令，rtVal 是写入值；对于存取指令，ALUOut 是内存操作地址；MemDataType 和 MemOutSigned 是我超前预留的信号，在 P6 中会有些用处。</p>
@@ -2145,21 +2135,15 @@
 <p>这些控制信号在何处生成、最终到达何处是一个值得认真思考的问题。上表中列出了正常情况下各个信号流水的路径。在课上新增指令时，这些路径可能会发生比较明显的变化，这也是 P5、P6 课上的一个重要难点。</p>
 <h3 id="处理冒险——添加阻塞与转发"><a href="#处理冒险——添加阻塞与转发" class="headerlink" title="处理冒险——添加阻塞与转发"></a>处理冒险——添加阻塞与转发</h3><p>按照教程要求，这里我们使用 AT 法处理阻塞与转发。</p>
 <h4 id="确定-T-text-use-和-T-text-new"><a href="#确定-T-text-use-和-T-text-new" class="headerlink" title="确定 $T_\text{use}$ 和 $T_\text{new}$"></a>确定 $T_\text{use}$ 和 $T_\text{new}$</h4><ul>
-<li><p>$T_\text{use}$：从 <strong>D 级</strong>开始，还需要多少时钟周期会使用到这个寄存器的数据。<strong>对于指令中涉及到的源寄存器，都有对应的 $T_\text{use}$ 值。</strong></p>
-</li>
-<li><p>$T_\text{new}$：从<strong>当前流水级</strong>开始，还需要多少时钟周期能够得出写回寄存器的正确数据。注意这不同于“还需多少周期正确数据写回寄存器”。<strong>D、E、M、W 级都有对应的 $T_\text{new}$ 值。</strong></p>
-</li>
+<li>$T_\text{use}$：从 <strong>D 级</strong>开始，还需要多少时钟周期会使用到这个寄存器的数据。<strong>对于指令中涉及到的源寄存器，都有对应的 $T_\text{use}$ 值。</strong></li>
+<li>$T_\text{new}$：从<strong>当前流水级</strong>开始，还需要多少时钟周期能够得出写回寄存器的正确数据。注意这不同于“还需多少周期正确数据写回寄存器”。<strong>D、E、M、W 级都有对应的 $T_\text{new}$ 值。</strong></li>
 </ul>
 <p>下面我们引入几个简单的例子来看看如何确定这两个参数。</p>
 <ul>
-<li><p><code>add rd, rs, rt</code>：rs 和 rt 寄存器数据在 E 级 ALU 模块使用，距离 D 级 1 个周期，rs 和 rt 的 $T_\text{use}$ 均为 1；正确结果在 E 级 ALU 模块计算出来，但是教程要求<strong>不可以从部件直接转发数据</strong>，所以计算结果<strong>经 E → M 流水寄存器到 M 级后才能转发</strong>，相当于从 D 级开始需要 2 周期（E 级开始需要 1 周期，M 级开始需要 0 周期）得到正确的写回 rd 的数据，各级 $T_\text{new}$ 依次为 2，1，0，0。</p>
-</li>
-<li><p><code>beq rs, rt, label</code>：rs 和 rt 寄存器数据在 D 级 CMP 模块使用，距离 D 级 0 个周期，rs 和 rt 的 $T_\text{use}$ 均为 0；没有寄存器的数据要被更新，D 级及以后的 $T_\text{new}$ 均为 0。</p>
-</li>
-<li><p><code>lw rt, base(offset)</code>：rs 寄存器在 E 级被使用来计算内存地址，$T_\text{use}&#x3D; 1$；rt 寄存器在 M 级被写入数据，$T_\text{use}&#x3D; 2$；M 级为 rt 提供了正确的新数据，但这一数据<strong>流水到 W 级后才能转发</strong>，相当于从 D 级开始需要 3 周期（E 级开始需要 2 周期，M 级开始需要 1 周期，W 级开始需要 0 周期）得到正确的写回 rt 的数据，各级 $T_\text{new}$ 依次为 3，2，1，0。</p>
-</li>
-<li><p><code>lui rt, immediate</code>：其他分析类似 <code>add</code> 指令。不过，<code>lui</code> 指令不使用 rs 寄存器，可以认为 rs 对应的 $T_\text{use}$ 为无穷大。实际代码中，为 $T_\text{use}$ 赋一个较大的数即可。</p>
-</li>
+<li><code>add rd, rs, rt</code>：rs 和 rt 寄存器数据在 E 级 ALU 模块使用，距离 D 级 1 个周期，rs 和 rt 的 $T_\text{use}$ 均为 1；正确结果在 E 级 ALU 模块计算出来，但是教程要求<strong>不可以从部件直接转发数据</strong>，所以计算结果<strong>经 E → M 流水寄存器到 M 级后才能转发</strong>，相当于从 D 级开始需要 2 周期（E 级开始需要 1 周期，M 级开始需要 0 周期）得到正确的写回 rd 的数据，各级 $T_\text{new}$ 依次为 2，1，0，0。</li>
+<li><code>beq rs, rt, label</code>：rs 和 rt 寄存器数据在 D 级 CMP 模块使用，距离 D 级 0 个周期，rs 和 rt 的 $T_\text{use}$ 均为 0；没有寄存器的数据要被更新，D 级及以后的 $T_\text{new}$ 均为 0。</li>
+<li><code>lw rt, base(offset)</code>：rs 寄存器在 E 级被使用来计算内存地址，$T_\text{use}&#x3D; 1$；rt 寄存器在 M 级被写入数据，$T_\text{use}&#x3D; 2$；M 级为 rt 提供了正确的新数据，但这一数据<strong>流水到 W 级后才能转发</strong>，相当于从 D 级开始需要 3 周期（E 级开始需要 2 周期，M 级开始需要 1 周期，W 级开始需要 0 周期）得到正确的写回 rt 的数据，各级 $T_\text{new}$ 依次为 3，2，1，0。</li>
+<li><code>lui rt, immediate</code>：其他分析类似 <code>add</code> 指令。不过，<code>lui</code> 指令不使用 rs 寄存器，可以认为 rs 对应的 $T_\text{use}$ 为无穷大。实际代码中，为 $T_\text{use}$ 赋一个较大的数即可。</li>
 </ul>
 <p>这样我们就可以得到 $T_\text{use}$ 和 $T_\text{new}$ 与指令的对照表。为节省空间，这里我只列出了 P5 部分需要用到的指令，P6 部分新增指令可以类似地添加：</p>
 <table>
@@ -2235,24 +2219,18 @@
 <h4 id="阻塞逻辑"><a href="#阻塞逻辑" class="headerlink" title="阻塞逻辑"></a>阻塞逻辑</h4><p>若当前指令需要用到某个寄存器的数据，但前序指令还没有获得写入这个寄存器的正确数据，则把当前指令<strong>阻塞于 D 级</strong>。前序指令处于 E、M 级时这种情况都会发生。</p>
 <p>上面这句话有些拗口，我们把其中涉及到的阻塞条件拆开来写。假设当前指令需要用到的寄存器地址为 <code>cur_addr</code>，前序指令要写的寄存器地址为 <code>pre_addr</code>：</p>
 <ul>
-<li><p>当前寄存器 $T_\text{use}$ 小于前序指令所在流水级的 $T_\text{new}$。原因很明显，此时还没能获得“正确数据”；</p>
-</li>
-<li><p><code>cur_addr</code> &#x3D; <code>pre_addr</code>。不过，如果二者都为 0 则不需要阻塞，因为 0 号寄存器内的数据应始终为 0 不改变；</p>
-</li>
-<li><p>前序指令<strong>要写</strong> <code>pre_addr</code> 寄存器。这会带来数据的更新，导致后续指令用到的数据不正确。如果前序指令<strong>不写</strong>，则不需要阻塞，因为这不带来数据改变。</p>
-</li>
+<li>当前寄存器 $T_\text{use}$ 小于前序指令所在流水级的 $T_\text{new}$。原因很明显，此时还没能获得“正确数据”；</li>
+<li><code>cur_addr</code> &#x3D; <code>pre_addr</code>。不过，如果二者都为 0 则不需要阻塞，因为 0 号寄存器内的数据应始终为 0 不改变；</li>
+<li>前序指令<strong>要写</strong> <code>pre_addr</code> 寄存器。这会带来数据的更新，导致后续指令用到的数据不正确。如果前序指令<strong>不写</strong>，则不需要阻塞，因为这不带来数据改变。</li>
 </ul>
 <figure class="highlight verilog"><table><tr><td class="code"><pre><code class="hljs verilog"><span class="hljs-keyword">wire</span> stall_from_E =<br>(E_RegWrite &amp;&amp; (rs == E_RegWriteAddr &amp;&amp; rs!=<span class="hljs-number">0</span>) &amp;&amp; (Tuse_rs &lt; E_Tnew) ) ||<br>(E_RegWrite &amp;&amp; (rt == E_RegWriteAddr &amp;&amp; rt!=<span class="hljs-number">0</span>) &amp;&amp; (Tuse_rt &lt; E_Tnew) ) ;<br><br><span class="hljs-keyword">wire</span> stall_from_M =<br>(M_RegWrite &amp;&amp; (rs == M_RegWriteAddr &amp;&amp; rs!=<span class="hljs-number">0</span>) &amp;&amp; (Tuse_rs &lt; M_Tnew) ) ||<br>(M_RegWrite &amp;&amp; (rt == M_RegWriteAddr &amp;&amp; rt!=<span class="hljs-number">0</span>) &amp;&amp; (Tuse_rt &lt; M_Tnew) );<br></code></pre></td></tr></table></figure>
 
 <h4 id="转发逻辑"><a href="#转发逻辑" class="headerlink" title="转发逻辑"></a>转发逻辑</h4><p>在 E、M 级的部件能够产生“正确结果”，但是这些结果需要经过一道流水级寄存器再转发，也就是说，转发的情况应当发生在 M、W 级。当 M、W 级同时都可以转发，M 级的数据应更优先，因为处在 M 级的指令是<strong>更新近</strong>的。</p>
 <p>假设当前指令需要用到的寄存器地址为 <code>cur_addr</code>，前序指令要写的寄存器地址为 <code>pre_addr</code>，则发生转发需要满足：</p>
 <ul>
-<li><p>前序指令所在流水级的 $T_\text{new}&#x3D;0$。在这时写入寄存器的“正确数据”已经产生；</p>
-</li>
-<li><p><code>cur_addr</code> &#x3D; <code>pre_addr</code>。不过，如果二者都为 0 则不需要转发，因为 0 号寄存器内的数据应始终为 0 不改变；</p>
-</li>
-<li><p>前序指令<strong>要写</strong> <code>pre_addr</code> 寄存器。这会带来数据的更新，只有转发更新后的数据我们才能保证当前指令使用了正确的寄存器数据，指令执行才不会出错。</p>
-</li>
+<li>前序指令所在流水级的 $T_\text{new}&#x3D;0$。在这时写入寄存器的“正确数据”已经产生；</li>
+<li><code>cur_addr</code> &#x3D; <code>pre_addr</code>。不过，如果二者都为 0 则不需要转发，因为 0 号寄存器内的数据应始终为 0 不改变；</li>
+<li>前序指令<strong>要写</strong> <code>pre_addr</code> 寄存器。这会带来数据的更新，只有转发更新后的数据我们才能保证当前指令使用了正确的寄存器数据，指令执行才不会出错。</li>
 </ul>
 <figure class="highlight verilog"><table><tr><td class="code"><pre><code class="hljs verilog"><span class="hljs-keyword">wire</span> [<span class="hljs-number">2</span>:<span class="hljs-number">0</span>] sel = <br>(RegAddr == M_RegWriteAddr &amp;&amp; M_RegWriteAddr!=<span class="hljs-number">0</span> &amp;&amp; M_RegWrite &amp;&amp; M_Tnew==<span class="hljs-number">0</span> &amp;&amp; <span class="hljs-keyword">new</span>==<span class="hljs-number">0</span>)? <span class="hljs-number">2&#x27;b10</span>:<br>(RegAddr == W_RegWriteAddr &amp;&amp; W_RegWriteAddr!=<span class="hljs-number">0</span> &amp;&amp; W_RegWrite &amp;&amp; W_Tnew==<span class="hljs-number">0</span>)? <span class="hljs-number">2&#x27;b01</span>:<br><span class="hljs-number">2&#x27;b00</span>;<br><br><span class="hljs-keyword">assign</span> newRegData = <br>(sel == <span class="hljs-number">2&#x27;b10</span>) ? M_RegWriteData:<br>(sel == <span class="hljs-number">2&#x27;b01</span>) ? W_RegWriteData:<br>RegData;<br></code></pre></td></tr></table></figure>
 
@@ -2361,7 +2339,7 @@
 <p>CPU内部不仅有简单的整数ALU，还有专门的乘法单元（IMUL），有时甚至还有专门的除法单元。配合CPU的<strong>乱序执行</strong>引擎，当遇到一条乘除指令时，调度器会将其发射到乘法单元。在乘法单元工作的这几个周期里，流水线<strong>不会被完全停顿</strong>，只要后续指令不依赖于这个乘法的结果，它们就可以继续被发射和执行。</p>
 <p>此外，现代乘法器通常采用Booth编码和Wallace树结构来减少部分积的数量和加速累加，从而降低延迟和功耗。</p>
 <h4 id="第三题-1"><a href="#第三题-1" class="headerlink" title="第三题"></a>第三题</h4><p><strong>请结合自己的实现分析，你是如何处理 Busy 信号带来的周期阻塞的？</strong></p>
-<p>对 F2DReg 和 D2EReg 进行阻塞，其中 D2EReg 中 E 级信号的输出应该“清空”。由于类似功能在 P5 时已经实现，P6 时将 <code>D_stall</code> 信号改为 <code>stall || busy || start</code> 条件即可。</p>
+<p>对 F2DReg 和 D2EReg 进行阻塞，其中 D2EReg 中 E 级信号的输出应该“清空”，但 PC 信号需要保留。由于类似功能在 P5 时已经实现，P6 时将 <code>D_stall</code> 信号改为 <code>stall || E_mduStall</code> 条件即可。</p>
 <h4 id="第四题-1"><a href="#第四题-1" class="headerlink" title="第四题"></a>第四题</h4><p><strong>请问采用字节使能信号的方式处理写指令有什么好处？（提示：从清晰性、统一性等角度考虑）</strong></p>
 <p>能够很清晰地指示哪个字节会发生变动，将不同数据宽度的访存指令的实现方式进行了统一，有效减少了重复代码量。</p>
 <h4 id="第五题-1"><a href="#第五题-1" class="headerlink" title="第五题"></a>第五题</h4><p><strong>请思考，我们在按字节读和按字节写时，实际从 DM 获得的数据和向 DM 写入的数据是否是一字节？在什么情况下我们按字节读和按字节写的效率会高于按字读和按字写呢？</strong></p>
@@ -2369,12 +2347,12 @@
 <h4 id="第六题-1"><a href="#第六题-1" class="headerlink" title="第六题"></a>第六题</h4><p><strong>为了对抗复杂性你采取了哪些抽象和规范手段？这些手段在译码和处理数据冲突的时候有什么样的特点与帮助？</strong></p>
 <p>规范性：对于每一个信号都标注其所处阶段，例如 <code>D_WriteReg</code>，且不吝啬变量名长度以提高可读性；使用宏定义替代“魔法值”，便于 debug。<br>抽象性：将需要添加的指令进行分类，同一类的指令对内存、寄存器等的操作均有很大相似之处，这在 CPU 设计部分已经提到。</p>
 <h4 id="第七题-1"><a href="#第七题-1" class="headerlink" title="第七题"></a>第七题</h4><p><strong>在本实验中你遇到了哪些不同指令类型组合产生的冲突？你又是如何解决的？相应的测试样例是什么样的？</strong></p>
-<p>相比 P5 多出了 <code>mv_fr</code> 类指令带来的冲突。<code>start</code> 或 <code>busy</code> 信号为 1 时均需要对 F2DReg 和 D2EReg 进行阻塞，其中 D2EReg 中 E 级信号的输出应该“清空”，以防将错误数据代入 E 级且后续错误的计算结果又被流水。</p>
+<p>相比 P5 多出了 <code>mv_fr</code> 类指令带来的冲突。<code>start</code> 或 <code>busy</code> 信号为 1 且 D 级紧跟乘除指令时均需要对 F2DReg 和 D2EReg 进行阻塞，其中 D2EReg 中 E 级信号的输出应该“清空”，以防将错误数据代入 E 级且后续错误的计算结果又被流水。</p>
 <h4 id="第八题"><a href="#第八题" class="headerlink" title="第八题"></a>第八题</h4><p><strong>如果你是手动构造的样例，请说明构造策略，说明你的测试程序如何保证覆盖了所有需要测试的情况；如果你是完全随机生成的测试样例，请思考完全随机的测试程序有何不足之处；如果你在生成测试样例时采用了特殊的策略，比如构造连续数据冒险序列，请你描述一下你使用的策略如何结合了随机性达到强测的效果。</strong></p>
 <p>样例构造采取大部分随机生成 + 少部分手搓的策略。</p>
 <p>随机样例：只操作少数几个寄存器和少数内存地址，由于数据按照几百上千行的规模随机生成，所以能够以比较大的几率产生各种转发 &#x2F; 阻塞情景。</p>
 <p>手搓样例：用于增加对转发 &#x2F; 阻塞情景的覆盖率，尤其是和分支、跳转等有关的，这在随机生成样例时很难控制合法性。</p>
-<figure class="highlight routeros"><table><tr><td class="code"><pre><code class="hljs routeros">.data<br>array:.space 4096<br><br>.text<br>ori <span class="hljs-variable">$2</span>,<span class="hljs-variable">$0</span>,2000<br>ori <span class="hljs-variable">$3</span>,<span class="hljs-variable">$0</span>,3000<br>ori <span class="hljs-variable">$4</span>,<span class="hljs-variable">$0</span>,5000<br>ori <span class="hljs-variable">$5</span>,<span class="hljs-variable">$0</span>,4000<br>ori <span class="hljs-variable">$6</span>,<span class="hljs-variable">$0</span>,4000<br>sub <span class="hljs-variable">$5</span>,<span class="hljs-variable">$6</span>,<span class="hljs-variable">$5</span><br>lw <span class="hljs-variable">$7</span>,0(<span class="hljs-variable">$5</span>)<br>sw <span class="hljs-variable">$2</span>,0(<span class="hljs-variable">$5</span>)<br>sw <span class="hljs-variable">$3</span>,4(<span class="hljs-variable">$0</span>)<br>sw <span class="hljs-variable">$4</span>,8(<span class="hljs-variable">$0</span>)<br>sw <span class="hljs-variable">$2</span>,12(<span class="hljs-variable">$0</span>)<br>sw <span class="hljs-variable">$3</span>,16(<span class="hljs-variable">$0</span>)<br>sw <span class="hljs-variable">$4</span>,20(<span class="hljs-variable">$0</span>)<br><span class="hljs-built_in">add</span> <span class="hljs-variable">$3</span>,<span class="hljs-variable">$3</span>,<span class="hljs-variable">$2</span>	#<span class="hljs-variable">$3</span>=5000<br>beq <span class="hljs-variable">$3</span>,<span class="hljs-variable">$4</span>,label2<br>nop<br><br>label1:<br><span class="hljs-built_in">add</span> <span class="hljs-variable">$2</span>,<span class="hljs-variable">$2</span>,<span class="hljs-variable">$3</span><br><br>label2:<br>ori <span class="hljs-variable">$5</span>,<span class="hljs-variable">$0</span>,4<br>ori <span class="hljs-variable">$6</span>,<span class="hljs-variable">$0</span>,8<br><span class="hljs-built_in">add</span> <span class="hljs-variable">$7</span>,<span class="hljs-variable">$5</span>,<span class="hljs-variable">$6</span><br>mult <span class="hljs-variable">$7</span>,<span class="hljs-variable">$6</span><br>mflo <span class="hljs-variable">$9</span><br>lw <span class="hljs-variable">$8</span>,0(<span class="hljs-variable">$9</span>)<br>mfhi <span class="hljs-variable">$8</span><br>sw <span class="hljs-variable">$8</span>,0(<span class="hljs-variable">$7</span>)	<br>ori <span class="hljs-variable">$7</span>,<span class="hljs-variable">$5</span>,4<br>lw <span class="hljs-variable">$8</span>,0(<span class="hljs-variable">$7</span>)<br>ori <span class="hljs-variable">$9</span>,<span class="hljs-variable">$0</span>,12<br><span class="hljs-built_in">add</span> <span class="hljs-variable">$8</span>,<span class="hljs-variable">$0</span>,<span class="hljs-variable">$9</span><br>lb <span class="hljs-variable">$8</span>,-1(<span class="hljs-variable">$9</span>)<br>sb <span class="hljs-variable">$7</span>,0(<span class="hljs-variable">$8</span>)<br>ori <span class="hljs-variable">$10</span>,<span class="hljs-variable">$0</span>,0x8765<br>sw <span class="hljs-variable">$10</span>,8(<span class="hljs-variable">$0</span>)<br>lh <span class="hljs-variable">$8</span>,-2(<span class="hljs-variable">$9</span>)<br>div <span class="hljs-variable">$8</span>,<span class="hljs-variable">$9</span><br>jal label4<br>mthi <span class="hljs-variable">$31</span><br>nop<br><br>label3:<br><span class="hljs-built_in">add</span> <span class="hljs-variable">$3</span>,<span class="hljs-variable">$2</span>,<span class="hljs-variable">$3</span><br><br>label4:<br>ori <span class="hljs-variable">$8</span>,<span class="hljs-variable">$31</span>,0<br>jal label6<br>div <span class="hljs-variable">$4</span>,<span class="hljs-variable">$31</span><br>nop<br><br>label5:<br><span class="hljs-built_in">add</span> <span class="hljs-variable">$3</span>,<span class="hljs-variable">$2</span>,<span class="hljs-variable">$3</span><br><br>label6:<br>beq <span class="hljs-variable">$7</span>,<span class="hljs-variable">$31</span>,label7<br>mfhi <span class="hljs-variable">$5</span><br>beq <span class="hljs-variable">$5</span>,<span class="hljs-variable">$31</span>,label7<br>nop<br>jal label8<br>addi <span class="hljs-variable">$5</span>,<span class="hljs-variable">$31</span>,1<br>nop<br><br>label7:<br><span class="hljs-built_in">add</span> <span class="hljs-variable">$3</span>,<span class="hljs-variable">$2</span>,<span class="hljs-variable">$3</span><br><br>label8:<br>lui <span class="hljs-variable">$10</span>,1<br>lui <span class="hljs-variable">$9</span>,1<br>beq <span class="hljs-variable">$10</span>,<span class="hljs-variable">$9</span>,label10<br>nop<br>jal label10<br>nop<br>jal end<br>nop<br><br>label9:<br><span class="hljs-built_in">add</span> <span class="hljs-variable">$3</span>,<span class="hljs-variable">$2</span>,<span class="hljs-variable">$3</span><br><br>label10:<br>jal label11<br>nop<br><br>label11:<br>beq <span class="hljs-variable">$0</span>,<span class="hljs-variable">$0</span>,end<br>nop<br><br>end:<br>beq <span class="hljs-variable">$31</span>,<span class="hljs-variable">$0</span>,end<br>nop<br></code></pre></td></tr></table></figure>
+<figure class="highlight mips"><table><tr><td class="code"><pre><code class="hljs mips"><span class="hljs-meta">.data</span><br><span class="hljs-symbol">array:</span><span class="hljs-meta">.space</span> <span class="hljs-number">4096</span><br><br><span class="hljs-meta">.text</span><br><span class="hljs-keyword">ori </span>$<span class="hljs-number">2</span>,$<span class="hljs-number">0</span>,<span class="hljs-number">2000</span><br><span class="hljs-keyword">ori </span>$<span class="hljs-number">3</span>,$<span class="hljs-number">0</span>,<span class="hljs-number">3000</span><br><span class="hljs-keyword">ori </span>$<span class="hljs-number">4</span>,$<span class="hljs-number">0</span>,<span class="hljs-number">5000</span><br><span class="hljs-keyword">ori </span>$<span class="hljs-number">5</span>,$<span class="hljs-number">0</span>,<span class="hljs-number">4000</span><br><span class="hljs-keyword">ori </span>$<span class="hljs-number">6</span>,$<span class="hljs-number">0</span>,<span class="hljs-number">4000</span><br><span class="hljs-keyword">sub </span>$<span class="hljs-number">5</span>,$<span class="hljs-number">6</span>,$<span class="hljs-number">5</span><br><span class="hljs-keyword">lw </span>$<span class="hljs-number">7</span>,<span class="hljs-number">0</span>($<span class="hljs-number">5</span>)<br><span class="hljs-keyword">sw </span>$<span class="hljs-number">2</span>,<span class="hljs-number">0</span>($<span class="hljs-number">5</span>)<br><span class="hljs-keyword">sw </span>$<span class="hljs-number">3</span>,<span class="hljs-number">4</span>($<span class="hljs-number">0</span>)<br><span class="hljs-keyword">sw </span>$<span class="hljs-number">4</span>,<span class="hljs-number">8</span>($<span class="hljs-number">0</span>)<br><span class="hljs-keyword">sw </span>$<span class="hljs-number">2</span>,<span class="hljs-number">12</span>($<span class="hljs-number">0</span>)<br><span class="hljs-keyword">sw </span>$<span class="hljs-number">3</span>,<span class="hljs-number">16</span>($<span class="hljs-number">0</span>)<br><span class="hljs-keyword">sw </span>$<span class="hljs-number">4</span>,<span class="hljs-number">20</span>($<span class="hljs-number">0</span>)<br><span class="hljs-keyword">add </span>$<span class="hljs-number">3</span>,$<span class="hljs-number">3</span>,$<span class="hljs-number">2</span>	<span class="hljs-comment">#$3=5000</span><br><span class="hljs-keyword">beq </span>$<span class="hljs-number">3</span>,$<span class="hljs-number">4</span>,label2<br><span class="hljs-keyword">nop</span><br><span class="hljs-keyword"></span><span class="hljs-symbol"></span><br><span class="hljs-symbol">label1:</span><br><span class="hljs-keyword">add </span>$<span class="hljs-number">2</span>,$<span class="hljs-number">2</span>,$<span class="hljs-number">3</span><br><span class="hljs-symbol"></span><br><span class="hljs-symbol">label2:</span><br><span class="hljs-keyword">ori </span>$<span class="hljs-number">5</span>,$<span class="hljs-number">0</span>,<span class="hljs-number">4</span><br><span class="hljs-keyword">ori </span>$<span class="hljs-number">6</span>,$<span class="hljs-number">0</span>,<span class="hljs-number">8</span><br><span class="hljs-keyword">add </span>$<span class="hljs-number">7</span>,$<span class="hljs-number">5</span>,$<span class="hljs-number">6</span><br><span class="hljs-keyword">mult </span>$<span class="hljs-number">7</span>,$<span class="hljs-number">6</span><br><span class="hljs-keyword">mflo </span>$<span class="hljs-number">9</span><br><span class="hljs-keyword">lw </span>$<span class="hljs-number">8</span>,<span class="hljs-number">0</span>($<span class="hljs-number">9</span>)<br><span class="hljs-keyword">mfhi </span>$<span class="hljs-number">8</span><br><span class="hljs-keyword">sw </span>$<span class="hljs-number">8</span>,<span class="hljs-number">0</span>($<span class="hljs-number">7</span>)<br><span class="hljs-keyword">ori </span>$<span class="hljs-number">7</span>,$<span class="hljs-number">5</span>,<span class="hljs-number">4</span><br><span class="hljs-keyword">lw </span>$<span class="hljs-number">8</span>,<span class="hljs-number">0</span>($<span class="hljs-number">7</span>)<br><span class="hljs-keyword">ori </span>$<span class="hljs-number">9</span>,$<span class="hljs-number">0</span>,<span class="hljs-number">12</span><br><span class="hljs-keyword">add </span>$<span class="hljs-number">8</span>,$<span class="hljs-number">0</span>,$<span class="hljs-number">9</span><br><span class="hljs-keyword">lb </span>$<span class="hljs-number">8</span>,-<span class="hljs-number">1</span>($<span class="hljs-number">9</span>)<br><span class="hljs-keyword">sb </span>$<span class="hljs-number">7</span>,<span class="hljs-number">0</span>($<span class="hljs-number">8</span>)<br><span class="hljs-keyword">ori </span>$<span class="hljs-number">10</span>,$<span class="hljs-number">0</span>,<span class="hljs-number">0x8765</span><br><span class="hljs-keyword">sw </span>$<span class="hljs-number">10</span>,<span class="hljs-number">8</span>($<span class="hljs-number">0</span>)<br><span class="hljs-keyword">lh </span>$<span class="hljs-number">8</span>,-<span class="hljs-number">2</span>($<span class="hljs-number">9</span>)<br><span class="hljs-keyword">div </span>$<span class="hljs-number">8</span>,$<span class="hljs-number">9</span><br><span class="hljs-keyword">jal </span>label4<br><span class="hljs-keyword">mthi </span>$<span class="hljs-number">31</span><br><span class="hljs-keyword">nop</span><br><span class="hljs-keyword"></span><span class="hljs-symbol"></span><br><span class="hljs-symbol">label3:</span><br><span class="hljs-keyword">add </span>$<span class="hljs-number">3</span>,$<span class="hljs-number">2</span>,$<span class="hljs-number">3</span><br><span class="hljs-symbol"></span><br><span class="hljs-symbol">label4:</span><br><span class="hljs-keyword">ori </span>$<span class="hljs-number">8</span>,$<span class="hljs-number">31</span>,<span class="hljs-number">0</span><br><span class="hljs-keyword">jal </span>label6<br><span class="hljs-keyword">div </span>$<span class="hljs-number">4</span>,$<span class="hljs-number">31</span><br><span class="hljs-keyword">nop</span><br><span class="hljs-keyword"></span><span class="hljs-symbol"></span><br><span class="hljs-symbol">label5:</span><br><span class="hljs-keyword">add </span>$<span class="hljs-number">3</span>,$<span class="hljs-number">2</span>,$<span class="hljs-number">3</span><br><span class="hljs-symbol"></span><br><span class="hljs-symbol">label6:</span><br><span class="hljs-keyword">beq </span>$<span class="hljs-number">7</span>,$<span class="hljs-number">31</span>,label7<br><span class="hljs-keyword">mfhi </span>$<span class="hljs-number">5</span><br><span class="hljs-keyword">beq </span>$<span class="hljs-number">5</span>,$<span class="hljs-number">31</span>,label7<br><span class="hljs-keyword">nop</span><br><span class="hljs-keyword"></span><span class="hljs-keyword">jal </span>label8<br><span class="hljs-keyword">addi </span>$<span class="hljs-number">5</span>,$<span class="hljs-number">31</span>,<span class="hljs-number">1</span><br><span class="hljs-keyword">nop</span><br><span class="hljs-keyword"></span><span class="hljs-symbol"></span><br><span class="hljs-symbol">label7:</span><br><span class="hljs-keyword">add </span>$<span class="hljs-number">3</span>,$<span class="hljs-number">2</span>,$<span class="hljs-number">3</span><br><span class="hljs-symbol"></span><br><span class="hljs-symbol">label8:</span><br><span class="hljs-keyword">lui </span>$<span class="hljs-number">10</span>,<span class="hljs-number">1</span><br><span class="hljs-keyword">lui </span>$<span class="hljs-number">9</span>,<span class="hljs-number">1</span><br><span class="hljs-keyword">beq </span>$<span class="hljs-number">10</span>,$<span class="hljs-number">9</span>,label10<br><span class="hljs-keyword">nop</span><br><span class="hljs-keyword"></span><span class="hljs-keyword">jal </span>label10<br><span class="hljs-keyword">nop</span><br><span class="hljs-keyword"></span><span class="hljs-keyword">jal </span>end<br><span class="hljs-keyword">nop</span><br><span class="hljs-keyword"></span><span class="hljs-symbol"></span><br><span class="hljs-symbol">label9:</span><br><span class="hljs-keyword">add </span>$<span class="hljs-number">3</span>,$<span class="hljs-number">2</span>,$<span class="hljs-number">3</span><br><span class="hljs-symbol"></span><br><span class="hljs-symbol">label10:</span><br><span class="hljs-keyword">jal </span>label11<br><span class="hljs-keyword">nop</span><br><span class="hljs-keyword"></span><span class="hljs-symbol"></span><br><span class="hljs-symbol">label11:</span><br><span class="hljs-keyword">beq </span>$<span class="hljs-number">0</span>,$<span class="hljs-number">0</span>,end<br><span class="hljs-keyword">nop</span><br><span class="hljs-keyword"></span><span class="hljs-symbol"></span><br><span class="hljs-symbol">end:</span><br><span class="hljs-keyword">beq </span>$<span class="hljs-number">31</span>,$<span class="hljs-number">0</span>,end<br><span class="hljs-keyword">nop</span><br></code></pre></td></tr></table></figure>
 
 <h3 id="写在最后"><a href="#写在最后" class="headerlink" title="写在最后"></a>写在最后</h3><p>P5、P6 的难度相比之前有了明显的提升。想要在这两个单元顺利一点，可以考虑课下自行构造较强的测试数据、练习指令添加推荐题。P5 和 P6 上机考试的“底层逻辑”都是相同的，一般是计算 + 分支 + 访存的组合，不过 P6 的考题在流程上会更为复杂（可以说结合了一定代码量的程序设计题），考场上需要更加细心，有更充分的耐心。</p>
 <p>后续我有计划更新 P5、P6 考题中的常见“套路”，以帮助大家更顺利地通过课上部分，不要像我一样在 P6 连死 2 次。不过，即使发生了类似情况也不要放弃——笔者在 P3 死了 1 次，在 P6 死了 2 次，虽然用完了容错机会，但还是背水一战，完成了 P7。相信你们只会比我做得更好！</p>
