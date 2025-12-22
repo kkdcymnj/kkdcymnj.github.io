@@ -1,6 +1,113 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>计算机组成 P2 课下“factorial”题解</title>
+    <url>/2025/10/26/P2_off_factorial/</url>
+    <content><![CDATA[<h3 id="题面回顾"><a href="#题面回顾" class="headerlink" title="题面回顾"></a>题面回顾</h3><p>运用 MIPS 汇编编写一个计算阶乘的程序。阶乘的结果在 1000 位以内。</p>
+<p>程序的执行步数限制在 <strong>200,000</strong> 以内。</p>
+<span id="more"></span>
+<h3 id="思路建构"><a href="#思路建构" class="headerlink" title="思路建构"></a>思路建构</h3><p>很明显我们需要运用<strong>高精度乘法</strong>完成本题。首先让我们复习一下如何进行两个大数的高精度乘法，下面给出了对应的C语言代码，至于其汇编代码的编写就麻烦大家自行完成了。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;bits/stdc++.h&gt;</span></span><br>using namespace <span class="hljs-built_in">std</span>;<br><span class="hljs-type">char</span> a[<span class="hljs-number">1005</span>],b[<span class="hljs-number">1005</span>];<br><span class="hljs-type">int</span> A[<span class="hljs-number">1005</span>],B[<span class="hljs-number">1005</span>],C[<span class="hljs-number">1005</span>],temp;<br><span class="hljs-type">char</span> out[<span class="hljs-number">1005</span>];<br><br><span class="hljs-type">int</span> <span class="hljs-title function_">main</span><span class="hljs-params">()</span>&#123;<br>    <span class="hljs-built_in">cin</span>&gt;&gt;a;<br>    <span class="hljs-built_in">cin</span>&gt;&gt;b;<br>    <span class="hljs-type">int</span> lena=<span class="hljs-built_in">strlen</span>(a),lenb=<span class="hljs-built_in">strlen</span>(b);<br>    <span class="hljs-type">int</span> len_out=lena+lenb;  <span class="hljs-comment">//a位与b位的数字相乘，结果最多为(a+b)位</span><br><br>    <span class="hljs-keyword">for</span>(<span class="hljs-type">int</span> i=<span class="hljs-number">0</span>;i&lt;lena;i++)&#123;<br>        A[i]=a[lena-i<span class="hljs-number">-1</span>]-<span class="hljs-string">&#x27;0&#x27;</span>;<br>    &#125;<br>    <span class="hljs-keyword">for</span>(<span class="hljs-type">int</span> i=<span class="hljs-number">0</span>;i&lt;lenb;i++)&#123;<br>        B[i]=b[lenb-i<span class="hljs-number">-1</span>]-<span class="hljs-string">&#x27;0&#x27;</span>;<br>    &#125;                       <span class="hljs-comment">//类似于写竖式时，乘数的低位要对齐</span><br>    <span class="hljs-keyword">for</span>(<span class="hljs-type">int</span> i=<span class="hljs-number">0</span>;i&lt;lena;i++)&#123;<br>        temp=<span class="hljs-number">0</span>;             <span class="hljs-comment">//记录进位</span><br>        <span class="hljs-keyword">for</span>(<span class="hljs-type">int</span> j=<span class="hljs-number">0</span>;j&lt;lenb;j++)&#123;<br>            C[i+j]=A[i]*B[j]+temp+C[i+j];<br>            temp=C[i+j]/<span class="hljs-number">10</span>;<br>            C[i+j]%=<span class="hljs-number">10</span>;     <span class="hljs-comment">//想想竖式乘法是怎么计算的</span><br>        &#125;<br>        C[i+lenb]=temp;<br>    &#125;<br>    <span class="hljs-type">int</span> k;<br>    <span class="hljs-keyword">for</span>(k=<span class="hljs-number">1004</span>;k&gt;<span class="hljs-number">0</span>;k--)&#123;<br>        <span class="hljs-keyword">if</span>(C[k<span class="hljs-number">-1</span>]!=<span class="hljs-number">0</span>)&#123;<br>            <span class="hljs-keyword">break</span>;<br>        &#125;<br>    &#125;                       <span class="hljs-comment">//输出时注意去除前导0</span><br>    <span class="hljs-keyword">for</span>(;k&gt;=<span class="hljs-number">0</span>;k--)&#123;<br>        <span class="hljs-built_in">cout</span>&lt;&lt;C[k];<br>    &#125;<br>    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>解决了高精度乘法这一问题后，编写计算阶乘的程序似乎就很简单了。我们可以声明三个“数组”A，B 和 C，A 中存放上一次阶乘运算的结果，B 中存放当前乘数，C 中存放本次阶乘的结果。若需要再进行一次阶乘，则将 C 的内容复制到 A，将 A 乘以 B，再得出新的 C 即可。如此一来，我们只需要编写一个三重循环就可以完成任务。</p>
+<h3 id="发现问题"><a href="#发现问题" class="headerlink" title="发现问题"></a>发现问题</h3><p>相信有的读者已经发现了问题：三重循环效率太低，在 200,000 的步数限制下似乎很难完成任务。事实也确实如此。我使用 mars 中的 Instruction Counter 工具得到了计算 40，60 和 100 的阶乘所需要的步数。结果大致如下表所示。</p>
+<table>
+<thead>
+<tr>
+<th>阶乘</th>
+<th>计算步数</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>40!</td>
+<td>64,069</td>
+</tr>
+<tr>
+<td>60!</td>
+<td>164,903</td>
+</tr>
+<tr>
+<td>100!</td>
+<td>538,489</td>
+</tr>
+</tbody></table>
+<p>通过这一份表我们可以看到，我们的代码在计算 60! 时就快要达到最大步数限制了，计算 100! 时就已经严重超出了步数限制——而此时阶乘的结果不过 158 位，远少于 1000 位。目前的这份“三重循环”代码显然需要一定优化。</p>
+<h3 id="解决问题"><a href="#解决问题" class="headerlink" title="解决问题"></a>解决问题</h3><p>重新审视一下在“三重循环”代码中我们做了什么。在计算 $(n-1)!\times n$ 的循环中，我们做了以下几步：</p>
+<ol>
+<li><p>一开始 C 中存放了 $(n-1)!$ 的结果，将这一结果复制到 A</p>
+</li>
+<li><p>将这一次需要的 $n$ 复制到 B</p>
+</li>
+<li><p>两重循环计算出 $n!$，相应结果存储到 C 中</p>
+</li>
+</ol>
+<p>在以上三个步骤中，1 看起来是比较累赘的，但是某种程度上我们又难以避免。考虑下面的一个场景：</p>
+<p>如果我们不将上一次 C 中的内容复制到 A，则 <code>C[i+j]</code> 是这样计算的：</p>
+<figure class="highlight inform7"><table><tr><td class="code"><pre><code class="hljs inform7">C<span class="hljs-comment">[i+j]</span> = C<span class="hljs-comment">[i]</span> * B<span class="hljs-comment">[j]</span> + temp + C<span class="hljs-comment">[i+j]</span><br></code></pre></td></tr></table></figure>
+
+<p>如果我们还需要计算 <code>C[(i+j)+k]</code> 中的内容，程序会执行以下语句：</p>
+<figure class="highlight inform7"><table><tr><td class="code"><pre><code class="hljs inform7">C<span class="hljs-comment">[(i+j)+k]</span> = C<span class="hljs-comment">[i+j]</span> * B<span class="hljs-comment">[k]</span> + temp + C<span class="hljs-comment">[(i+j)+k]</span><br></code></pre></td></tr></table></figure>
+
+<p>此时计算出的 <code>C[(i+j)+k]</code> 大约是不正确的，因为 <code>C[i+j]</code> 的值在之前已经被改变，并不等于所谓 <code>A[i+j]</code>，也就是说我们没有用原来的乘数乘以新的乘数。</p>
+<p>既然如此，有没有什么方法可以尽量避开第 1 步的复制操作呢？以下是我的一些简单思考。</p>
+<p><strong>如何“避开”步骤 1 来节省步数？</strong></p>
+<p>设想每次的 B 只有 1 位，则我们其实没有必要执行步骤 1 的操作。在这种情况下，循环体中的 <code>j</code> 只可能为 0，新的 C 中第 <code>k</code> 位的结果只另外依赖于 <code>B[0]</code>，<code>A[k]</code> 以及进位 <code>temp</code>。即使我们不将 C 的原有内容复制到 A，即 <code>C[k] = C[k] * B[0] + temp + C[k]</code>，<code>C[k]</code> 的改变也不会影响到 C 中其他位的结果——因为计算其他位的结果根本用不到 <code>C[k]</code>。这样一来，我们的程序也被简化为了<strong>二重循环</strong>，效率上应该有一定提升（因为 <code>j</code> 只能取 0，这一层循环退化掉了）。</p>
+<p><strong>如何让 B 只有“1 位”？</strong></p>
+<p>我们不一定需要进行 10 进制乘法，可以进行 <strong>1000 进制</strong>的乘法。由于阶乘结果限制在 1000 位以内，B 不会超过 450（450! 的结果为 1001 位）。在 1000 进制的表示下，如果 $B\leq 450$，那么 B 必然只有“1 位”。</p>
+<p>进行 1000 进制的乘法也很简单——基本思想和做 10 进制乘法类似，只需作出诸如“<code>%10</code> 改为 <code>%1000</code>”的改变。不过，输出计算结果时需要小心一点，这在下面一点中会提及。</p>
+<p><strong>如何输出 1000 进制乘法的结果？</strong></p>
+<p>假设阶乘结果在 1000 进制下最高位是第 $m$ 位，我们需要按照第 $m$ 位至第 0 位的顺序依次“拼接”输出。</p>
+<p>输出第 $m$ 位（即最高位）：注意不能输出前导 0，也就是说输出 <code>C[m] % 1000</code> 即可。</p>
+<p>输出第 $k$ 位（$0\leq k\leq m-1$）：注意需要输出前导 0。可以根据 <code>C[k]</code> 的大小来确定需要补充的前导 0 数量。例如，若 <code>C[k]</code> 是两位数，则需要补充 1 个前导 0。</p>
+<h3 id="效果验证"><a href="#效果验证" class="headerlink" title="效果验证"></a>效果验证</h3><p>运用新的代码计算大数阶乘，阶乘数以及对应计算步数如下表所示。</p>
+<table>
+<thead>
+<tr>
+<th>阶乘数</th>
+<th>计算步数</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>40!</td>
+<td>5,574</td>
+</tr>
+<tr>
+<td>60!</td>
+<td>13,214</td>
+</tr>
+<tr>
+<td>100!</td>
+<td>40,157</td>
+</tr>
+<tr>
+<td>200!</td>
+<td>185,014</td>
+</tr>
+<tr>
+<td>300!</td>
+<td>452,305</td>
+</tr>
+</tbody></table>
+<p>可以看到，如果步数限制为 200,000，这一份代码可以成功计算 200!，效率上相比第一版“三重循环”代码有了显著进步。不过，这离计算 450! 的目标还有比较大的差距。若还想进一步压缩程序执行步数，可以从以下方面考虑：</p>
+<ol>
+<li><p>“增大”进制，例如计算 10,000 进制乘法。不过进制也不能随意“增大”，毕竟一个字只能存放 <code>int</code> 范围的数据，这一量级是 $10^9$。</p>
+</li>
+<li><p>减少不必要的寄存器赋值语句，或是适当修改所使用的指令。例如，<code>beq</code> 是基本指令，而 <code>blt</code> 会被展开为 <code>slt</code> 与 <code>bne</code>，实际执行时运行步数就多了。这一点很多时候体现在怎么用 MIPS 书写循环上。</p>
+</li>
+</ol>
+<p>如果只是想通过课程平台的评测，修改后的代码已经足够，数据点还是给得比较松弛的。</p>
+<h3 id="最终代码"><a href="#最终代码" class="headerlink" title="最终代码"></a>最终代码</h3><p>下面给出这一题的参考代码。这一份代码只供参考和学习用，请不要随意抄袭。抄袭可能会导致你本次作业记为 0 分，甚至是受到处分。</p>
+<p>请批判地学习这份代码。这一份代码只不过是通过了评测，其中体现出的恶劣代码编写习惯请尽量避免（包括但不限于寄存器的随意使用）。</p>
+<figure class="highlight mipsasm"><table><tr><td class="code"><pre><code class="hljs mipsasm"><span class="hljs-meta">.data</span><br>C:<span class="hljs-meta">.space</span> <span class="hljs-number">5000</span><br><br><span class="hljs-meta">.macro</span> print_int(%<span class="hljs-keyword">sc)</span><br><span class="hljs-keyword"></span><span class="hljs-keyword">move </span>$<span class="hljs-built_in">a0</span>,%<span class="hljs-keyword">sc</span><br><span class="hljs-keyword"></span>li $<span class="hljs-built_in">v0</span>,<span class="hljs-number">1</span><br><span class="hljs-keyword">syscall</span><br><span class="hljs-keyword"></span>.end_macro <br><br><span class="hljs-meta">.macro</span> read_int(%out)<br>li $<span class="hljs-built_in">v0</span>,<span class="hljs-number">5</span><br><span class="hljs-keyword">syscall</span><br><span class="hljs-keyword"></span><span class="hljs-keyword">move </span>%out,$<span class="hljs-built_in">v0</span><br>.end_macro <br><br><span class="hljs-meta">.macro</span> push(%<span class="hljs-keyword">sc)</span><br><span class="hljs-keyword"></span><span class="hljs-keyword">subi </span>$<span class="hljs-built_in">sp</span>,$<span class="hljs-built_in">sp</span>,<span class="hljs-number">4</span><br><span class="hljs-keyword">sw </span>%<span class="hljs-keyword">sc,0($sp)</span><br><span class="hljs-keyword"></span>.end_macro <br><br><span class="hljs-meta">.macro</span> pop(%out)<br><span class="hljs-keyword">lw </span>%out,<span class="hljs-number">0</span>($<span class="hljs-built_in">sp</span>)<br><span class="hljs-keyword">addi </span>$<span class="hljs-built_in">sp</span>,$<span class="hljs-built_in">sp</span>,<span class="hljs-number">4</span><br>.end_macro <br><br><span class="hljs-meta">.macro</span> end<br>li $<span class="hljs-built_in">v0</span>,<span class="hljs-number">10</span><br><span class="hljs-keyword">syscall</span><br><span class="hljs-keyword"></span>.end_macro <br><br><span class="hljs-meta">.text</span><br>li $<span class="hljs-built_in">k0</span>,<span class="hljs-number">1</span><br>read_int($<span class="hljs-built_in">s0</span>)	<span class="hljs-comment">#阶乘数</span><br>li $<span class="hljs-built_in">t1</span>,<span class="hljs-number">2</span>	<span class="hljs-comment">#控制阶乘的循环变量</span><br><span class="hljs-keyword">sw </span>$<span class="hljs-built_in">k0</span>,C($<span class="hljs-number">0</span>)	<span class="hljs-comment">#结果初始值为1</span><br><span class="hljs-keyword">ble </span>$<span class="hljs-built_in">s0</span>,<span class="hljs-number">1</span>,special	<span class="hljs-comment">#输入0或1，直接特判即可</span><br><br>li $<span class="hljs-built_in">t7</span>,<span class="hljs-number">1</span>	<span class="hljs-comment">#C的位数</span><br><span class="hljs-keyword">jal </span>loop_start<br><br><span class="hljs-keyword">sub </span>$<span class="hljs-built_in">t2</span>,$<span class="hljs-built_in">t7</span>,<span class="hljs-number">1</span>	<span class="hljs-comment">#开始结果打印</span><br><span class="hljs-keyword">subi </span>$<span class="hljs-built_in">t7</span>,$<span class="hljs-built_in">t7</span>,<span class="hljs-number">1</span><br>li $<span class="hljs-built_in">v0</span>,<span class="hljs-number">1</span><br><span class="hljs-keyword">j </span>print_loop<br><span class="hljs-symbol"></span><br><span class="hljs-symbol">loop_start:</span><br>    push($<span class="hljs-built_in">ra</span>)<br>    <span class="hljs-keyword">j </span>loop_body<br><span class="hljs-symbol">    loop_body:</span><br>    <span class="hljs-keyword">jal </span><span class="hljs-keyword">mult_loop_start</span><br><span class="hljs-keyword"></span>    <span class="hljs-keyword">addi </span>$<span class="hljs-built_in">t1</span>,$<span class="hljs-built_in">t1</span>,<span class="hljs-number">1</span>	<span class="hljs-comment">#B</span><br>    <span class="hljs-keyword">ble </span>$<span class="hljs-built_in">t1</span>,$<span class="hljs-built_in">s0</span>,loop_body<br>    <span class="hljs-keyword">j </span><span class="hljs-keyword">back</span><br><span class="hljs-keyword"></span><span class="hljs-symbol"></span><br><span class="hljs-symbol">mult_loop_start:</span><br>    push($<span class="hljs-built_in">ra</span>)<br>    li $<span class="hljs-built_in">t2</span>,<span class="hljs-number">0</span>	<span class="hljs-comment">#高精度乘法的循环变量</span><br>    li $<span class="hljs-built_in">t4</span>,<span class="hljs-number">0</span>	<span class="hljs-comment">#进位记录</span><br>    <span class="hljs-keyword">j </span><span class="hljs-keyword">mult_loop_body</span><br><span class="hljs-keyword"></span><span class="hljs-keyword">mult_loop_body:	</span><span class="hljs-comment">#B的值存储在t1中</span><br>    <span class="hljs-keyword">sll </span>$<span class="hljs-built_in">t3</span>,$<span class="hljs-built_in">t2</span>,<span class="hljs-number">2</span>	<span class="hljs-comment">#获取C这一块内存的数值</span><br>    <span class="hljs-keyword">lw </span>$<span class="hljs-built_in">s1</span>,C($<span class="hljs-built_in">t3</span>)<br><br>    <span class="hljs-keyword">mul </span>$<span class="hljs-built_in">s1</span>,$<span class="hljs-built_in">s1</span>,$<span class="hljs-built_in">t1</span><br>    <span class="hljs-keyword">add </span>$<span class="hljs-built_in">s1</span>,$<span class="hljs-built_in">s1</span>,$<span class="hljs-built_in">t4</span>	<span class="hljs-comment">#C[i]*B+进位t4</span><br>    <span class="hljs-keyword">div </span>$<span class="hljs-built_in">t4</span>,$<span class="hljs-built_in">s1</span>,<span class="hljs-number">1000</span><br>    <span class="hljs-keyword">mfhi </span>$<span class="hljs-built_in">s2</span>	<span class="hljs-comment">#余数存入C</span><br>    <span class="hljs-keyword">sw </span>$<span class="hljs-built_in">s2</span>,C($<span class="hljs-built_in">t3</span>)<br><br>    <span class="hljs-keyword">addi </span>$<span class="hljs-built_in">t2</span>,$<span class="hljs-built_in">t2</span>,<span class="hljs-number">1</span><br>    <span class="hljs-keyword">blt </span>$<span class="hljs-built_in">t2</span>,$<span class="hljs-built_in">t7</span>,<span class="hljs-keyword">mult_loop_body</span><br><span class="hljs-keyword"></span><br>    <span class="hljs-keyword">beq </span>$<span class="hljs-built_in">t4</span>,<span class="hljs-number">0</span>,<span class="hljs-keyword">back	</span><span class="hljs-comment">#如果当前进位不为0，C还需要增加一位</span><br>    <span class="hljs-keyword">sll </span>$<span class="hljs-built_in">t3</span>,$<span class="hljs-built_in">t7</span>,<span class="hljs-number">2</span><br>    <span class="hljs-keyword">sw </span>$<span class="hljs-built_in">t4</span>,C($<span class="hljs-built_in">t3</span>)<br>    <span class="hljs-keyword">addi </span>$<span class="hljs-built_in">t7</span>,$<span class="hljs-built_in">t7</span>,<span class="hljs-number">1</span><br>    <span class="hljs-keyword">j </span><span class="hljs-keyword">back</span><br><span class="hljs-keyword"></span><span class="hljs-symbol"></span><br><span class="hljs-symbol">print_loop:</span><br>    <span class="hljs-keyword">sll </span>$<span class="hljs-built_in">t3</span>,$<span class="hljs-built_in">t2</span>,<span class="hljs-number">2</span><br>    <span class="hljs-keyword">lw </span>$<span class="hljs-built_in">t4</span>,C($<span class="hljs-built_in">t3</span>)<br>    <span class="hljs-keyword">div </span>$<span class="hljs-built_in">t4</span>,$<span class="hljs-built_in">t4</span>,<span class="hljs-number">1000</span><br>    <span class="hljs-keyword">mfhi </span>$<span class="hljs-built_in">t4</span><br>    <span class="hljs-keyword">jal </span>print_with_front_zero<br>    print_int($<span class="hljs-built_in">t4</span>)<br>    <span class="hljs-keyword">subi </span>$<span class="hljs-built_in">t2</span>,$<span class="hljs-built_in">t2</span>,<span class="hljs-number">1</span><br>    <span class="hljs-keyword">bge </span>$<span class="hljs-built_in">t2</span>,<span class="hljs-number">0</span>,print_loop<br>    end<br><span class="hljs-symbol"></span><br><span class="hljs-symbol">print_with_front_zero:</span><br>    push($<span class="hljs-built_in">ra</span>)<br>    <span class="hljs-keyword">beq </span>$<span class="hljs-built_in">t2</span>,$<span class="hljs-built_in">t7</span>,<span class="hljs-keyword">back</span><br><span class="hljs-keyword"></span>    <span class="hljs-keyword">bge </span>$<span class="hljs-built_in">t4</span>,<span class="hljs-number">100</span>,<span class="hljs-keyword">back</span><br><span class="hljs-keyword"></span>    <span class="hljs-keyword">bge </span>$<span class="hljs-built_in">t4</span>,<span class="hljs-number">10</span>,print_ten<br>    <span class="hljs-keyword">j </span>print_digit<br><span class="hljs-symbol"></span><br><span class="hljs-symbol">print_ten:</span><br>    print_int($<span class="hljs-number">0</span>)<br>    print_int($<span class="hljs-built_in">t4</span>)<br>    pop($<span class="hljs-built_in">ra</span>)<br>    <span class="hljs-keyword">subi </span>$<span class="hljs-built_in">t2</span>,$<span class="hljs-built_in">t2</span>,<span class="hljs-number">1</span><br>    <span class="hljs-keyword">bge </span>$<span class="hljs-built_in">t2</span>,<span class="hljs-number">0</span>,print_loop<br>    end<br><span class="hljs-symbol"></span><br><span class="hljs-symbol">print_digit:</span><br>    print_int($<span class="hljs-number">0</span>)<br>    print_int($<span class="hljs-number">0</span>)<br>    print_int($<span class="hljs-built_in">t4</span>)<br>    pop($<span class="hljs-built_in">ra</span>)<br>    <span class="hljs-keyword">subi </span>$<span class="hljs-built_in">t2</span>,$<span class="hljs-built_in">t2</span>,<span class="hljs-number">1</span><br>    <span class="hljs-keyword">bge </span>$<span class="hljs-built_in">t2</span>,<span class="hljs-number">0</span>,print_loop<br>    end<br><span class="hljs-symbol"></span><br><span class="hljs-symbol">special:</span><br>    print_int($<span class="hljs-built_in">k0</span>)<br>    end<br><span class="hljs-symbol"></span><br><span class="hljs-symbol">back:</span><br>    pop($<span class="hljs-built_in">ra</span>)<br>    <span class="hljs-keyword">jr </span>$<span class="hljs-built_in">ra</span><br></code></pre></td></tr></table></figure>]]></content>
+      <categories>
+        <category>计算机组成课下</category>
+      </categories>
+      <tags>
+        <tag>计算机组成</tag>
+        <tag>高精度乘法</tag>
+        <tag>MIPS 汇编</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>2025 年数据结构与程序设计（信息类）期末考试</title>
     <url>/2025/10/18/final_test/</url>
     <content><![CDATA[<h3 id="选择题"><a href="#选择题" class="headerlink" title="选择题"></a><strong>选择题</strong></h3><ol>
@@ -207,113 +314,6 @@
       </tags>
   </entry>
   <entry>
-    <title>计算机组成 P2 课下“factorial”题解</title>
-    <url>/2025/10/26/P2_off_factorial/</url>
-    <content><![CDATA[<h3 id="题面回顾"><a href="#题面回顾" class="headerlink" title="题面回顾"></a>题面回顾</h3><p>运用 MIPS 汇编编写一个计算阶乘的程序。阶乘的结果在 1000 位以内。</p>
-<p>程序的执行步数限制在 <strong>200,000</strong> 以内。</p>
-<span id="more"></span>
-<h3 id="思路建构"><a href="#思路建构" class="headerlink" title="思路建构"></a>思路建构</h3><p>很明显我们需要运用<strong>高精度乘法</strong>完成本题。首先让我们复习一下如何进行两个大数的高精度乘法，下面给出了对应的C语言代码，至于其汇编代码的编写就麻烦大家自行完成了。</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;bits/stdc++.h&gt;</span></span><br>using namespace <span class="hljs-built_in">std</span>;<br><span class="hljs-type">char</span> a[<span class="hljs-number">1005</span>],b[<span class="hljs-number">1005</span>];<br><span class="hljs-type">int</span> A[<span class="hljs-number">1005</span>],B[<span class="hljs-number">1005</span>],C[<span class="hljs-number">1005</span>],temp;<br><span class="hljs-type">char</span> out[<span class="hljs-number">1005</span>];<br><br><span class="hljs-type">int</span> <span class="hljs-title function_">main</span><span class="hljs-params">()</span>&#123;<br>    <span class="hljs-built_in">cin</span>&gt;&gt;a;<br>    <span class="hljs-built_in">cin</span>&gt;&gt;b;<br>    <span class="hljs-type">int</span> lena=<span class="hljs-built_in">strlen</span>(a),lenb=<span class="hljs-built_in">strlen</span>(b);<br>    <span class="hljs-type">int</span> len_out=lena+lenb;  <span class="hljs-comment">//a位与b位的数字相乘，结果最多为(a+b)位</span><br><br>    <span class="hljs-keyword">for</span>(<span class="hljs-type">int</span> i=<span class="hljs-number">0</span>;i&lt;lena;i++)&#123;<br>        A[i]=a[lena-i<span class="hljs-number">-1</span>]-<span class="hljs-string">&#x27;0&#x27;</span>;<br>    &#125;<br>    <span class="hljs-keyword">for</span>(<span class="hljs-type">int</span> i=<span class="hljs-number">0</span>;i&lt;lenb;i++)&#123;<br>        B[i]=b[lenb-i<span class="hljs-number">-1</span>]-<span class="hljs-string">&#x27;0&#x27;</span>;<br>    &#125;                       <span class="hljs-comment">//类似于写竖式时，乘数的低位要对齐</span><br>    <span class="hljs-keyword">for</span>(<span class="hljs-type">int</span> i=<span class="hljs-number">0</span>;i&lt;lena;i++)&#123;<br>        temp=<span class="hljs-number">0</span>;             <span class="hljs-comment">//记录进位</span><br>        <span class="hljs-keyword">for</span>(<span class="hljs-type">int</span> j=<span class="hljs-number">0</span>;j&lt;lenb;j++)&#123;<br>            C[i+j]=A[i]*B[j]+temp+C[i+j];<br>            temp=C[i+j]/<span class="hljs-number">10</span>;<br>            C[i+j]%=<span class="hljs-number">10</span>;     <span class="hljs-comment">//想想竖式乘法是怎么计算的</span><br>        &#125;<br>        C[i+lenb]=temp;<br>    &#125;<br>    <span class="hljs-type">int</span> k;<br>    <span class="hljs-keyword">for</span>(k=<span class="hljs-number">1004</span>;k&gt;<span class="hljs-number">0</span>;k--)&#123;<br>        <span class="hljs-keyword">if</span>(C[k<span class="hljs-number">-1</span>]!=<span class="hljs-number">0</span>)&#123;<br>            <span class="hljs-keyword">break</span>;<br>        &#125;<br>    &#125;                       <span class="hljs-comment">//输出时注意去除前导0</span><br>    <span class="hljs-keyword">for</span>(;k&gt;=<span class="hljs-number">0</span>;k--)&#123;<br>        <span class="hljs-built_in">cout</span>&lt;&lt;C[k];<br>    &#125;<br>    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
-<p>解决了高精度乘法这一问题后，编写计算阶乘的程序似乎就很简单了。我们可以声明三个“数组”A，B 和 C，A 中存放上一次阶乘运算的结果，B 中存放当前乘数，C 中存放本次阶乘的结果。若需要再进行一次阶乘，则将 C 的内容复制到 A，将 A 乘以 B，再得出新的 C 即可。如此一来，我们只需要编写一个三重循环就可以完成任务。</p>
-<h3 id="发现问题"><a href="#发现问题" class="headerlink" title="发现问题"></a>发现问题</h3><p>相信有的读者已经发现了问题：三重循环效率太低，在 200,000 的步数限制下似乎很难完成任务。事实也确实如此。我使用 mars 中的 Instruction Counter 工具得到了计算 40，60 和 100 的阶乘所需要的步数。结果大致如下表所示。</p>
-<table>
-<thead>
-<tr>
-<th>阶乘</th>
-<th>计算步数</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>40!</td>
-<td>64,069</td>
-</tr>
-<tr>
-<td>60!</td>
-<td>164,903</td>
-</tr>
-<tr>
-<td>100!</td>
-<td>538,489</td>
-</tr>
-</tbody></table>
-<p>通过这一份表我们可以看到，我们的代码在计算 60! 时就快要达到最大步数限制了，计算 100! 时就已经严重超出了步数限制——而此时阶乘的结果不过 158 位，远少于 1000 位。目前的这份“三重循环”代码显然需要一定优化。</p>
-<h3 id="解决问题"><a href="#解决问题" class="headerlink" title="解决问题"></a>解决问题</h3><p>重新审视一下在“三重循环”代码中我们做了什么。在计算 $(n-1)!\times n$ 的循环中，我们做了以下几步：</p>
-<ol>
-<li><p>一开始 C 中存放了 $(n-1)!$ 的结果，将这一结果复制到 A</p>
-</li>
-<li><p>将这一次需要的 $n$ 复制到 B</p>
-</li>
-<li><p>两重循环计算出 $n!$，相应结果存储到 C 中</p>
-</li>
-</ol>
-<p>在以上三个步骤中，1 看起来是比较累赘的，但是某种程度上我们又难以避免。考虑下面的一个场景：</p>
-<p>如果我们不将上一次 C 中的内容复制到 A，则 <code>C[i+j]</code> 是这样计算的：</p>
-<figure class="highlight inform7"><table><tr><td class="code"><pre><code class="hljs inform7">C<span class="hljs-comment">[i+j]</span> = C<span class="hljs-comment">[i]</span> * B<span class="hljs-comment">[j]</span> + temp + C<span class="hljs-comment">[i+j]</span><br></code></pre></td></tr></table></figure>
-
-<p>如果我们还需要计算 <code>C[(i+j)+k]</code> 中的内容，程序会执行以下语句：</p>
-<figure class="highlight inform7"><table><tr><td class="code"><pre><code class="hljs inform7">C<span class="hljs-comment">[(i+j)+k]</span> = C<span class="hljs-comment">[i+j]</span> * B<span class="hljs-comment">[k]</span> + temp + C<span class="hljs-comment">[(i+j)+k]</span><br></code></pre></td></tr></table></figure>
-
-<p>此时计算出的 <code>C[(i+j)+k]</code> 大约是不正确的，因为 <code>C[i+j]</code> 的值在之前已经被改变，并不等于所谓 <code>A[i+j]</code>，也就是说我们没有用原来的乘数乘以新的乘数。</p>
-<p>既然如此，有没有什么方法可以尽量避开第 1 步的复制操作呢？以下是我的一些简单思考。</p>
-<p><strong>如何“避开”步骤 1 来节省步数？</strong></p>
-<p>设想每次的 B 只有 1 位，则我们其实没有必要执行步骤 1 的操作。在这种情况下，循环体中的 <code>j</code> 只可能为 0，新的 C 中第 <code>k</code> 位的结果只另外依赖于 <code>B[0]</code>，<code>A[k]</code> 以及进位 <code>temp</code>。即使我们不将 C 的原有内容复制到 A，即 <code>C[k] = C[k] * B[0] + temp + C[k]</code>，<code>C[k]</code> 的改变也不会影响到 C 中其他位的结果——因为计算其他位的结果根本用不到 <code>C[k]</code>。这样一来，我们的程序也被简化为了<strong>二重循环</strong>，效率上应该有一定提升（因为 <code>j</code> 只能取 0，这一层循环退化掉了）。</p>
-<p><strong>如何让 B 只有“1 位”？</strong></p>
-<p>我们不一定需要进行 10 进制乘法，可以进行 <strong>1000 进制</strong>的乘法。由于阶乘结果限制在 1000 位以内，B 不会超过 450（450! 的结果为 1001 位）。在 1000 进制的表示下，如果 $B\leq 450$，那么 B 必然只有“1 位”。</p>
-<p>进行 1000 进制的乘法也很简单——基本思想和做 10 进制乘法类似，只需作出诸如“<code>%10</code> 改为 <code>%1000</code>”的改变。不过，输出计算结果时需要小心一点，这在下面一点中会提及。</p>
-<p><strong>如何输出 1000 进制乘法的结果？</strong></p>
-<p>假设阶乘结果在 1000 进制下最高位是第 $m$ 位，我们需要按照第 $m$ 位至第 0 位的顺序依次“拼接”输出。</p>
-<p>输出第 $m$ 位（即最高位）：注意不能输出前导 0，也就是说输出 <code>C[m] % 1000</code> 即可。</p>
-<p>输出第 $k$ 位（$0\leq k\leq m-1$）：注意需要输出前导 0。可以根据 <code>C[k]</code> 的大小来确定需要补充的前导 0 数量。例如，若 <code>C[k]</code> 是两位数，则需要补充 1 个前导 0。</p>
-<h3 id="效果验证"><a href="#效果验证" class="headerlink" title="效果验证"></a>效果验证</h3><p>运用新的代码计算大数阶乘，阶乘数以及对应计算步数如下表所示。</p>
-<table>
-<thead>
-<tr>
-<th>阶乘数</th>
-<th>计算步数</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>40!</td>
-<td>5,574</td>
-</tr>
-<tr>
-<td>60!</td>
-<td>13,214</td>
-</tr>
-<tr>
-<td>100!</td>
-<td>40,157</td>
-</tr>
-<tr>
-<td>200!</td>
-<td>185,014</td>
-</tr>
-<tr>
-<td>300!</td>
-<td>452,305</td>
-</tr>
-</tbody></table>
-<p>可以看到，如果步数限制为 200,000，这一份代码可以成功计算 200!，效率上相比第一版“三重循环”代码有了显著进步。不过，这离计算 450! 的目标还有比较大的差距。若还想进一步压缩程序执行步数，可以从以下方面考虑：</p>
-<ol>
-<li><p>“增大”进制，例如计算 10,000 进制乘法。不过进制也不能随意“增大”，毕竟一个字只能存放 <code>int</code> 范围的数据，这一量级是 $10^9$。</p>
-</li>
-<li><p>减少不必要的寄存器赋值语句，或是适当修改所使用的指令。例如，<code>beq</code> 是基本指令，而 <code>blt</code> 会被展开为 <code>slt</code> 与 <code>bne</code>，实际执行时运行步数就多了。这一点很多时候体现在怎么用 MIPS 书写循环上。</p>
-</li>
-</ol>
-<p>如果只是想通过课程平台的评测，修改后的代码已经足够，数据点还是给得比较松弛的。</p>
-<h3 id="最终代码"><a href="#最终代码" class="headerlink" title="最终代码"></a>最终代码</h3><p>下面给出这一题的参考代码。这一份代码只供参考和学习用，请不要随意抄袭。抄袭可能会导致你本次作业记为 0 分，甚至是受到处分。</p>
-<p>请批判地学习这份代码。这一份代码只不过是通过了评测，其中体现出的恶劣代码编写习惯请尽量避免（包括但不限于寄存器的随意使用）。</p>
-<figure class="highlight mipsasm"><table><tr><td class="code"><pre><code class="hljs mipsasm"><span class="hljs-meta">.data</span><br>C:<span class="hljs-meta">.space</span> <span class="hljs-number">5000</span><br><br><span class="hljs-meta">.macro</span> print_int(%<span class="hljs-keyword">sc)</span><br><span class="hljs-keyword"></span><span class="hljs-keyword">move </span>$<span class="hljs-built_in">a0</span>,%<span class="hljs-keyword">sc</span><br><span class="hljs-keyword"></span>li $<span class="hljs-built_in">v0</span>,<span class="hljs-number">1</span><br><span class="hljs-keyword">syscall</span><br><span class="hljs-keyword"></span>.end_macro <br><br><span class="hljs-meta">.macro</span> read_int(%out)<br>li $<span class="hljs-built_in">v0</span>,<span class="hljs-number">5</span><br><span class="hljs-keyword">syscall</span><br><span class="hljs-keyword"></span><span class="hljs-keyword">move </span>%out,$<span class="hljs-built_in">v0</span><br>.end_macro <br><br><span class="hljs-meta">.macro</span> push(%<span class="hljs-keyword">sc)</span><br><span class="hljs-keyword"></span><span class="hljs-keyword">subi </span>$<span class="hljs-built_in">sp</span>,$<span class="hljs-built_in">sp</span>,<span class="hljs-number">4</span><br><span class="hljs-keyword">sw </span>%<span class="hljs-keyword">sc,0($sp)</span><br><span class="hljs-keyword"></span>.end_macro <br><br><span class="hljs-meta">.macro</span> pop(%out)<br><span class="hljs-keyword">lw </span>%out,<span class="hljs-number">0</span>($<span class="hljs-built_in">sp</span>)<br><span class="hljs-keyword">addi </span>$<span class="hljs-built_in">sp</span>,$<span class="hljs-built_in">sp</span>,<span class="hljs-number">4</span><br>.end_macro <br><br><span class="hljs-meta">.macro</span> end<br>li $<span class="hljs-built_in">v0</span>,<span class="hljs-number">10</span><br><span class="hljs-keyword">syscall</span><br><span class="hljs-keyword"></span>.end_macro <br><br><span class="hljs-meta">.text</span><br>li $<span class="hljs-built_in">k0</span>,<span class="hljs-number">1</span><br>read_int($<span class="hljs-built_in">s0</span>)	<span class="hljs-comment">#阶乘数</span><br>li $<span class="hljs-built_in">t1</span>,<span class="hljs-number">2</span>	<span class="hljs-comment">#控制阶乘的循环变量</span><br><span class="hljs-keyword">sw </span>$<span class="hljs-built_in">k0</span>,C($<span class="hljs-number">0</span>)	<span class="hljs-comment">#结果初始值为1</span><br><span class="hljs-keyword">ble </span>$<span class="hljs-built_in">s0</span>,<span class="hljs-number">1</span>,special	<span class="hljs-comment">#输入0或1，直接特判即可</span><br><br>li $<span class="hljs-built_in">t7</span>,<span class="hljs-number">1</span>	<span class="hljs-comment">#C的位数</span><br><span class="hljs-keyword">jal </span>loop_start<br><br><span class="hljs-keyword">sub </span>$<span class="hljs-built_in">t2</span>,$<span class="hljs-built_in">t7</span>,<span class="hljs-number">1</span>	<span class="hljs-comment">#开始结果打印</span><br><span class="hljs-keyword">subi </span>$<span class="hljs-built_in">t7</span>,$<span class="hljs-built_in">t7</span>,<span class="hljs-number">1</span><br>li $<span class="hljs-built_in">v0</span>,<span class="hljs-number">1</span><br><span class="hljs-keyword">j </span>print_loop<br><span class="hljs-symbol"></span><br><span class="hljs-symbol">loop_start:</span><br>    push($<span class="hljs-built_in">ra</span>)<br>    <span class="hljs-keyword">j </span>loop_body<br><span class="hljs-symbol">    loop_body:</span><br>    <span class="hljs-keyword">jal </span><span class="hljs-keyword">mult_loop_start</span><br><span class="hljs-keyword"></span>    <span class="hljs-keyword">addi </span>$<span class="hljs-built_in">t1</span>,$<span class="hljs-built_in">t1</span>,<span class="hljs-number">1</span>	<span class="hljs-comment">#B</span><br>    <span class="hljs-keyword">ble </span>$<span class="hljs-built_in">t1</span>,$<span class="hljs-built_in">s0</span>,loop_body<br>    <span class="hljs-keyword">j </span><span class="hljs-keyword">back</span><br><span class="hljs-keyword"></span><span class="hljs-symbol"></span><br><span class="hljs-symbol">mult_loop_start:</span><br>    push($<span class="hljs-built_in">ra</span>)<br>    li $<span class="hljs-built_in">t2</span>,<span class="hljs-number">0</span>	<span class="hljs-comment">#高精度乘法的循环变量</span><br>    li $<span class="hljs-built_in">t4</span>,<span class="hljs-number">0</span>	<span class="hljs-comment">#进位记录</span><br>    <span class="hljs-keyword">j </span><span class="hljs-keyword">mult_loop_body</span><br><span class="hljs-keyword"></span><span class="hljs-keyword">mult_loop_body:	</span><span class="hljs-comment">#B的值存储在t1中</span><br>    <span class="hljs-keyword">sll </span>$<span class="hljs-built_in">t3</span>,$<span class="hljs-built_in">t2</span>,<span class="hljs-number">2</span>	<span class="hljs-comment">#获取C这一块内存的数值</span><br>    <span class="hljs-keyword">lw </span>$<span class="hljs-built_in">s1</span>,C($<span class="hljs-built_in">t3</span>)<br><br>    <span class="hljs-keyword">mul </span>$<span class="hljs-built_in">s1</span>,$<span class="hljs-built_in">s1</span>,$<span class="hljs-built_in">t1</span><br>    <span class="hljs-keyword">add </span>$<span class="hljs-built_in">s1</span>,$<span class="hljs-built_in">s1</span>,$<span class="hljs-built_in">t4</span>	<span class="hljs-comment">#C[i]*B+进位t4</span><br>    <span class="hljs-keyword">div </span>$<span class="hljs-built_in">t4</span>,$<span class="hljs-built_in">s1</span>,<span class="hljs-number">1000</span><br>    <span class="hljs-keyword">mfhi </span>$<span class="hljs-built_in">s2</span>	<span class="hljs-comment">#余数存入C</span><br>    <span class="hljs-keyword">sw </span>$<span class="hljs-built_in">s2</span>,C($<span class="hljs-built_in">t3</span>)<br><br>    <span class="hljs-keyword">addi </span>$<span class="hljs-built_in">t2</span>,$<span class="hljs-built_in">t2</span>,<span class="hljs-number">1</span><br>    <span class="hljs-keyword">blt </span>$<span class="hljs-built_in">t2</span>,$<span class="hljs-built_in">t7</span>,<span class="hljs-keyword">mult_loop_body</span><br><span class="hljs-keyword"></span><br>    <span class="hljs-keyword">beq </span>$<span class="hljs-built_in">t4</span>,<span class="hljs-number">0</span>,<span class="hljs-keyword">back	</span><span class="hljs-comment">#如果当前进位不为0，C还需要增加一位</span><br>    <span class="hljs-keyword">sll </span>$<span class="hljs-built_in">t3</span>,$<span class="hljs-built_in">t7</span>,<span class="hljs-number">2</span><br>    <span class="hljs-keyword">sw </span>$<span class="hljs-built_in">t4</span>,C($<span class="hljs-built_in">t3</span>)<br>    <span class="hljs-keyword">addi </span>$<span class="hljs-built_in">t7</span>,$<span class="hljs-built_in">t7</span>,<span class="hljs-number">1</span><br>    <span class="hljs-keyword">j </span><span class="hljs-keyword">back</span><br><span class="hljs-keyword"></span><span class="hljs-symbol"></span><br><span class="hljs-symbol">print_loop:</span><br>    <span class="hljs-keyword">sll </span>$<span class="hljs-built_in">t3</span>,$<span class="hljs-built_in">t2</span>,<span class="hljs-number">2</span><br>    <span class="hljs-keyword">lw </span>$<span class="hljs-built_in">t4</span>,C($<span class="hljs-built_in">t3</span>)<br>    <span class="hljs-keyword">div </span>$<span class="hljs-built_in">t4</span>,$<span class="hljs-built_in">t4</span>,<span class="hljs-number">1000</span><br>    <span class="hljs-keyword">mfhi </span>$<span class="hljs-built_in">t4</span><br>    <span class="hljs-keyword">jal </span>print_with_front_zero<br>    print_int($<span class="hljs-built_in">t4</span>)<br>    <span class="hljs-keyword">subi </span>$<span class="hljs-built_in">t2</span>,$<span class="hljs-built_in">t2</span>,<span class="hljs-number">1</span><br>    <span class="hljs-keyword">bge </span>$<span class="hljs-built_in">t2</span>,<span class="hljs-number">0</span>,print_loop<br>    end<br><span class="hljs-symbol"></span><br><span class="hljs-symbol">print_with_front_zero:</span><br>    push($<span class="hljs-built_in">ra</span>)<br>    <span class="hljs-keyword">beq </span>$<span class="hljs-built_in">t2</span>,$<span class="hljs-built_in">t7</span>,<span class="hljs-keyword">back</span><br><span class="hljs-keyword"></span>    <span class="hljs-keyword">bge </span>$<span class="hljs-built_in">t4</span>,<span class="hljs-number">100</span>,<span class="hljs-keyword">back</span><br><span class="hljs-keyword"></span>    <span class="hljs-keyword">bge </span>$<span class="hljs-built_in">t4</span>,<span class="hljs-number">10</span>,print_ten<br>    <span class="hljs-keyword">j </span>print_digit<br><span class="hljs-symbol"></span><br><span class="hljs-symbol">print_ten:</span><br>    print_int($<span class="hljs-number">0</span>)<br>    print_int($<span class="hljs-built_in">t4</span>)<br>    pop($<span class="hljs-built_in">ra</span>)<br>    <span class="hljs-keyword">subi </span>$<span class="hljs-built_in">t2</span>,$<span class="hljs-built_in">t2</span>,<span class="hljs-number">1</span><br>    <span class="hljs-keyword">bge </span>$<span class="hljs-built_in">t2</span>,<span class="hljs-number">0</span>,print_loop<br>    end<br><span class="hljs-symbol"></span><br><span class="hljs-symbol">print_digit:</span><br>    print_int($<span class="hljs-number">0</span>)<br>    print_int($<span class="hljs-number">0</span>)<br>    print_int($<span class="hljs-built_in">t4</span>)<br>    pop($<span class="hljs-built_in">ra</span>)<br>    <span class="hljs-keyword">subi </span>$<span class="hljs-built_in">t2</span>,$<span class="hljs-built_in">t2</span>,<span class="hljs-number">1</span><br>    <span class="hljs-keyword">bge </span>$<span class="hljs-built_in">t2</span>,<span class="hljs-number">0</span>,print_loop<br>    end<br><span class="hljs-symbol"></span><br><span class="hljs-symbol">special:</span><br>    print_int($<span class="hljs-built_in">k0</span>)<br>    end<br><span class="hljs-symbol"></span><br><span class="hljs-symbol">back:</span><br>    pop($<span class="hljs-built_in">ra</span>)<br>    <span class="hljs-keyword">jr </span>$<span class="hljs-built_in">ra</span><br></code></pre></td></tr></table></figure>]]></content>
-      <categories>
-        <category>计算机组成课下</category>
-      </categories>
-      <tags>
-        <tag>计算机组成</tag>
-        <tag>高精度乘法</tag>
-        <tag>MIPS 汇编</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>搭建属于你的 CPU 评测机——单周期 CPU</title>
     <url>/2025/11/23/checker_build/</url>
     <content><![CDATA[<h3 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h3><p>在 BUAA CO 课程中，要求使用 Logisim 实现单周期 CPU，使用 Verilog 实现单周期 &#x2F; 流水线 CPU。为了给自己的 CPU 进行较为可靠的测试，我们需要生成具有一定强度的数据，自动化地评测自己的 CPU 是否能够正常工作。</p>
@@ -405,643 +405,6 @@
         <tag>计算机组成</tag>
         <tag>单周期 CPU</tag>
         <tag>CO 评测机</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>计算机组成 P3 / P4 课下——单周期 CPU</title>
-    <url>/2025/11/23/p3p4_learn/</url>
-    <content><![CDATA[<h3 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h3><p>通过阅读这篇帖子，你能够学习到如何搭建一个单周期的 CPU，并能对其中的一些重要问题加以认识。由于 P3 和 P4 课下任务相似度高，所以这里将两次课下作业的学习内容合并到同一篇帖子中来讲述。</p>
-<span id="more"></span>
-
-<h3 id="任务描述"><a href="#任务描述" class="headerlink" title="任务描述"></a>任务描述</h3><p>搭建支持 <code>add</code>，<code>sub</code>，<code>ori</code>，<code>lui</code>，<code>lw</code>，<code>sw</code>，<code>beq</code>，<code>jal</code>，<code>jr</code>，<code>nop</code> 指令的<strong>单周期</strong> CPU。</p>
-<h3 id="明确设计"><a href="#明确设计" class="headerlink" title="明确设计"></a>明确设计</h3><p>先从 P3 的 Logisim CPU 开始，因为它比较直观，能够为 P4：用 Verilog 描述 CPU 提供较大的帮助。根据教程，我们的 CPU 大致由这几个模块构成：IFU、CTRL、GRF、EXT、ALU、DM。这些缩写对应的组件及其功能在教程中都有详细的说明，这里不再赘述。</p>
-<h4 id="IFU"><a href="#IFU" class="headerlink" title="IFU"></a>IFU</h4><p>内部包含了 IM、PC、nPC 组件。IM 根据当前 PC 值取出对应的指令；PC 中有寄存器，在时钟上升沿时写入下一个 PC 值；nPC 则是一个状态转移单元，根据当前 PC 以及其他信号的输出判断下一个 PC 值。</p>
-<ul>
-<li>IM</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th>信号名</th>
-<th>方向</th>
-<th>位宽</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>PC</td>
-<td>input</td>
-<td>32</td>
-<td>当前 PC 值</td>
-</tr>
-<tr>
-<td>Instr</td>
-<td>output</td>
-<td>32</td>
-<td>取出的指令</td>
-</tr>
-</tbody></table>
-<p>这里需要注意，在实际的 MIPS 架构中，PC 的起始地址是 0x00003000，对应存储单元的地址是 0；PC 每增加4，对应存储单元的地址增加 1。无论是在 Logisim 还是在 Verilog 中都需要注意这一映射关系。</p>
-<ul>
-<li>PC</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th>信号名</th>
-<th>方向</th>
-<th>位宽</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>clk</td>
-<td>input</td>
-<td>1</td>
-<td>时钟信号</td>
-</tr>
-<tr>
-<td>reset</td>
-<td>input</td>
-<td>1</td>
-<td>复位信号</td>
-</tr>
-<tr>
-<td>nPC</td>
-<td>input</td>
-<td>32</td>
-<td>下一个 PC 值</td>
-</tr>
-<tr>
-<td>PC</td>
-<td>output</td>
-<td>32</td>
-<td>当前 PC 值</td>
-</tr>
-</tbody></table>
-<ul>
-<li>nPC</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th>信号名</th>
-<th>方向</th>
-<th>位宽</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>PC</td>
-<td>input</td>
-<td>32</td>
-<td>当前 PC 值</td>
-</tr>
-<tr>
-<td>offset</td>
-<td>input</td>
-<td>16</td>
-<td>16 位立即数</td>
-</tr>
-<tr>
-<td>instr_index</td>
-<td>input</td>
-<td>26</td>
-<td>26 位立即数</td>
-</tr>
-<tr>
-<td>PC_from_rs</td>
-<td>input</td>
-<td>32</td>
-<td>rs 寄存器中存储的 PC（<code>jr</code> 使用）</td>
-</tr>
-<tr>
-<td>branch</td>
-<td>input</td>
-<td>1</td>
-<td>是否分支</td>
-</tr>
-<tr>
-<td>jump</td>
-<td>input</td>
-<td>1</td>
-<td>是否跳转</td>
-</tr>
-<tr>
-<td>jump_back</td>
-<td>input</td>
-<td>1</td>
-<td>是否跳回</td>
-</tr>
-<tr>
-<td>nPC</td>
-<td>output</td>
-<td>32</td>
-<td>下一个 PC 值</td>
-</tr>
-<tr>
-<td>PCwith4</td>
-<td>output</td>
-<td>32</td>
-<td>PC + 4（<code>jal</code> 使用）</td>
-</tr>
-</tbody></table>
-<ul>
-<li>IM</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th>信号名</th>
-<th>方向</th>
-<th>位宽</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>PC</td>
-<td>input</td>
-<td>32</td>
-<td>当前 PC 值</td>
-</tr>
-<tr>
-<td>Instr</td>
-<td>output</td>
-<td>32</td>
-<td>当前指令</td>
-</tr>
-</tbody></table>
-<ul>
-<li>Decode</li>
-</ul>
-<p>由于后续过程中我们需要用到 rs、rt、rd 等值，这里我们新增 Decode 模块，根据当前指令“翻译”出这些值。</p>
-<table>
-<thead>
-<tr>
-<th>信号名</th>
-<th>方向</th>
-<th>位宽</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Instr</td>
-<td>input</td>
-<td>32</td>
-<td>当前指令</td>
-</tr>
-<tr>
-<td>op</td>
-<td>output</td>
-<td>6</td>
-<td>[31:26]</td>
-</tr>
-<tr>
-<td>func</td>
-<td>output</td>
-<td>6</td>
-<td>[5:0]</td>
-</tr>
-<tr>
-<td>rs</td>
-<td>output</td>
-<td>5</td>
-<td>[25:21]</td>
-</tr>
-<tr>
-<td>rt</td>
-<td>output</td>
-<td>5</td>
-<td>[20:16]</td>
-</tr>
-<tr>
-<td>rd</td>
-<td>output</td>
-<td>5</td>
-<td>[15:11]</td>
-</tr>
-<tr>
-<td>shamt</td>
-<td>output</td>
-<td>5</td>
-<td>[10:6]（供 <code>nop</code> 和 <code>sll</code> 等使用）</td>
-</tr>
-<tr>
-<td>immediate16</td>
-<td>output</td>
-<td>16</td>
-<td>[15:0]</td>
-</tr>
-<tr>
-<td>immediate26</td>
-<td>output</td>
-<td>26</td>
-<td>[25:0]</td>
-</tr>
-</tbody></table>
-<h4 id="CTRL"><a href="#CTRL" class="headerlink" title="CTRL"></a>CTRL</h4><p>CTRL 用于根据当前指令生成控制信号，这里我们采用和教程中相同的 AND-OR 方法，即现根据 op 和 func 判断当前指令，再生成对应控制信号。</p>
-<table>
-<thead>
-<tr>
-<th>信号名</th>
-<th>方向</th>
-<th>位宽</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>op</td>
-<td>input</td>
-<td>6</td>
-<td></td>
-</tr>
-<tr>
-<td>func</td>
-<td>input</td>
-<td>6</td>
-<td></td>
-</tr>
-<tr>
-<td>RegDst</td>
-<td>output</td>
-<td>1</td>
-<td>写入寄存器是否是 rd</td>
-</tr>
-<tr>
-<td>RegWrite</td>
-<td>output</td>
-<td>1</td>
-<td>是否写寄存器</td>
-</tr>
-<tr>
-<td>MemRead</td>
-<td>output</td>
-<td>1</td>
-<td>是否读内存</td>
-</tr>
-<tr>
-<td>MemWrite</td>
-<td>output</td>
-<td>1</td>
-<td>是否写内存</td>
-</tr>
-<tr>
-<td>ExtOp</td>
-<td>output</td>
-<td>1</td>
-<td>零扩展（0），符号扩展（1）</td>
-</tr>
-<tr>
-<td>ALUSrc</td>
-<td>output</td>
-<td>1</td>
-<td>第二个操作数源于 rt（0），源于扩展后立即数（1）</td>
-</tr>
-<tr>
-<td>ALUOp</td>
-<td>output</td>
-<td>3</td>
-<td>ALU 运算类型</td>
-</tr>
-<tr>
-<td>MemToReg</td>
-<td>output</td>
-<td>1</td>
-<td>是否将内存读出的内容写入寄存器</td>
-</tr>
-<tr>
-<td>branch</td>
-<td>output</td>
-<td>1</td>
-<td>是否分支</td>
-</tr>
-<tr>
-<td>jump</td>
-<td>output</td>
-<td>1</td>
-<td>是否跳转</td>
-</tr>
-<tr>
-<td>jump_back</td>
-<td>output</td>
-<td>1</td>
-<td>是否跳回</td>
-</tr>
-<tr>
-<td>link</td>
-<td>output</td>
-<td>1</td>
-<td>是否链接 PC + 4</td>
-</tr>
-</tbody></table>
-<blockquote>
-<p>注意这里的 <code>branch</code> 信号的含义其实是“是否是<strong>分支类型的指令</strong>”，NPC 中 <code>branch</code> 的实际含义是“是否<strong>执行分支</strong>”，执行分支的条件是：是分支类型的指令，且满足某个条件。</p>
-<p>对于 <code>jump</code>、<code>jump_back</code> 等信号也是类似的，执行跳转、跳回可能也是需要条件的，这一点在课上部分会有所体现。</p>
-</blockquote>
-<h4 id="GRF"><a href="#GRF" class="headerlink" title="GRF"></a>GRF</h4><p>具有 32 个寄存器的寄存器堆，这一部分可以直接把 P0 课下的设计挪用过来。</p>
-<table>
-<thead>
-<tr>
-<th>信号名</th>
-<th>方向</th>
-<th>位宽</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>clk</td>
-<td>input</td>
-<td>1</td>
-<td>时钟信号</td>
-</tr>
-<tr>
-<td>reset</td>
-<td>input</td>
-<td>1</td>
-<td>复位信号</td>
-</tr>
-<tr>
-<td>A1</td>
-<td>input</td>
-<td>5</td>
-<td>读寄存器地址 1</td>
-</tr>
-<tr>
-<td>A2</td>
-<td>input</td>
-<td>5</td>
-<td>读寄存器地址 2</td>
-</tr>
-<tr>
-<td>A3</td>
-<td>input</td>
-<td>5</td>
-<td>写寄存器地址</td>
-</tr>
-<tr>
-<td>WD</td>
-<td>input</td>
-<td>32</td>
-<td>写寄存器数据</td>
-</tr>
-<tr>
-<td>write_enable</td>
-<td>input</td>
-<td>1</td>
-<td>是否写寄存器</td>
-</tr>
-<tr>
-<td>WD1</td>
-<td>output</td>
-<td>32</td>
-<td>读寄存器数据 1</td>
-</tr>
-<tr>
-<td>WD2</td>
-<td>output</td>
-<td>32</td>
-<td>读寄存器数据 2</td>
-</tr>
-</tbody></table>
-<h4 id="EXT"><a href="#EXT" class="headerlink" title="EXT"></a>EXT</h4><p>对 16 位立即数进行扩展，有零扩展、符号扩展两种选项。</p>
-<table>
-<thead>
-<tr>
-<th>信号名</th>
-<th>方向</th>
-<th>位宽</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>immediate16</td>
-<td>input</td>
-<td>16</td>
-<td>16 位立即数</td>
-</tr>
-<tr>
-<td>ExtOp</td>
-<td>input</td>
-<td>1</td>
-<td>零扩展（0），符号扩展（1）</td>
-</tr>
-<tr>
-<td>extended</td>
-<td>output</td>
-<td>32</td>
-<td>扩展结果</td>
-</tr>
-</tbody></table>
-<h4 id="ALU"><a href="#ALU" class="headerlink" title="ALU"></a>ALU</h4><p>根据输入的操作数及 ALUOp 进行运算。</p>
-<table>
-<thead>
-<tr>
-<th>信号名</th>
-<th>方向</th>
-<th>位宽</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>A</td>
-<td>input</td>
-<td>32</td>
-<td>操作数 1</td>
-</tr>
-<tr>
-<td>B</td>
-<td>input</td>
-<td>32</td>
-<td>操作数 2</td>
-</tr>
-<tr>
-<td>S</td>
-<td>input</td>
-<td>5</td>
-<td>shamt</td>
-</tr>
-<tr>
-<td>ALUOp</td>
-<td>input</td>
-<td>3</td>
-<td>运算类型</td>
-</tr>
-<tr>
-<td>ALUOut</td>
-<td>output</td>
-<td>32</td>
-<td>运算结果</td>
-</tr>
-<tr>
-<td>Zero</td>
-<td>output</td>
-<td>1</td>
-<td>运算结果是否为0（<code>beq</code> 使用）</td>
-</tr>
-</tbody></table>
-<blockquote>
-<p>ALUOp 值及对应的运算类型</p>
-<table>
-<thead>
-<tr>
-<th>编码</th>
-<th>操作</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>0</td>
-<td>A + B</td>
-</tr>
-<tr>
-<td>1</td>
-<td>A - B</td>
-</tr>
-<tr>
-<td>2</td>
-<td>A | B</td>
-</tr>
-<tr>
-<td>3</td>
-<td>B &lt;&lt; 16</td>
-</tr>
-<tr>
-<td>4</td>
-<td>B &lt;&lt; S</td>
-</tr>
-<tr>
-<td>5</td>
-<td>预留</td>
-</tr>
-</tbody></table>
-</blockquote>
-<h4 id="DM"><a href="#DM" class="headerlink" title="DM"></a>DM</h4><table>
-<thead>
-<tr>
-<th>信号名</th>
-<th>方向</th>
-<th>位宽</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>clk</td>
-<td>input</td>
-<td>1</td>
-<td>时钟信号</td>
-</tr>
-<tr>
-<td>reset</td>
-<td>input</td>
-<td>1</td>
-<td>复位信号</td>
-</tr>
-<tr>
-<td>address</td>
-<td>input</td>
-<td>32</td>
-<td>操作地址</td>
-</tr>
-<tr>
-<td>write_data</td>
-<td>input</td>
-<td>32</td>
-<td>写入数据</td>
-</tr>
-<tr>
-<td>write_enable</td>
-<td>input</td>
-<td>32</td>
-<td>是否写内存</td>
-</tr>
-<tr>
-<td>out_data</td>
-<td>output</td>
-<td>32</td>
-<td>读出数据</td>
-</tr>
-</tbody></table>
-<blockquote>
-<p>Logisim 中，我们的 DM 利用 RAM 实现，RAM 的地址按照字编号，但是在实际的 MIPS 架构中，<code>.space</code> 的地址按照字节编号，这中间差了一个 4 倍。所以如果我们想要读出对应的字，需要将 <code>address</code> 右移 2 位得到 RAM 中对应字的地址。</p>
-</blockquote>
-<h3 id="电路及代码参考"><a href="#电路及代码参考" class="headerlink" title="电路及代码参考"></a>电路及代码参考</h3><p>对应的作业电路以及代码已经放到了我的 Github 仓库中，都能通过课上强测（但也不代表其设计完全合理）。建议大家批判性地参考仓库中内容。</p>
-<p>顶层电路的连接如下图所示，这一工作也可以参考“黑书“和老师的 PPT 来完成。P4 和 P3 没有本质上的区别，完成 P4 比较容易的方式就是对照 P3 的设计图直接实例化各个模块，然后接线。</p>
-<img src="/images/p3p4learn_mips.png" width=100% height=100% align=center/>
-
-<h3 id="设计建议"><a href="#设计建议" class="headerlink" title="设计建议"></a>设计建议</h3><ol>
-<li><p>我们在课下作业中已经实现了 <code>lw</code> 和 <code>sw</code>，那么也可以利用类似的思路实现对 <code>byte</code> 和 <code>half</code> 的读写，具体读写哪些位由 <code>address</code> 的低两位决定，具体内容参见 MIPS 指令集手册。</p>
-</li>
-<li><p>课上会要求新增一些奇怪的指令，可以试着做如下预留：</p>
-<ul>
-<li>在 CTRL 模块预留 <code>new</code> 输出（判断是否为新增指令）。</li>
-<li>在 ALU 模块预留输出，用于输出其他的判断信号等</li>
-<li>在 DM 模块预留输入接口，应对课上奇怪指令</li>
-</ul>
-<p>新增的指令在寄存器读写、内存读写上的逻辑会比较“独特”，下面我举出一例：</p>
-<blockquote>
-<p>对于新增指令 <code>new</code>，若满足一定条件才写寄存器</p>
-</blockquote>
-<p> 应对方法：改造 <code>RegWrite</code> 信号的生成逻辑，写寄存器的条件是：“是新指令且满足某个条件”或“是一定会写寄存器的指令”。注意输出的“写寄存器”的信号是<strong>经过或门的</strong>！</p>
- <img src="/images/p3p4learn_1.png" width=60% height=35% align=center/>
-</li>
-<li><p>课下的电路图不要画得太局促，以免课上新增数据通路时难以操作，这一点在 P3 中需要格外注意。P4 及以后都是用 Verilog 描述 CPU，应该不会存在这个问题。</p>
-</li>
-</ol>
-<h3 id="P3-思考题"><a href="#P3-思考题" class="headerlink" title="P3 思考题"></a>P3 思考题</h3><h4 id="问题-1"><a href="#问题-1" class="headerlink" title="问题 1"></a>问题 1</h4><p><strong>上面我们介绍了通过 FSM 理解单周期 CPU 的基本方法。请大家指出单周期 CPU 所用到的模块中，哪些发挥状态存储功能，哪些发挥状态转移功能。</strong></p>
-<ul>
-<li>状态存储：GRF 和 DM 部分。GRF 模块中保存了 32 个寄存器的当前值，这是我们判断自己的 CPU 能够正确工作的重要部分；DM 模块中存储了从指定寄存器加载的数据；GRF、DM 中存储的内容与输入一起，决定了如何向下一个状态转移。</li>
-<li>状态转移：其他能够产生控制信号的部分。控制信号决定我们在这一时刻是否需要读写寄存器、是否需要读写数据存储单元、从哪些寄存器取出值、ALU 作什么运算…… 它们与当前状态存储部分一起，决定了下一个状态应该是什么。</li>
-</ul>
-<h4 id="问题-2"><a href="#问题-2" class="headerlink" title="问题 2"></a>问题 2</h4><p><strong>现在我们的模块中 IM 使用 ROM， DM 使用 RAM， GRF 使用 Register，这种做法合理吗？ 请给出分析，若有改进意见也请一并给出。</strong></p>
-<p>在这个阶段大体是合理的，由于我们不会对指令进行写操作，所以用 ROM 来存储指令足矣。不过，在实际的 MIPS 架构中，指令的起始地址为 0x00003000，而我们 ROM 的起始地址为 0x00000000，这稍显不符合；并且，我们将指令和数据段（data）分开在两个元件中存放，且二者的地址并不连续，这也和实际中的 MIPS 架构有所不同。</p>
-<h4 id="问题-3"><a href="#问题-3" class="headerlink" title="问题 3"></a>问题 3</h4><p><strong>在上述提示的模块之外，你是否在实际实现时设计了其他的模块？如果是的话，请给出介绍和设计的思路。</strong></p>
-<p>具体描述见 Decoder 部分。</p>
-<h4 id="问题-4"><a href="#问题-4" class="headerlink" title="问题 4"></a>问题 4</h4><p><strong>事实上，实现 <code>nop</code> 空指令，我们并不需要将它加入控制信号真值表，为什么？</strong></p>
-<p><code>nop</code> 对应机器码的各个位均为 0，且本质是 <code>sll</code> 指令，这并不在本次课下作业的范围中。并且，若我们不将 <code>nop</code> 指令加入控制信号真值表：</p>
-<ul>
-<li>指定读入的寄存器 rt 为 0，而 <code>$0</code> 的值一直保持为 0，不会发生改变</li>
-<li>信号 <code>MemWrite</code> 设置为 0，不会向 DM 中读入数据，DM 状态不改变</li>
-</ul>
-<p>因此，执行 <code>nop</code> 指令后，电路中状态不会有改变，这也就是执行“空指令”的体现。</p>
-<h4 id="问题-5"><a href="#问题-5" class="headerlink" title="问题 5"></a>问题 5</h4><p><strong>阅读 Pre 的 <a href="http://cscore.buaa.edu.cn/tutorial/mips/mips-6/mips6-1/">“MIPS 指令集及汇编语言”</a> 一节中给出的测试样例，评价其强度（可从各个指令的覆盖情况，单一指令各种行为的覆盖情况等方面分析），并指出具体的不足之处。</strong></p>
-<p>这些样例一定程度上能够完成检测工作，且可以发现 CPU 设计中较明显的问题。不过还有一些不足：</p>
-<ul>
-<li>对于 <code>add</code> 指令，对边界条件（例如 <code>int_max</code> 附近）的测试不够</li>
-<li>对于 <code>lw</code> 和 <code>sw</code> 指令，没有在靠近最大地址的地方进行测试，且设置的 offset 均为 0，不能很好地检测对 base 和 offset 的运算。不过，由于本次实验没有实现 <code>li</code>，<code>addi</code> 等指令，offset 直接设为 0 无疑是最方便的。</li>
-<li>对于  <code>lui</code> 和 <code>ori</code> 指令，可以适当多考虑一些更一般的值（无论正负）</li>
-<li>对于 <code>beq</code> 指令，教程中的样例都是向后跳转，可以考虑添加向前 &#x2F; 原地跳转的情况</li>
-</ul>
-<h3 id="P4-思考题"><a href="#P4-思考题" class="headerlink" title="P4 思考题"></a>P4 思考题</h3><h4 id="问题-1-1"><a href="#问题-1-1" class="headerlink" title="问题 1"></a>问题 1</h4><p><strong>阅读下面给出的 DM 的输入示例中（示例 DM 容量为 4KB，即 32bit × 1024字），根据你的理解回答，这个 addr 信号又是从哪里来的？地址信号 addr 位数为什么是 [11:2] 而不是 [9:0] ？</strong></p>
-<ul>
-<li>addr 信号来自于 ALU，ALU 要对 offset 和 base 作加法运算；</li>
-<li>输入地址是以字为单位寻址的，要求为 4 的整数倍，对应到 DM 元件中需要除以 4 来寻址（即右移 2 位）。[1:0] 这两位可以用于半字、字节为单位的寻址，能预留用于添加 lh，lb 等指令。</li>
-</ul>
-<h4 id="问题-2-1"><a href="#问题-2-1" class="headerlink" title="问题 2"></a>问题 2</h4><p><strong>思考上述两种控制器设计的译码方式，给出代码示例，并尝试对比各方式的优劣。</strong></p>
-<ul>
-<li><p>将指令对应到信号：每个指令需要产生哪些控制信号一目了然，但是代码量较大；</p>
-</li>
-<li><p>将信号对应到指令：可以清楚地看到某个特定信号对应的指令，例如对于 <code>RegWrite</code>，我们可以很快就知道哪些指令需要写寄存器的操作。不过编程时要比较小心，因为不能直观地看到一个指令产生了什么控制信号，容易漏接线。</p>
-</li>
-<li><p>示例代码如下：</p>
-<figure class="highlight smalltalk"><table><tr><td class="code"><pre><code class="hljs smalltalk">//信号到指令<br>assign <span class="hljs-type">RegDst</span> = <br>(add || sub || nop) ? `rd:<br>(ori || lw || lui) ? `rt:<br>(jal) ? `ra:<br>`rd;<br><br>assign <span class="hljs-type">ALUSrc</span> = (ori || lw || sw || lui);<br><br>assign <span class="hljs-type">RegDataSrc</span> =<br>(add || sub || ori || lui || nop) ? `alu:<br>(lw) ? `mem:<br>(jal) ? `pc:<br>`alu;<br>...<br><br>//指令到信号<br>if (add) begin<br>        <span class="hljs-type">MemWrite</span>    =   <span class="hljs-number">0</span>       ;<br>        <span class="hljs-type">RegWrite</span>    =   <span class="hljs-number">1</span>       ;<br>        <span class="hljs-type">Jr</span>          =   <span class="hljs-number">0</span>       ;<br>        <span class="hljs-type">Jump</span>        =   <span class="hljs-number">0</span>       ;<br>        <span class="hljs-type">Branch</span>      =   <span class="hljs-number">0</span>	;<br>        <span class="hljs-type">ExtOp</span>       =   <span class="hljs-number">0</span>	;<br>        <span class="hljs-type">ALUSrc</span>      =   <span class="hljs-number">0</span>	;<br>        <span class="hljs-type">ALUOp</span>       =   `<span class="hljs-type">ADD</span>	；<br>        <span class="hljs-type">RegDst</span>      =   `rd	；<br>end<br>...<br></code></pre></td></tr></table></figure></li>
-</ul>
-<h4 id="问题-3-1"><a href="#问题-3-1" class="headerlink" title="问题 3"></a>问题 3</h4><p><strong>在相应的部件中，复位信号的设计都是同步复位 ，这与 P3 中的设计要求不同。请对比同步复位与异步复位这两种方式的 reset 信号与 clk 信号优先级的关系。</strong></p>
-<ul>
-<li>同步复位：reset 信号低级于 clk 信号，因为只有 clk 处于上升沿时 reset 信号才可能有效；</li>
-<li>异步复位：reset 信号高级于 clk 信号，因为一旦 reset 信号在高电平就复位，无所谓 clk 是否在上升沿。</li>
-</ul>
-<h4 id="问题-4-1"><a href="#问题-4-1" class="headerlink" title="问题 4"></a>问题 4</h4><p><strong>C 语言是一种弱类型程序设计语言。C 语言中不对计算结果溢出进行处理，这意味着 C 语言要求程序员必须很清楚计算结果是否会导致溢出。因此，如果仅仅支持 C 语言，MIPS 指令的所有计算指令均可以忽略溢出。 请说明为什么在忽略溢出的前提下，addi 与 addiu 是等价的，add 与 addu 是等价的。提示：阅读《MIPS32® Architecture For Programmers Volume II: The MIPS32® Instruction Set》中相关指令的 Operation 部分。</strong></p>
-<ul>
-<li>如何判断溢出：将  GPR[rs] 的第 31 位拼接到 GPR[rs] 之前，加法结果记为 temp，如果产生了进位就会溢出，这体现为 temp[32] ≠ temp[31]。</li>
-<li>如果我们不考虑溢出，temp[32] 不会发生变化，也不会被存入到寄存器中，此时存入的结果仍然是两个 32 位数加法得到的结果，addi 与 addiu &#x2F; add 与 addu 是等价的。</li>
-</ul>
-<h3 id="上机提示"><a href="#上机提示" class="headerlink" title="上机提示"></a>上机提示</h3><p>上机一开始就可以将课下提交的电路提交到各题的窗口中进行评测，每道题都有大约一半的数据点是对课下内容的强测，不涉及任何新增指令。如果提交后发现每道题均有约一半的测试点可以通过，那么上机时就不要多去考虑课下的 bug 了。</p>
-]]></content>
-      <categories>
-        <category>计算机组成课下</category>
-      </categories>
-      <tags>
-        <tag>计算机组成</tag>
-        <tag>单周期 CPU</tag>
       </tags>
   </entry>
   <entry>
@@ -1177,6 +540,453 @@
         <tag>数据结构</tag>
         <tag>信息类</tag>
         <tag>期中真题</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>计算机组成 P7 课下——MIPS 微系统</title>
+    <url>/2025/12/21/p7learn/</url>
+    <content><![CDATA[<h3 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h3><p>在 P7 中，我们需要搭建一个简单的支持<strong>异常</strong>和<strong>中断</strong>的 MIPS 微系统。在之前的 Project 中，我们的 CPU 并没有考虑这些问题（例如： <code>add</code> 指令其实是按照 <code>addu</code> 实现的），但一个合格的处理器不能抛开这些问题不管。</p>
+<span id="more"></span>
+
+<p>P7 大约涉及以下几个方面的工作：</p>
+<ol>
+<li><p>在流水线各级检测指令异常，并将异常信息流水；</p>
+</li>
+<li><p>在 M 级添加协处理器 CP0；</p>
+</li>
+<li><p>添加 Bridge 实现 CPU 与外设的交互。</p>
+</li>
+<li><p>对流水线进行其他调整（清空逻辑、转发阻塞逻辑等）</p>
+</li>
+</ol>
+<h3 id="异常检测与流水"><a href="#异常检测与流水" class="headerlink" title="异常检测与流水"></a>异常检测与流水</h3><p>按照指导书要求，P7 的异常分为“内部异常”和“外部中断”，其中<strong>后者优先级更高</strong>，这一点在编写 CP0 相关代码时需要注意。</p>
+<h4 id="异常检测"><a href="#异常检测" class="headerlink" title="异常检测"></a>异常检测</h4><p>对于异常的检测，<strong>不能</strong>全部到 M 级（CP0 所在流水级）才检测。以 PC 不合法异常为例，如果我们不在 F 级检测这一异常并将指令机器码当作 0x00000000，我们的 CPU 就会尝试访问不合法的指令内存地址，这是不安全的。所以，最好尽早检测异常。</p>
+<p>教程的异常代码表格中给出了多种异常，我们可以进行如下分类，在不同的流水级检测不同的异常。</p>
+<table>
+<thead>
+<tr>
+<th>检测流水级</th>
+<th>异常类型</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>F</td>
+<td>PC 不合法</td>
+</tr>
+<tr>
+<td>D</td>
+<td>未知指令、Syscall</td>
+</tr>
+<tr>
+<td>E</td>
+<td>ALU 溢出（算术溢出 &#x2F; 读写地址计算溢出）</td>
+</tr>
+<tr>
+<td>M</td>
+<td>读写地址不合法</td>
+</tr>
+</tbody></table>
+<h4 id="异常流水"><a href="#异常流水" class="headerlink" title="异常流水"></a>异常流水</h4><p>关于检测到的异常不可以直接提交到 CP0 的原因，教程中给出了详细解释，这里不赘述。在上一部分，我们在 M 级及之前的每一个流水级进行了异常检测，这里我们只需要将异常代码通过流水线寄存器进行流水。关于异常的流水，有两个注意点：</p>
+<ol>
+<li><p>对于不同的两条异常指令，先执行的指令的异常更优先（<strong>精确异常</strong>要求的体现）；</p>
+</li>
+<li><p>对于同一条指令的多个异常，在更靠前的流水级检出的异常更优先（<strong>尽早发现</strong>异常）。例如，一条指令在 F、D 级都被检出了异常，异常码以 F 级给出的为准，下面这段代码可以体现这一点。</p>
+</li>
+</ol>
+<figure class="highlight verilog"><table><tr><td class="code"><pre><code class="hljs verilog"><span class="hljs-keyword">assign</span> D_exceptionCode = <br>(D_exceptionCodeTemp != <span class="hljs-number">1</span>) ? D_exceptionCodeTemp : <br>(D_Syscall) ? `cp0_Syscall :<br>(D_RI) ? `cp0_RI :<br><span class="hljs-number">1</span>;<br><br><span class="hljs-comment">//D_exceptionCodeTemp 由 F_exceptionCode 流水而来</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="添加协处理器-CP0"><a href="#添加协处理器-CP0" class="headerlink" title="添加协处理器 CP0"></a>添加协处理器 CP0</h3><p>这里我选择将 CP0 放置在 <strong>M 级</strong>，因为异常判定涉及到对内存读写地址的判定。一般情况下，内存读写地址在 E 级 ALU 部件得出，经过 E → M 流水寄存器后传递给 M 级部件。因此，将 CP0 放在 M 级是更为方便的，这样一来不需要添加额外的转发通路。（大多数人会将 CP0 放置在 M 级，如果想要后续对拍方便，我建议“随大流”。）</p>
+<h4 id="CP0-端口设计"><a href="#CP0-端口设计" class="headerlink" title="CP0 端口设计"></a>CP0 端口设计</h4><table>
+<thead>
+<tr>
+<th>端口名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>clk</td>
+<td>in</td>
+<td>1</td>
+<td></td>
+</tr>
+<tr>
+<td>reset</td>
+<td>in</td>
+<td>1</td>
+<td></td>
+</tr>
+<tr>
+<td>writeEnable</td>
+<td>in</td>
+<td>1</td>
+<td>是否写 CP0</td>
+</tr>
+<tr>
+<td>CP0Addr</td>
+<td>in</td>
+<td>5</td>
+<td>写 CP0 寄存器地址</td>
+</tr>
+<tr>
+<td>CP0In</td>
+<td>in</td>
+<td>32</td>
+<td>写入 CP0 的数据</td>
+</tr>
+<tr>
+<td>CP0Out</td>
+<td>out</td>
+<td>32</td>
+<td>从 CP0 读出的数据</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>M_PC</td>
+<td>in</td>
+<td>32</td>
+<td>M 级 PC（宏观 PC）</td>
+</tr>
+<tr>
+<td>BDIn</td>
+<td>in</td>
+<td>1</td>
+<td>是否是延迟槽指令</td>
+</tr>
+<tr>
+<td>ExcCodeIn</td>
+<td>in</td>
+<td>5</td>
+<td>异常码</td>
+</tr>
+<tr>
+<td>HWInt</td>
+<td>in</td>
+<td>6</td>
+<td>外部中断信息，<code>&#123;&#123;3&#39;b000&#125;,&#123;interrupt&#125;,&#123;timer1IRQ&#125;,&#123;timer0IRQ&#125;&#125;</code></td>
+</tr>
+<tr>
+<td>EXLClear</td>
+<td>in</td>
+<td>1</td>
+<td>清空 EXL 位</td>
+</tr>
+<tr>
+<td>EPCOut</td>
+<td>out</td>
+<td>32</td>
+<td>受害 PC</td>
+</tr>
+<tr>
+<td>Request</td>
+<td>out</td>
+<td>1</td>
+<td>异常处理请求</td>
+</tr>
+<tr>
+<td>externalInterruptRequest</td>
+<td>out</td>
+<td>1</td>
+<td>是否响应外部中断器中断信号 <code>interrupt</code></td>
+</tr>
+</tbody></table>
+<h4 id="异常处理请求"><a href="#异常处理请求" class="headerlink" title="异常处理请求"></a>异常处理请求</h4><p>异常处理请求的条件：发生外部中断或内部异常，且<strong>中断被允许</strong>。由于教程中给出的异常码表中不包含“1”，所以我用 <code>ExcCodeIn == 1</code> 表示无内部异常的情况。</p>
+<ul>
+<li><p>响应外部中断（INT）：</p>
+<ol>
+<li><p>全局中断使能（<code>SR[0] == 1</code>）</p>
+</li>
+<li><p>当前不在核心态（<code>SR[1] == 0</code>）</p>
+</li>
+<li><p>外部有中断且对应中断被允许（<code>HWInt &amp; SR[15:10] != 0</code>）</p>
+</li>
+</ol>
+</li>
+<li><p>响应内部异常（EXC）：  </p>
+<ol>
+<li><p>当前不在核心态（<code>SR[1] == 0</code>）</p>
+</li>
+<li><p>有内部异常（<code>ExcCodeIn != 1 &amp;&amp; ExcCodeIn != 0</code>）</p>
+</li>
+</ol>
+</li>
+</ul>
+<h4 id="记录异常"><a href="#记录异常" class="headerlink" title="记录异常"></a>记录异常</h4><p>当检测到异常时，需要向 SR、Cause 和 EPC 寄存器中写入信息。对于每个寄存器的特定位，需要写入的信息如下：</p>
+<table>
+<thead>
+<tr>
+<th>寄存器</th>
+<th>位域</th>
+<th>写入信息</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SR</td>
+<td>1</td>
+<td>写入 1，因为检测到异常</td>
+</tr>
+<tr>
+<td>Cause</td>
+<td>31</td>
+<td>是延迟槽指令则写入 1</td>
+</tr>
+<tr>
+<td>Cause</td>
+<td>15:10</td>
+<td>每周期更新，传入 <code>HWInt</code></td>
+</tr>
+<tr>
+<td>Casue</td>
+<td>6:2</td>
+<td>异常码</td>
+</tr>
+<tr>
+<td>EPC</td>
+<td></td>
+<td>受害 PC，注意延迟槽指令的受害 PC 为 M_PC - 4</td>
+</tr>
+</tbody></table>
+<p>需要注意的是，由于外部中断优先级更高，则响应外部中断时，即使该指令有内部异常，也需要向 <code>Cause[6:2]</code> 中写入<strong>外部中断异常码</strong>。</p>
+<h4 id="EXL-位清空"><a href="#EXL-位清空" class="headerlink" title="EXL 位清空"></a>EXL 位清空</h4><p>EXL 位置 1 代表强制进入核心态（执行异常处理程序），则当异常处理程序执行完成时，需要退出核心态。在 P7 中，<code>eret</code> 指令负责跳转到 EPC 执行接下来的主程序，所以 M 级检测到 <code>eret</code> 指令时（这个信号可以从 D 级流水过来），<code>EXLClear</code> 应当置 1，且 EXL 位应当被清空。</p>
+<h4 id="CP0-的读写"><a href="#CP0-的读写" class="headerlink" title="CP0 的读写"></a>CP0 的读写</h4><p>与 D 级 GRF 部件的读写操作没有本质上不同，这里不再赘述。</p>
+<h3 id="实现与外设的交互"><a href="#实现与外设的交互" class="headerlink" title="实现与外设的交互"></a>实现与外设的交互</h3><h4 id="系统桥"><a href="#系统桥" class="headerlink" title="系统桥"></a>系统桥</h4><p>系统桥 Bridge 需要实现对外设的读写操作。在这一部分，外设指两个 Timer。我们可以通过 Bridge 向 Timer 的特定寄存器（有对应地址）中写入数据，也可以从 Timer 读出数据（例如中断信号，HWInt 是需要的）。</p>
+<table>
+<thead>
+<tr>
+<th>端口名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>addrIn</td>
+<td>in</td>
+<td>32</td>
+<td>写 Timer 的地址</td>
+</tr>
+<tr>
+<td>dataIn</td>
+<td>in</td>
+<td>32</td>
+<td>写 Timer 的数据</td>
+</tr>
+<tr>
+<td>byteEnable</td>
+<td>in</td>
+<td>4</td>
+<td>写对应地址的哪些字节</td>
+</tr>
+<tr>
+<td>addrOut</td>
+<td>out</td>
+<td>32</td>
+<td>连接 Timer 地址输入端</td>
+</tr>
+<tr>
+<td>dataOut</td>
+<td>out</td>
+<td>32</td>
+<td>连接 Timer 地址输出端</td>
+</tr>
+<tr>
+<td>timerWrite0</td>
+<td>out</td>
+<td>1</td>
+<td>连接 Timer0 写使能端</td>
+</tr>
+<tr>
+<td>timerWrite1</td>
+<td>out</td>
+<td>1</td>
+<td>连接 Timer1 写使能端</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>timerIn0</td>
+<td>in</td>
+<td>32</td>
+<td>连接 Timer0 数据输出端</td>
+</tr>
+<tr>
+<td>timerIn1</td>
+<td>in</td>
+<td>32</td>
+<td>连接 Timer1 数据输出端</td>
+</tr>
+<tr>
+<td>timerIRQIn0</td>
+<td>in</td>
+<td>32</td>
+<td>连接 Timer0 中断输出端</td>
+</tr>
+<tr>
+<td>timerIRQIn1</td>
+<td>in</td>
+<td>32</td>
+<td>连接 Timer1 中断输出端</td>
+</tr>
+<tr>
+<td>timerOut</td>
+<td>in</td>
+<td>32</td>
+<td>从 Timer 读出的数据</td>
+</tr>
+<tr>
+<td>timerIRQOut0</td>
+<td>in</td>
+<td>32</td>
+<td>从 Timer0 读出的中断数据，传给 HWInt</td>
+</tr>
+<tr>
+<td>timerIRQOut1</td>
+<td>in</td>
+<td>32</td>
+<td>从 Timer1 读出的中断数据，传给 HWInt</td>
+</tr>
+</tbody></table>
+<p>对于 <code>timerWrite0</code> 和 <code>timerWrite1</code> 的使能，直接通过写地址 <code>addrIn</code> 判断即可；输出的 <code>timerOut</code> 也是根据 <code>addrIn</code> 判断输出的是哪个 <code>Timer</code> 的对应数据。Bridge 的其他端口与 Timer 对应端口的接线可以直接参考仓库里的代码。</p>
+<figure class="highlight verilog"><table><tr><td class="code"><pre><code class="hljs verilog"><span class="hljs-keyword">assign</span> timerWrite0 = <br>(addrIn &gt;= <span class="hljs-number">32&#x27;h00007f00</span> &amp;&amp; addrIn &lt;= <span class="hljs-number">32&#x27;h00007f0b</span> &amp;&amp; byteEnable != <span class="hljs-number">4&#x27;b0000</span>);<br><span class="hljs-keyword">assign</span> timerWrite1 = <br>(addrIn &gt;= <span class="hljs-number">32&#x27;h00007f10</span> &amp;&amp; addrIn &lt;= <span class="hljs-number">32&#x27;h00007f1b</span> &amp;&amp; byteEnable != <span class="hljs-number">4&#x27;b0000</span>);<br><span class="hljs-keyword">assign</span> timerOut = <br>(addrIn &gt;= <span class="hljs-number">32&#x27;h00007f00</span> &amp;&amp; addrIn &lt;= <span class="hljs-number">32&#x27;h00007f0b</span>) ? timerIn0:<br>(addrIn &gt;= <span class="hljs-number">32&#x27;h00007f10</span> &amp;&amp; addrIn &lt;= <span class="hljs-number">32&#x27;h00007f1b</span>) ? timerIn1:<br><span class="hljs-number">0</span>;<br></code></pre></td></tr></table></figure>
+
+<h4 id="响应中断发生器的中断"><a href="#响应中断发生器的中断" class="headerlink" title="响应中断发生器的中断"></a>响应中断发生器的中断</h4><p>按照教程，如果这时中断发生器产生中断（<code>interrupt == 1</code>）且允许响应外部中断器中断信号（<code>externalInterruptRequest == 1</code>），则写地址 0x7f20。官方提供了 <code>m_int_addr</code> 和 <code>m_int_byteen</code> 接口，直接更改对应输出数据即可：</p>
+<figure class="highlight verilog"><table><tr><td class="code"><pre><code class="hljs verilog"><span class="hljs-keyword">assign</span> m_int_addr = m_data_addr;<br><span class="hljs-keyword">assign</span> m_int_byteen = <br>(M_externalInterruptResponse &amp;&amp; interrupt) ? <span class="hljs-number">4&#x27;b0001</span> : <span class="hljs-number">4&#x27;b0000</span>;<br></code></pre></td></tr></table></figure>
+
+<p><code>externalInterruptRequest</code> 信号的置位逻辑与 <code>INT</code> 信号基本一致，但判断的是 <code>HWInt[2]</code> 和 <code>SR[12]</code> 是否均为 1。</p>
+<h3 id="当异常请求（Request）到来时"><a href="#当异常请求（Request）到来时" class="headerlink" title="当异常请求（Request）到来时"></a>当异常请求（Request）到来时</h3><h4 id="PC-跳转"><a href="#PC-跳转" class="headerlink" title="PC 跳转"></a>PC 跳转</h4><p>此时 PC 应当跳转到 0x4180，修改 F 级 nextPC 模块即可。</p>
+<h4 id="清空流水线"><a href="#清空流水线" class="headerlink" title="清空流水线"></a>清空流水线</h4><p>为了符合<strong>精确异常</strong>的要求，我们需要清空流水线——插入 <code>nop</code>，防止异常指令及其后续指令被真正执行产生影响。这一操作和 <code>reset</code> 时比较相像，不过由于异常处理程序从 0x4180 开始，所以 <code>request</code> 时，PC 应复位到 0x4180。</p>
+<p>同时，异常码应该清空为“1”，即表示既没有外部中断（0），也没有内部异常。</p>
+<h4 id="乘除模块"><a href="#乘除模块" class="headerlink" title="乘除模块"></a>乘除模块</h4><p>按照教程中要求，如果异常发生时 E 级有<strong>还没开始的</strong>涉及乘除模块的运算，则这一运算不应开始；若这一运算还没有执行到修改 HI、LO 寄存器的阶段，则不应当修改 HI、LO 寄存器。</p>
+<p>只需要给 MDU 的工作条件增加 <code>!request</code> 即可：</p>
+<ul>
+<li><p>如果运算没有开始，此时运算所需数据不会被写入寄存器，<code>state</code> 不变，运算不能开始；</p>
+</li>
+<li><p>运算正在进行，还没写 HI、LO：由于此时 <code>request</code> 为高，MDU 的 <code>state</code> 不会改变，从而不会继续工作，不产生影响；</p>
+</li>
+</ul>
+<h4 id="内存读写"><a href="#内存读写" class="headerlink" title="内存读写"></a>内存读写</h4><p>有异常或是 <code>request</code> 时都不应该对内存进行写入操作，以消除影响。</p>
+<h3 id="当-eret-到来时"><a href="#当-eret-到来时" class="headerlink" title="当 eret 到来时"></a>当 <code>eret</code> 到来时</h3><p>我选择在 D 级 CTRL 模块检测当前指令是否为 <code>eret</code>。</p>
+<ul>
+<li><p>由于 <code>eret</code> 没有延迟槽，若 D 级检测到 <code>eret</code>，则 F 级需要插入一个 <code>nop</code> ——这是清空延迟槽最快捷的方法。</p>
+</li>
+<li><p>当 D 级检测到 <code>eret</code> 后，PC 需要跳转到 EPC 处，修改 F 级 nextPC 模块即可。</p>
+</li>
+</ul>
+<h3 id="阻塞与转发"><a href="#阻塞与转发" class="headerlink" title="阻塞与转发"></a>阻塞与转发</h3><h4 id="eret-阻塞逻辑"><a href="#eret-阻塞逻辑" class="headerlink" title="eret 阻塞逻辑"></a><code>eret</code> 阻塞逻辑</h4><p><code>eret</code> 指令需要 EPC 中的数据。如果 <code>eret</code> 的前序指令需要写 EPC，则将 <code>eret</code> 阻塞在 D 级。</p>
+<h4 id="阻塞时保留信息"><a href="#阻塞时保留信息" class="headerlink" title="阻塞时保留信息"></a>阻塞时保留信息</h4><p>这一点主要体现在 D → E 流水寄存器上。如果未发生 <code>reset</code> 和 <code>request</code>，而流水线被阻塞，需要保留 D 级的 PC 和 BD 信息。如果没有流水这两个信息会怎样？具体可以看下面这个例子来理解。</p>
+<p>考虑指令序列 <code>lw - beq - add</code>，且 <code>add</code> 会因与 <code>lw</code> 产生数据冲突而被阻塞在 D 级。设想当前流水线各级的指令如下（带“*”表示延迟槽指令）：</p>
+<table>
+<thead>
+<tr>
+<th>F</th>
+<th>D</th>
+<th>E</th>
+<th>M</th>
+<th>W</th>
+</tr>
+</thead>
+<tbody><tr>
+<td></td>
+<td>add*</td>
+<td>beq</td>
+<td>lw</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>由于阻塞，下一个时钟周期时流水线状态如下：</p>
+<table>
+<thead>
+<tr>
+<th>F</th>
+<th>D</th>
+<th>E</th>
+<th>M</th>
+<th>W</th>
+</tr>
+</thead>
+<tbody><tr>
+<td></td>
+<td>add*</td>
+<td></td>
+<td>beq</td>
+<td>lw</td>
+</tr>
+</tbody></table>
+<p>再下一个时钟周期的下降沿时来了一个中断。该周期时钟信号高电平时，流水线状态为：</p>
+<table>
+<thead>
+<tr>
+<th>F</th>
+<th>D</th>
+<th>E</th>
+<th>M</th>
+<th>W</th>
+</tr>
+</thead>
+<tbody><tr>
+<td></td>
+<td>add*</td>
+<td></td>
+<td></td>
+<td>lw</td>
+</tr>
+</tbody></table>
+<p>这时 CP0 需要记录异常相关信息。如果我们在阻塞时清空了 D → E 的所有信号，则获取到 M 级 PC 为 0x3000，BD 为 0，这显然是不正确的。因此，阻塞（且无 <code>reset</code> 和 <code>request</code>）时需要保留 PC 和 BD 信息。</p>
+<p>优先级问题：请注意 <code>reset</code>，<code>request</code> 和 <code>stall</code> 信号的优先级关系依次从高到低，这一点在教程中有着重强调——复位高于一切，外部可见的请求高于不可见的阻塞。当 CPU 被封装，我们看不到内部流水线执行的细节，包括转发和阻塞，流水线的 CPU 在外人看来就仿佛是单周期的。</p>
+<h4 id="转发逻辑"><a href="#转发逻辑" class="headerlink" title="转发逻辑"></a>转发逻辑</h4><p>可以考虑转发从 CP0 寄存器读出的数据。由于在 M 级才能访问 CP0 并更新数据，所以 $T_\text{new}&#x3D;3$，这与 <code>lw</code> 本质上区别不大（一个读 CP0，一个读内存），因此转发通路没有必要做特别改造。</p>
+<h3 id="P7-思考题"><a href="#P7-思考题" class="headerlink" title="P7 思考题"></a>P7 思考题</h3><h4 id="第一题"><a href="#第一题" class="headerlink" title="第一题"></a>第一题</h4><p><strong>请查阅相关资料，说明鼠标和键盘的输入信号是如何被 CPU 知晓的？</strong></p>
+<p>CPU 通过总线和外部设备连接，输入信号会通过总线传递给 CPU。CPU 接收到中断信号后会进行处理，并反馈结果。</p>
+<h4 id="第二题"><a href="#第二题" class="headerlink" title="第二题"></a>第二题</h4><p><strong>请思考为什么我们的 CPU 处理中断异常必须是已经指定好的地址？如果你的 CPU 支持用户自定义入口地址，即处理中断异常的程序由用户提供，其还能提供我们所希望的功能吗？如果可以，请说明这样可能会出现什么问题？否则举例说明。（假设用户提供的中断处理程序合法）</strong></p>
+<p>设计上，要让用户不需要过多地考虑底层的实现，而是要让他们专注于“用户态”，这时底层指定中断异常处理地址是最为方便的选择。并且，若处理中断异常的程序由用户提供，由于用户并不知晓 CPU 的具体实现，其提供的处理代码可能会导致冒险问题，即使能够实现某些功能，但风险也很大。</p>
+<h4 id="第三题"><a href="#第三题" class="headerlink" title="第三题"></a>第三题</h4><p><strong>为何与外设通信需要 Bridge？</strong></p>
+<p>系统桥是连接 CPU 和外设的功能设备，它会给 CPU 提供一种接口，使得 CPU 可以像读写普通存储器一样（即按地址读写）来读写复杂多变的外设。系统桥统一且简化了 CPU 的对外接口，CPU 不必为每种外设单独提供接口，符合高内聚，低耦合的设计思想。尽管外设多种多样，但是 CPU 可以用统一的方法访问它们。</p>
+<h4 id="第四题"><a href="#第四题" class="headerlink" title="第四题"></a>第四题</h4><p><strong>请阅读官方提供的定时器源代码，阐述两种中断模式的异同，并分别针对每一种模式绘制状态转移图。</strong></p>
+<pre><code class=" mermaid">graph LR
+    A(IDLE)
+    B(LOAD)
+    C(CNT)
+    D(INT)
+
+    A --&gt; |ctrl_0 == 1; IRQ = 0| B
+    A --&gt; |ctrl_0 == 0; IRQ = 0| A
+    B --&gt; |无条件; IRQ = 0| C
+    C --&gt; |ctrl_0 == 1, count &gt; 1; IRQ = 0| C
+    C --&gt; |ctrl_0 == 1, count ≤ 1; IRQ = 0| D
+    C --&gt; |ctrl_0 == 0| A
+    D --&gt; |模式0：ctrl = 0; IRQ = 1|A
+    D --&gt; |模式1：ctrl不变; IRQ = 0|A
+</code></pre>
+
+<h4 id="第五题"><a href="#第五题" class="headerlink" title="第五题"></a>第五题</h4><p><strong>倘若中断信号流入的时候，在检测宏观 PC 的一级如果是一条空泡（你的 CPU 该级所有信息均为空）指令，此时会发生什么问题？在此例基础上请思考：在 P7 中，清空流水线产生的空泡指令应该保留原指令的哪些信息？</strong></p>
+<p>若 CPU 该级所有信息均为空，携带的 PC 和延迟槽信息都可能是不正确的，这对异常信息的记录是很不利的；空泡中指令应该变为 <code>nop</code>，其他信息应保持与前一条指令一致，尤其是 PC 和 BD。</p>
+<h4 id="第六题"><a href="#第六题" class="headerlink" title="第六题"></a>第六题</h4><p><strong>为什么 <code>jalr</code> 指令的两个寄存器不能相同，例如 <code>jalr $31, $31</code> ？</strong></p>
+<p><code>$31</code> 的值更新和 PC 更新在同一时刻发生，我们对同一个寄存器同时读写，这种行为是“未定义”的。</p>
+<h3 id="课下部分建议"><a href="#课下部分建议" class="headerlink" title="课下部分建议"></a>课下部分建议</h3><ul>
+<li><p>尽早开始 P7 的工作，因为 P7 有一定理解难度，在高压、时间紧张的状况下可能很难完成任务。即使之前已经挂 P，但如果完全有可能推进到 P7 课下，请一定提前开始准备。</p>
+</li>
+<li><p>不要依赖课下测试，而是尝试自己另外构造新数据。异常部分的数据还算好构造，“力大砖飞”即可；中断部分的测试数据可以“小而精”，不用太长，覆盖到异常时中断、阻塞时中断等特别情况即可。我的<a href="https://github.com/kkdcymnj/buaa_co_2025/tree/main/cpu_check_p7/sample_manual">仓库</a>中有少量这样的数据，大家可以批判性地使用，注意更改 testbench 中 <code>target_pc</code> 值。</p>
+</li>
+<li><p>关于 debug 方面，如果已经验证 P6 功能能够正常实现，那么如果出现寄存器读写的错误，请考虑 CP0 部分、异常检测部分的实现。CP0 寄存器数据的特定位能给我们很大提示。例如，中测时出现了寄存器数据的第 31 位错误但其他位都正确，这时我们就可以考虑延迟槽指令的判定，因为对于延迟槽指令，<code>Cause[31] == 1</code>。</p>
+</li>
+</ul>
+]]></content>
+      <categories>
+        <category>计算机组成课下</category>
+      </categories>
+      <tags>
+        <tag>计算机组成</tag>
+        <tag>流水线 CPU</tag>
+        <tag>MIPS 微系统</tag>
       </tags>
   </entry>
   <entry>
@@ -2367,450 +2177,640 @@
       </tags>
   </entry>
   <entry>
-    <title>计算机组成 P7 课下——MIPS 微系统</title>
-    <url>/2025/12/21/p7learn/</url>
-    <content><![CDATA[<h3 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h3><p>在 P7 中，我们需要搭建一个简单的支持<strong>异常</strong>和<strong>中断</strong>的 MIPS 微系统。在之前的 Project 中，我们的 CPU 并没有考虑这些问题（例如： <code>add</code> 指令其实是按照 <code>addu</code> 实现的），但一个合格的处理器不能抛开这些问题不管。</p>
+    <title>计算机组成 P3 / P4 课下——单周期 CPU</title>
+    <url>/2025/11/23/p3p4_learn/</url>
+    <content><![CDATA[<h3 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h3><p>通过阅读这篇帖子，你能够学习到如何搭建一个单周期的 CPU，并能对其中的一些重要问题加以认识。由于 P3 和 P4 课下任务相似度高，所以这里将两次课下作业的学习内容合并到同一篇帖子中来讲述。</p>
 <span id="more"></span>
 
-<p>P7 大约涉及以下几个方面的工作：</p>
-<ol>
-<li><p>在流水线各级检测指令异常，并将异常信息流水；</p>
-</li>
-<li><p>在 M 级添加协处理器 CP0；</p>
-</li>
-<li><p>添加 Bridge 实现 CPU 与外设的交互。</p>
-</li>
-<li><p>对流水线进行其他调整（清空逻辑、转发阻塞逻辑等）</p>
-</li>
-</ol>
-<h3 id="异常检测与流水"><a href="#异常检测与流水" class="headerlink" title="异常检测与流水"></a>异常检测与流水</h3><p>按照指导书要求，P7 的异常分为“内部异常”和“外部中断”，其中<strong>后者优先级更高</strong>，这一点在编写 CP0 相关代码时需要注意。</p>
-<h4 id="异常检测"><a href="#异常检测" class="headerlink" title="异常检测"></a>异常检测</h4><p>对于异常的检测，<strong>不能</strong>全部到 M 级（CP0 所在流水级）才检测。以 PC 不合法异常为例，如果我们不在 F 级检测这一异常并将指令机器码当作 0x00000000，我们的 CPU 就会尝试访问不合法的指令内存地址，这是不安全的。所以，最好尽早检测异常。</p>
-<p>教程的异常代码表格中给出了多种异常，我们可以进行如下分类，在不同的流水级检测不同的异常。</p>
+<h3 id="任务描述"><a href="#任务描述" class="headerlink" title="任务描述"></a>任务描述</h3><p>搭建支持 <code>add</code>，<code>sub</code>，<code>ori</code>，<code>lui</code>，<code>lw</code>，<code>sw</code>，<code>beq</code>，<code>jal</code>，<code>jr</code>，<code>nop</code> 指令的<strong>单周期</strong> CPU。</p>
+<h3 id="明确设计"><a href="#明确设计" class="headerlink" title="明确设计"></a>明确设计</h3><p>先从 P3 的 Logisim CPU 开始，因为它比较直观，能够为 P4：用 Verilog 描述 CPU 提供较大的帮助。根据教程，我们的 CPU 大致由这几个模块构成：IFU、CTRL、GRF、EXT、ALU、DM。这些缩写对应的组件及其功能在教程中都有详细的说明，这里不再赘述。</p>
+<h4 id="IFU"><a href="#IFU" class="headerlink" title="IFU"></a>IFU</h4><p>内部包含了 IM、PC、nPC 组件。IM 根据当前 PC 值取出对应的指令；PC 中有寄存器，在时钟上升沿时写入下一个 PC 值；nPC 则是一个状态转移单元，根据当前 PC 以及其他信号的输出判断下一个 PC 值。</p>
+<ul>
+<li>IM</li>
+</ul>
 <table>
 <thead>
 <tr>
-<th>检测流水级</th>
-<th>异常类型</th>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
 </tr>
 </thead>
 <tbody><tr>
-<td>F</td>
-<td>PC 不合法</td>
+<td>PC</td>
+<td>input</td>
+<td>32</td>
+<td>当前 PC 值</td>
 </tr>
 <tr>
-<td>D</td>
-<td>未知指令、Syscall</td>
-</tr>
-<tr>
-<td>E</td>
-<td>ALU 溢出（算术溢出 &#x2F; 读写地址计算溢出）</td>
-</tr>
-<tr>
-<td>M</td>
-<td>读写地址不合法</td>
+<td>Instr</td>
+<td>output</td>
+<td>32</td>
+<td>取出的指令</td>
 </tr>
 </tbody></table>
-<h4 id="异常流水"><a href="#异常流水" class="headerlink" title="异常流水"></a>异常流水</h4><p>关于检测到的异常不可以直接提交到 CP0 的原因，教程中给出了详细解释，这里不赘述。在上一部分，我们在 M 级及之前的每一个流水级进行了异常检测，这里我们只需要将异常代码通过流水线寄存器进行流水。关于异常的流水，有两个注意点：</p>
-<ol>
-<li><p>对于不同的两条异常指令，先执行的指令的异常更优先（<strong>精确异常</strong>要求的体现）；</p>
-</li>
-<li><p>对于同一条指令的多个异常，在更靠前的流水级检出的异常更优先（<strong>尽早发现</strong>异常）。例如，一条指令在 F、D 级都被检出了异常，异常码以 F 级给出的为准，下面这段代码可以体现这一点。</p>
-</li>
-</ol>
-<figure class="highlight verilog"><table><tr><td class="code"><pre><code class="hljs verilog"><span class="hljs-keyword">assign</span> D_exceptionCode = <br>(D_exceptionCodeTemp != <span class="hljs-number">1</span>) ? D_exceptionCodeTemp : <br>(D_Syscall) ? `cp0_Syscall :<br>(D_RI) ? `cp0_RI :<br><span class="hljs-number">1</span>;<br><br><span class="hljs-comment">//D_exceptionCodeTemp 由 F_exceptionCode 流水而来</span><br></code></pre></td></tr></table></figure>
-
-<h3 id="添加协处理器-CP0"><a href="#添加协处理器-CP0" class="headerlink" title="添加协处理器 CP0"></a>添加协处理器 CP0</h3><p>这里我选择将 CP0 放置在 <strong>M 级</strong>，因为异常判定涉及到对内存读写地址的判定。一般情况下，内存读写地址在 E 级 ALU 部件得出，经过 E → M 流水寄存器后传递给 M 级部件。因此，将 CP0 放在 M 级是更为方便的，这样一来不需要添加额外的转发通路。（大多数人会将 CP0 放置在 M 级，如果想要后续对拍方便，我建议“随大流”。）</p>
-<h4 id="CP0-端口设计"><a href="#CP0-端口设计" class="headerlink" title="CP0 端口设计"></a>CP0 端口设计</h4><table>
+<p>这里需要注意，在实际的 MIPS 架构中，PC 的起始地址是 0x00003000，对应存储单元的地址是 0；PC 每增加4，对应存储单元的地址增加 1。无论是在 Logisim 还是在 Verilog 中都需要注意这一映射关系。</p>
+<ul>
+<li>PC</li>
+</ul>
+<table>
 <thead>
 <tr>
-<th>端口名</th>
+<th>信号名</th>
 <th>方向</th>
 <th>位宽</th>
-<th>含义</th>
+<th>描述</th>
 </tr>
 </thead>
 <tbody><tr>
 <td>clk</td>
-<td>in</td>
+<td>input</td>
 <td>1</td>
-<td></td>
+<td>时钟信号</td>
 </tr>
 <tr>
 <td>reset</td>
-<td>in</td>
+<td>input</td>
 <td>1</td>
-<td></td>
+<td>复位信号</td>
 </tr>
 <tr>
-<td>writeEnable</td>
-<td>in</td>
-<td>1</td>
-<td>是否写 CP0</td>
-</tr>
-<tr>
-<td>CP0Addr</td>
-<td>in</td>
-<td>5</td>
-<td>写 CP0 寄存器地址</td>
-</tr>
-<tr>
-<td>CP0In</td>
-<td>in</td>
+<td>nPC</td>
+<td>input</td>
 <td>32</td>
-<td>写入 CP0 的数据</td>
+<td>下一个 PC 值</td>
 </tr>
 <tr>
-<td>CP0Out</td>
-<td>out</td>
+<td>PC</td>
+<td>output</td>
 <td>32</td>
-<td>从 CP0 读出的数据</td>
-</tr>
-<tr>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>M_PC</td>
-<td>in</td>
-<td>32</td>
-<td>M 级 PC（宏观 PC）</td>
-</tr>
-<tr>
-<td>BDIn</td>
-<td>in</td>
-<td>1</td>
-<td>是否是延迟槽指令</td>
-</tr>
-<tr>
-<td>ExcCodeIn</td>
-<td>in</td>
-<td>5</td>
-<td>异常码</td>
-</tr>
-<tr>
-<td>HWInt</td>
-<td>in</td>
-<td>6</td>
-<td>外部中断信息，<code>&#123;&#123;3&#39;b000&#125;,&#123;interrupt&#125;,&#123;timer1IRQ&#125;,&#123;timer0IRQ&#125;&#125;</code></td>
-</tr>
-<tr>
-<td>EXLClear</td>
-<td>in</td>
-<td>1</td>
-<td>清空 EXL 位</td>
-</tr>
-<tr>
-<td>EPCOut</td>
-<td>out</td>
-<td>32</td>
-<td>受害 PC</td>
-</tr>
-<tr>
-<td>Request</td>
-<td>out</td>
-<td>1</td>
-<td>异常处理请求</td>
-</tr>
-<tr>
-<td>externalInterruptRequest</td>
-<td>out</td>
-<td>1</td>
-<td>是否响应外部中断器中断信号 <code>interrupt</code></td>
+<td>当前 PC 值</td>
 </tr>
 </tbody></table>
-<h4 id="异常处理请求"><a href="#异常处理请求" class="headerlink" title="异常处理请求"></a>异常处理请求</h4><p>异常处理请求的条件：发生外部中断或内部异常，且<strong>中断被允许</strong>。由于教程中给出的异常码表中不包含“1”，所以我用 <code>ExcCodeIn == 1</code> 表示无内部异常的情况。</p>
 <ul>
-<li><p>响应外部中断（INT）：</p>
-<ol>
-<li><p>全局中断使能（<code>SR[0] == 1</code>）</p>
-</li>
-<li><p>当前不在核心态（<code>SR[1] == 0</code>）</p>
-</li>
-<li><p>外部有中断且对应中断被允许（<code>HWInt &amp; SR[15:10] != 0</code>）</p>
-</li>
-</ol>
-</li>
-<li><p>响应内部异常（EXC）：  </p>
-<ol>
-<li><p>当前不在核心态（<code>SR[1] == 0</code>）</p>
-</li>
-<li><p>有内部异常（<code>ExcCodeIn != 1 &amp;&amp; ExcCodeIn != 0</code>）</p>
-</li>
-</ol>
-</li>
+<li>nPC</li>
 </ul>
-<h4 id="记录异常"><a href="#记录异常" class="headerlink" title="记录异常"></a>记录异常</h4><p>当检测到异常时，需要向 SR、Cause 和 EPC 寄存器中写入信息。对于每个寄存器的特定位，需要写入的信息如下：</p>
 <table>
 <thead>
 <tr>
-<th>寄存器</th>
-<th>位域</th>
-<th>写入信息</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>SR</td>
-<td>1</td>
-<td>写入 1，因为检测到异常</td>
-</tr>
-<tr>
-<td>Cause</td>
-<td>31</td>
-<td>是延迟槽指令则写入 1</td>
-</tr>
-<tr>
-<td>Cause</td>
-<td>15:10</td>
-<td>每周期更新，传入 <code>HWInt</code></td>
-</tr>
-<tr>
-<td>Casue</td>
-<td>6:2</td>
-<td>异常码</td>
-</tr>
-<tr>
-<td>EPC</td>
-<td></td>
-<td>受害 PC，注意延迟槽指令的受害 PC 为 M_PC - 4</td>
-</tr>
-</tbody></table>
-<p>需要注意的是，由于外部中断优先级更高，则响应外部中断时，即使该指令有内部异常，也需要向 <code>Cause[6:2]</code> 中写入<strong>外部中断异常码</strong>。</p>
-<h4 id="EXL-位清空"><a href="#EXL-位清空" class="headerlink" title="EXL 位清空"></a>EXL 位清空</h4><p>EXL 位置 1 代表强制进入核心态（执行异常处理程序），则当异常处理程序执行完成时，需要退出核心态。在 P7 中，<code>eret</code> 指令负责跳转到 EPC 执行接下来的主程序，所以 M 级检测到 <code>eret</code> 指令时（这个信号可以从 D 级流水过来），<code>EXLClear</code> 应当置 1，且 EXL 位应当被清空。</p>
-<h4 id="CP0-的读写"><a href="#CP0-的读写" class="headerlink" title="CP0 的读写"></a>CP0 的读写</h4><p>与 D 级 GRF 部件的读写操作没有本质上不同，这里不再赘述。</p>
-<h3 id="实现与外设的交互"><a href="#实现与外设的交互" class="headerlink" title="实现与外设的交互"></a>实现与外设的交互</h3><h4 id="系统桥"><a href="#系统桥" class="headerlink" title="系统桥"></a>系统桥</h4><p>系统桥 Bridge 需要实现对外设的读写操作。在这一部分，外设指两个 Timer。我们可以通过 Bridge 向 Timer 的特定寄存器（有对应地址）中写入数据，也可以从 Timer 读出数据（例如中断信号，HWInt 是需要的）。</p>
-<table>
-<thead>
-<tr>
-<th>端口名</th>
+<th>信号名</th>
 <th>方向</th>
 <th>位宽</th>
-<th>含义</th>
+<th>描述</th>
 </tr>
 </thead>
 <tbody><tr>
-<td>addrIn</td>
-<td>in</td>
+<td>PC</td>
+<td>input</td>
 <td>32</td>
-<td>写 Timer 的地址</td>
+<td>当前 PC 值</td>
 </tr>
 <tr>
-<td>dataIn</td>
-<td>in</td>
-<td>32</td>
-<td>写 Timer 的数据</td>
+<td>offset</td>
+<td>input</td>
+<td>16</td>
+<td>16 位立即数</td>
 </tr>
 <tr>
-<td>byteEnable</td>
-<td>in</td>
+<td>instr_index</td>
+<td>input</td>
+<td>26</td>
+<td>26 位立即数</td>
+</tr>
+<tr>
+<td>PC_from_rs</td>
+<td>input</td>
+<td>32</td>
+<td>rs 寄存器中存储的 PC（<code>jr</code> 使用）</td>
+</tr>
+<tr>
+<td>branch</td>
+<td>input</td>
+<td>1</td>
+<td>是否分支</td>
+</tr>
+<tr>
+<td>jump</td>
+<td>input</td>
+<td>1</td>
+<td>是否跳转</td>
+</tr>
+<tr>
+<td>jump_back</td>
+<td>input</td>
+<td>1</td>
+<td>是否跳回</td>
+</tr>
+<tr>
+<td>nPC</td>
+<td>output</td>
+<td>32</td>
+<td>下一个 PC 值</td>
+</tr>
+<tr>
+<td>PCwith4</td>
+<td>output</td>
+<td>32</td>
+<td>PC + 4（<code>jal</code> 使用）</td>
+</tr>
+</tbody></table>
+<ul>
+<li>IM</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PC</td>
+<td>input</td>
+<td>32</td>
+<td>当前 PC 值</td>
+</tr>
+<tr>
+<td>Instr</td>
+<td>output</td>
+<td>32</td>
+<td>当前指令</td>
+</tr>
+</tbody></table>
+<ul>
+<li>Decode</li>
+</ul>
+<p>由于后续过程中我们需要用到 rs、rt、rd 等值，这里我们新增 Decode 模块，根据当前指令“翻译”出这些值。</p>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Instr</td>
+<td>input</td>
+<td>32</td>
+<td>当前指令</td>
+</tr>
+<tr>
+<td>op</td>
+<td>output</td>
+<td>6</td>
+<td>[31:26]</td>
+</tr>
+<tr>
+<td>func</td>
+<td>output</td>
+<td>6</td>
+<td>[5:0]</td>
+</tr>
+<tr>
+<td>rs</td>
+<td>output</td>
+<td>5</td>
+<td>[25:21]</td>
+</tr>
+<tr>
+<td>rt</td>
+<td>output</td>
+<td>5</td>
+<td>[20:16]</td>
+</tr>
+<tr>
+<td>rd</td>
+<td>output</td>
+<td>5</td>
+<td>[15:11]</td>
+</tr>
+<tr>
+<td>shamt</td>
+<td>output</td>
+<td>5</td>
+<td>[10:6]（供 <code>nop</code> 和 <code>sll</code> 等使用）</td>
+</tr>
+<tr>
+<td>immediate16</td>
+<td>output</td>
+<td>16</td>
+<td>[15:0]</td>
+</tr>
+<tr>
+<td>immediate26</td>
+<td>output</td>
+<td>26</td>
+<td>[25:0]</td>
+</tr>
+</tbody></table>
+<h4 id="CTRL"><a href="#CTRL" class="headerlink" title="CTRL"></a>CTRL</h4><p>CTRL 用于根据当前指令生成控制信号，这里我们采用和教程中相同的 AND-OR 方法，即现根据 op 和 func 判断当前指令，再生成对应控制信号。</p>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>op</td>
+<td>input</td>
+<td>6</td>
+<td></td>
+</tr>
+<tr>
+<td>func</td>
+<td>input</td>
+<td>6</td>
+<td></td>
+</tr>
+<tr>
+<td>RegDst</td>
+<td>output</td>
+<td>1</td>
+<td>写入寄存器是否是 rd</td>
+</tr>
+<tr>
+<td>RegWrite</td>
+<td>output</td>
+<td>1</td>
+<td>是否写寄存器</td>
+</tr>
+<tr>
+<td>MemRead</td>
+<td>output</td>
+<td>1</td>
+<td>是否读内存</td>
+</tr>
+<tr>
+<td>MemWrite</td>
+<td>output</td>
+<td>1</td>
+<td>是否写内存</td>
+</tr>
+<tr>
+<td>ExtOp</td>
+<td>output</td>
+<td>1</td>
+<td>零扩展（0），符号扩展（1）</td>
+</tr>
+<tr>
+<td>ALUSrc</td>
+<td>output</td>
+<td>1</td>
+<td>第二个操作数源于 rt（0），源于扩展后立即数（1）</td>
+</tr>
+<tr>
+<td>ALUOp</td>
+<td>output</td>
+<td>3</td>
+<td>ALU 运算类型</td>
+</tr>
+<tr>
+<td>MemToReg</td>
+<td>output</td>
+<td>1</td>
+<td>是否将内存读出的内容写入寄存器</td>
+</tr>
+<tr>
+<td>branch</td>
+<td>output</td>
+<td>1</td>
+<td>是否分支</td>
+</tr>
+<tr>
+<td>jump</td>
+<td>output</td>
+<td>1</td>
+<td>是否跳转</td>
+</tr>
+<tr>
+<td>jump_back</td>
+<td>output</td>
+<td>1</td>
+<td>是否跳回</td>
+</tr>
+<tr>
+<td>link</td>
+<td>output</td>
+<td>1</td>
+<td>是否链接 PC + 4</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>注意这里的 <code>branch</code> 信号的含义其实是“是否是<strong>分支类型的指令</strong>”，NPC 中 <code>branch</code> 的实际含义是“是否<strong>执行分支</strong>”，执行分支的条件是：是分支类型的指令，且满足某个条件。</p>
+<p>对于 <code>jump</code>、<code>jump_back</code> 等信号也是类似的，执行跳转、跳回可能也是需要条件的，这一点在课上部分会有所体现。</p>
+</blockquote>
+<h4 id="GRF"><a href="#GRF" class="headerlink" title="GRF"></a>GRF</h4><p>具有 32 个寄存器的寄存器堆，这一部分可以直接把 P0 课下的设计挪用过来。</p>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>clk</td>
+<td>input</td>
+<td>1</td>
+<td>时钟信号</td>
+</tr>
+<tr>
+<td>reset</td>
+<td>input</td>
+<td>1</td>
+<td>复位信号</td>
+</tr>
+<tr>
+<td>A1</td>
+<td>input</td>
+<td>5</td>
+<td>读寄存器地址 1</td>
+</tr>
+<tr>
+<td>A2</td>
+<td>input</td>
+<td>5</td>
+<td>读寄存器地址 2</td>
+</tr>
+<tr>
+<td>A3</td>
+<td>input</td>
+<td>5</td>
+<td>写寄存器地址</td>
+</tr>
+<tr>
+<td>WD</td>
+<td>input</td>
+<td>32</td>
+<td>写寄存器数据</td>
+</tr>
+<tr>
+<td>write_enable</td>
+<td>input</td>
+<td>1</td>
+<td>是否写寄存器</td>
+</tr>
+<tr>
+<td>WD1</td>
+<td>output</td>
+<td>32</td>
+<td>读寄存器数据 1</td>
+</tr>
+<tr>
+<td>WD2</td>
+<td>output</td>
+<td>32</td>
+<td>读寄存器数据 2</td>
+</tr>
+</tbody></table>
+<h4 id="EXT"><a href="#EXT" class="headerlink" title="EXT"></a>EXT</h4><p>对 16 位立即数进行扩展，有零扩展、符号扩展两种选项。</p>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>immediate16</td>
+<td>input</td>
+<td>16</td>
+<td>16 位立即数</td>
+</tr>
+<tr>
+<td>ExtOp</td>
+<td>input</td>
+<td>1</td>
+<td>零扩展（0），符号扩展（1）</td>
+</tr>
+<tr>
+<td>extended</td>
+<td>output</td>
+<td>32</td>
+<td>扩展结果</td>
+</tr>
+</tbody></table>
+<h4 id="ALU"><a href="#ALU" class="headerlink" title="ALU"></a>ALU</h4><p>根据输入的操作数及 ALUOp 进行运算。</p>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A</td>
+<td>input</td>
+<td>32</td>
+<td>操作数 1</td>
+</tr>
+<tr>
+<td>B</td>
+<td>input</td>
+<td>32</td>
+<td>操作数 2</td>
+</tr>
+<tr>
+<td>S</td>
+<td>input</td>
+<td>5</td>
+<td>shamt</td>
+</tr>
+<tr>
+<td>ALUOp</td>
+<td>input</td>
+<td>3</td>
+<td>运算类型</td>
+</tr>
+<tr>
+<td>ALUOut</td>
+<td>output</td>
+<td>32</td>
+<td>运算结果</td>
+</tr>
+<tr>
+<td>Zero</td>
+<td>output</td>
+<td>1</td>
+<td>运算结果是否为0（<code>beq</code> 使用）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>ALUOp 值及对应的运算类型</p>
+<table>
+<thead>
+<tr>
+<th>编码</th>
+<th>操作</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>A + B</td>
+</tr>
+<tr>
+<td>1</td>
+<td>A - B</td>
+</tr>
+<tr>
+<td>2</td>
+<td>A | B</td>
+</tr>
+<tr>
+<td>3</td>
+<td>B &lt;&lt; 16</td>
+</tr>
+<tr>
 <td>4</td>
-<td>写对应地址的哪些字节</td>
+<td>B &lt;&lt; S</td>
 </tr>
 <tr>
-<td>addrOut</td>
-<td>out</td>
-<td>32</td>
-<td>连接 Timer 地址输入端</td>
+<td>5</td>
+<td>预留</td>
 </tr>
+</tbody></table>
+</blockquote>
+<h4 id="DM"><a href="#DM" class="headerlink" title="DM"></a>DM</h4><table>
+<thead>
 <tr>
-<td>dataOut</td>
-<td>out</td>
-<td>32</td>
-<td>连接 Timer 地址输出端</td>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
 </tr>
-<tr>
-<td>timerWrite0</td>
-<td>out</td>
+</thead>
+<tbody><tr>
+<td>clk</td>
+<td>input</td>
 <td>1</td>
-<td>连接 Timer0 写使能端</td>
+<td>时钟信号</td>
 </tr>
 <tr>
-<td>timerWrite1</td>
-<td>out</td>
+<td>reset</td>
+<td>input</td>
 <td>1</td>
-<td>连接 Timer1 写使能端</td>
+<td>复位信号</td>
 </tr>
 <tr>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>timerIn0</td>
-<td>in</td>
+<td>address</td>
+<td>input</td>
 <td>32</td>
-<td>连接 Timer0 数据输出端</td>
+<td>操作地址</td>
 </tr>
 <tr>
-<td>timerIn1</td>
-<td>in</td>
+<td>write_data</td>
+<td>input</td>
 <td>32</td>
-<td>连接 Timer1 数据输出端</td>
+<td>写入数据</td>
 </tr>
 <tr>
-<td>timerIRQIn0</td>
-<td>in</td>
+<td>write_enable</td>
+<td>input</td>
 <td>32</td>
-<td>连接 Timer0 中断输出端</td>
+<td>是否写内存</td>
 </tr>
 <tr>
-<td>timerIRQIn1</td>
-<td>in</td>
+<td>out_data</td>
+<td>output</td>
 <td>32</td>
-<td>连接 Timer1 中断输出端</td>
-</tr>
-<tr>
-<td>timerOut</td>
-<td>in</td>
-<td>32</td>
-<td>从 Timer 读出的数据</td>
-</tr>
-<tr>
-<td>timerIRQOut0</td>
-<td>in</td>
-<td>32</td>
-<td>从 Timer0 读出的中断数据，传给 HWInt</td>
-</tr>
-<tr>
-<td>timerIRQOut1</td>
-<td>in</td>
-<td>32</td>
-<td>从 Timer1 读出的中断数据，传给 HWInt</td>
+<td>读出数据</td>
 </tr>
 </tbody></table>
-<p>对于 <code>timerWrite0</code> 和 <code>timerWrite1</code> 的使能，直接通过写地址 <code>addrIn</code> 判断即可；输出的 <code>timerOut</code> 也是根据 <code>addrIn</code> 判断输出的是哪个 <code>Timer</code> 的对应数据。Bridge 的其他端口与 Timer 对应端口的接线可以直接参考仓库里的代码。</p>
-<figure class="highlight verilog"><table><tr><td class="code"><pre><code class="hljs verilog"><span class="hljs-keyword">assign</span> timerWrite0 = <br>(addrIn &gt;= <span class="hljs-number">32&#x27;h00007f00</span> &amp;&amp; addrIn &lt;= <span class="hljs-number">32&#x27;h00007f0b</span> &amp;&amp; byteEnable != <span class="hljs-number">4&#x27;b0000</span>);<br><span class="hljs-keyword">assign</span> timerWrite1 = <br>(addrIn &gt;= <span class="hljs-number">32&#x27;h00007f10</span> &amp;&amp; addrIn &lt;= <span class="hljs-number">32&#x27;h00007f1b</span> &amp;&amp; byteEnable != <span class="hljs-number">4&#x27;b0000</span>);<br><span class="hljs-keyword">assign</span> timerOut = <br>(addrIn &gt;= <span class="hljs-number">32&#x27;h00007f00</span> &amp;&amp; addrIn &lt;= <span class="hljs-number">32&#x27;h00007f0b</span>) ? timerIn0:<br>(addrIn &gt;= <span class="hljs-number">32&#x27;h00007f10</span> &amp;&amp; addrIn &lt;= <span class="hljs-number">32&#x27;h00007f1b</span>) ? timerIn1:<br><span class="hljs-number">0</span>;<br></code></pre></td></tr></table></figure>
+<blockquote>
+<p>Logisim 中，我们的 DM 利用 RAM 实现，RAM 的地址按照字编号，但是在实际的 MIPS 架构中，<code>.space</code> 的地址按照字节编号，这中间差了一个 4 倍。所以如果我们想要读出对应的字，需要将 <code>address</code> 右移 2 位得到 RAM 中对应字的地址。</p>
+</blockquote>
+<h3 id="电路及代码参考"><a href="#电路及代码参考" class="headerlink" title="电路及代码参考"></a>电路及代码参考</h3><p>对应的作业电路以及代码已经放到了我的 Github 仓库中，都能通过课上强测（但也不代表其设计完全合理）。建议大家批判性地参考仓库中内容。</p>
+<p>顶层电路的连接如下图所示，这一工作也可以参考“黑书“和老师的 PPT 来完成。P4 和 P3 没有本质上的区别，完成 P4 比较容易的方式就是对照 P3 的设计图直接实例化各个模块，然后接线。</p>
+<img src="/images/p3p4learn_mips.png" width=100% height=100% align=center/>
 
-<h4 id="响应中断发生器的中断"><a href="#响应中断发生器的中断" class="headerlink" title="响应中断发生器的中断"></a>响应中断发生器的中断</h4><p>按照教程，如果这时中断发生器产生中断（<code>interrupt == 1</code>）且允许响应外部中断器中断信号（<code>externalInterruptRequest == 1</code>），则写地址 0x7f20。官方提供了 <code>m_int_addr</code> 和 <code>m_int_byteen</code> 接口，直接更改对应输出数据即可：</p>
-<figure class="highlight verilog"><table><tr><td class="code"><pre><code class="hljs verilog"><span class="hljs-keyword">assign</span> m_int_addr = m_data_addr;<br><span class="hljs-keyword">assign</span> m_int_byteen = <br>(M_externalInterruptResponse &amp;&amp; interrupt) ? <span class="hljs-number">4&#x27;b0001</span> : <span class="hljs-number">4&#x27;b0000</span>;<br></code></pre></td></tr></table></figure>
-
-<p><code>externalInterruptRequest</code> 信号的置位逻辑与 <code>INT</code> 信号基本一致，但判断的是 <code>HWInt[2]</code> 和 <code>SR[12]</code> 是否均为 1。</p>
-<h3 id="当异常请求（Request）到来时"><a href="#当异常请求（Request）到来时" class="headerlink" title="当异常请求（Request）到来时"></a>当异常请求（Request）到来时</h3><h4 id="PC-跳转"><a href="#PC-跳转" class="headerlink" title="PC 跳转"></a>PC 跳转</h4><p>此时 PC 应当跳转到 0x4180，修改 F 级 nextPC 模块即可。</p>
-<h4 id="清空流水线"><a href="#清空流水线" class="headerlink" title="清空流水线"></a>清空流水线</h4><p>为了符合<strong>精确异常</strong>的要求，我们需要清空流水线——插入 <code>nop</code>，防止异常指令及其后续指令被真正执行产生影响。这一操作和 <code>reset</code> 时比较相像，不过由于异常处理程序从 0x4180 开始，所以 <code>request</code> 时，PC 应复位到 0x4180。</p>
-<p>同时，异常码应该清空为“1”，即表示既没有外部中断（0），也没有内部异常。</p>
-<h4 id="乘除模块"><a href="#乘除模块" class="headerlink" title="乘除模块"></a>乘除模块</h4><p>按照教程中要求，如果异常发生时 E 级有<strong>还没开始的</strong>涉及乘除模块的运算，则这一运算不应开始；若这一运算还没有执行到修改 HI、LO 寄存器的阶段，则不应当修改 HI、LO 寄存器。</p>
-<p>只需要给 MDU 的工作条件增加 <code>!request</code> 即可：</p>
+<h3 id="设计建议"><a href="#设计建议" class="headerlink" title="设计建议"></a>设计建议</h3><ol>
+<li><p>我们在课下作业中已经实现了 <code>lw</code> 和 <code>sw</code>，那么也可以利用类似的思路实现对 <code>byte</code> 和 <code>half</code> 的读写，具体读写哪些位由 <code>address</code> 的低两位决定，具体内容参见 MIPS 指令集手册。</p>
+</li>
+<li><p>课上会要求新增一些奇怪的指令，可以试着做如下预留：</p>
 <ul>
-<li><p>如果运算没有开始，此时运算所需数据不会被写入寄存器，<code>state</code> 不变，运算不能开始；</p>
-</li>
-<li><p>运算正在进行，还没写 HI、LO：由于此时 <code>request</code> 为高，MDU 的 <code>state</code> 不会改变，从而不会继续工作，不产生影响；</p>
-</li>
+<li>在 CTRL 模块预留 <code>new</code> 输出（判断是否为新增指令）。</li>
+<li>在 ALU 模块预留输出，用于输出其他的判断信号等</li>
+<li>在 DM 模块预留输入接口，应对课上奇怪指令</li>
 </ul>
-<h4 id="内存读写"><a href="#内存读写" class="headerlink" title="内存读写"></a>内存读写</h4><p>有异常或是 <code>request</code> 时都不应该对内存进行写入操作，以消除影响。</p>
-<h3 id="当-eret-到来时"><a href="#当-eret-到来时" class="headerlink" title="当 eret 到来时"></a>当 <code>eret</code> 到来时</h3><p>我选择在 D 级 CTRL 模块检测当前指令是否为 <code>eret</code>。</p>
+<p>新增的指令在寄存器读写、内存读写上的逻辑会比较“独特”，下面我举出一例：</p>
+<blockquote>
+<p>对于新增指令 <code>new</code>，若满足一定条件才写寄存器</p>
+</blockquote>
+<p> 应对方法：改造 <code>RegWrite</code> 信号的生成逻辑，写寄存器的条件是：“是新指令且满足某个条件”或“是一定会写寄存器的指令”。注意输出的“写寄存器”的信号是<strong>经过或门的</strong>！</p>
+ <img src="/images/p3p4learn_1.png" width=60% height=35% align=center/>
+</li>
+<li><p>课下的电路图不要画得太局促，以免课上新增数据通路时难以操作，这一点在 P3 中需要格外注意。P4 及以后都是用 Verilog 描述 CPU，应该不会存在这个问题。</p>
+</li>
+</ol>
+<h3 id="P3-思考题"><a href="#P3-思考题" class="headerlink" title="P3 思考题"></a>P3 思考题</h3><h4 id="问题-1"><a href="#问题-1" class="headerlink" title="问题 1"></a>问题 1</h4><p><strong>上面我们介绍了通过 FSM 理解单周期 CPU 的基本方法。请大家指出单周期 CPU 所用到的模块中，哪些发挥状态存储功能，哪些发挥状态转移功能。</strong></p>
 <ul>
-<li><p>由于 <code>eret</code> 没有延迟槽，若 D 级检测到 <code>eret</code>，则 F 级需要插入一个 <code>nop</code> ——这是清空延迟槽最快捷的方法。</p>
-</li>
-<li><p>当 D 级检测到 <code>eret</code> 后，PC 需要跳转到 EPC 处，修改 F 级 nextPC 模块即可。</p>
-</li>
+<li>状态存储：GRF 和 DM 部分。GRF 模块中保存了 32 个寄存器的当前值，这是我们判断自己的 CPU 能够正确工作的重要部分；DM 模块中存储了从指定寄存器加载的数据；GRF、DM 中存储的内容与输入一起，决定了如何向下一个状态转移。</li>
+<li>状态转移：其他能够产生控制信号的部分。控制信号决定我们在这一时刻是否需要读写寄存器、是否需要读写数据存储单元、从哪些寄存器取出值、ALU 作什么运算…… 它们与当前状态存储部分一起，决定了下一个状态应该是什么。</li>
 </ul>
-<h3 id="阻塞与转发"><a href="#阻塞与转发" class="headerlink" title="阻塞与转发"></a>阻塞与转发</h3><h4 id="eret-阻塞逻辑"><a href="#eret-阻塞逻辑" class="headerlink" title="eret 阻塞逻辑"></a><code>eret</code> 阻塞逻辑</h4><p><code>eret</code> 指令需要 EPC 中的数据。如果 <code>eret</code> 的前序指令需要写 EPC，则将 <code>eret</code> 阻塞在 D 级。</p>
-<h4 id="阻塞时保留信息"><a href="#阻塞时保留信息" class="headerlink" title="阻塞时保留信息"></a>阻塞时保留信息</h4><p>这一点主要体现在 D → E 流水寄存器上。如果未发生 <code>reset</code> 和 <code>request</code>，而流水线被阻塞，需要保留 D 级的 PC 和 BD 信息。如果没有流水这两个信息会怎样？具体可以看下面这个例子来理解。</p>
-<p>考虑指令序列 <code>lw - beq - add</code>，且 <code>add</code> 会因与 <code>lw</code> 产生数据冲突而被阻塞在 D 级。设想当前流水线各级的指令如下（带“*”表示延迟槽指令）：</p>
-<table>
-<thead>
-<tr>
-<th>F</th>
-<th>D</th>
-<th>E</th>
-<th>M</th>
-<th>W</th>
-</tr>
-</thead>
-<tbody><tr>
-<td></td>
-<td>add*</td>
-<td>beq</td>
-<td>lw</td>
-<td></td>
-</tr>
-</tbody></table>
-<p>由于阻塞，下一个时钟周期时流水线状态如下：</p>
-<table>
-<thead>
-<tr>
-<th>F</th>
-<th>D</th>
-<th>E</th>
-<th>M</th>
-<th>W</th>
-</tr>
-</thead>
-<tbody><tr>
-<td></td>
-<td>add*</td>
-<td></td>
-<td>beq</td>
-<td>lw</td>
-</tr>
-</tbody></table>
-<p>再下一个时钟周期的下降沿时来了一个中断。该周期时钟信号高电平时，流水线状态为：</p>
-<table>
-<thead>
-<tr>
-<th>F</th>
-<th>D</th>
-<th>E</th>
-<th>M</th>
-<th>W</th>
-</tr>
-</thead>
-<tbody><tr>
-<td></td>
-<td>add*</td>
-<td></td>
-<td></td>
-<td>lw</td>
-</tr>
-</tbody></table>
-<p>这时 CP0 需要记录异常相关信息。如果我们在阻塞时清空了 D → E 的所有信号，则获取到 M 级 PC 为 0x3000，BD 为 0，这显然是不正确的。因此，阻塞（且无 <code>reset</code> 和 <code>request</code>）时需要保留 PC 和 BD 信息。</p>
-<p>优先级问题：请注意 <code>reset</code>，<code>request</code> 和 <code>stall</code> 信号的优先级关系依次从高到低，这一点在教程中有着重强调——复位高于一切，外部可见的请求高于不可见的阻塞。当 CPU 被封装，我们看不到内部流水线执行的细节，包括转发和阻塞，流水线的 CPU 在外人看来就仿佛是单周期的。</p>
-<h4 id="转发逻辑"><a href="#转发逻辑" class="headerlink" title="转发逻辑"></a>转发逻辑</h4><p>可以考虑转发从 CP0 寄存器读出的数据。由于在 M 级才能访问 CP0 并更新数据，所以 $T_\text{new}&#x3D;3$，这与 <code>lw</code> 本质上区别不大（一个读 CP0，一个读内存），因此转发通路没有必要做特别改造。</p>
-<h3 id="P7-思考题"><a href="#P7-思考题" class="headerlink" title="P7 思考题"></a>P7 思考题</h3><h4 id="第一题"><a href="#第一题" class="headerlink" title="第一题"></a>第一题</h4><p><strong>请查阅相关资料，说明鼠标和键盘的输入信号是如何被 CPU 知晓的？</strong></p>
-<p>CPU 通过总线和外部设备连接，输入信号会通过总线传递给 CPU。CPU 接收到中断信号后会进行处理，并反馈结果。</p>
-<h4 id="第二题"><a href="#第二题" class="headerlink" title="第二题"></a>第二题</h4><p><strong>请思考为什么我们的 CPU 处理中断异常必须是已经指定好的地址？如果你的 CPU 支持用户自定义入口地址，即处理中断异常的程序由用户提供，其还能提供我们所希望的功能吗？如果可以，请说明这样可能会出现什么问题？否则举例说明。（假设用户提供的中断处理程序合法）</strong></p>
-<p>设计上，要让用户不需要过多地考虑底层的实现，而是要让他们专注于“用户态”，这时底层指定中断异常处理地址是最为方便的选择。并且，若处理中断异常的程序由用户提供，由于用户并不知晓 CPU 的具体实现，其提供的处理代码可能会导致冒险问题，即使能够实现某些功能，但风险也很大。</p>
-<h4 id="第三题"><a href="#第三题" class="headerlink" title="第三题"></a>第三题</h4><p><strong>为何与外设通信需要 Bridge？</strong></p>
-<p>系统桥是连接 CPU 和外设的功能设备，它会给 CPU 提供一种接口，使得 CPU 可以像读写普通存储器一样（即按地址读写）来读写复杂多变的外设。系统桥统一且简化了 CPU 的对外接口，CPU 不必为每种外设单独提供接口，符合高内聚，低耦合的设计思想。尽管外设多种多样，但是 CPU 可以用统一的方法访问它们。</p>
-<h4 id="第四题"><a href="#第四题" class="headerlink" title="第四题"></a>第四题</h4><p><strong>请阅读官方提供的定时器源代码，阐述两种中断模式的异同，并分别针对每一种模式绘制状态转移图。</strong></p>
-<pre><code class=" mermaid">graph LR
-    A(IDLE)
-    B(LOAD)
-    C(CNT)
-    D(INT)
-
-    A --&gt; |ctrl_0 == 1; IRQ = 0| B
-    A --&gt; |ctrl_0 == 0; IRQ = 0| A
-    B --&gt; |无条件; IRQ = 0| C
-    C --&gt; |ctrl_0 == 1, count &gt; 1; IRQ = 0| C
-    C --&gt; |ctrl_0 == 1, count ≤ 1; IRQ = 0| D
-    C --&gt; |ctrl_0 == 0| A
-    D --&gt; |模式0：ctrl = 0; IRQ = 1|A
-    D --&gt; |模式1：ctrl不变; IRQ = 0|A
-</code></pre>
-
-<h4 id="第五题"><a href="#第五题" class="headerlink" title="第五题"></a>第五题</h4><p><strong>倘若中断信号流入的时候，在检测宏观 PC 的一级如果是一条空泡（你的 CPU 该级所有信息均为空）指令，此时会发生什么问题？在此例基础上请思考：在 P7 中，清空流水线产生的空泡指令应该保留原指令的哪些信息？</strong></p>
-<p>若 CPU 该级所有信息均为空，携带的 PC 和延迟槽信息都可能是不正确的，这对异常信息的记录是很不利的；空泡中指令应该变为 <code>nop</code>，其他信息应保持与前一条指令一致，尤其是 PC 和 BD。</p>
-<h4 id="第六题"><a href="#第六题" class="headerlink" title="第六题"></a>第六题</h4><p><strong>为什么 <code>jalr</code> 指令的两个寄存器不能相同，例如 <code>jalr $31, $31</code> ？</strong></p>
-<p><code>$31</code> 的值更新和 PC 更新在同一时刻发生，我们对同一个寄存器同时读写，这种行为是“未定义”的。</p>
-<h3 id="课下部分建议"><a href="#课下部分建议" class="headerlink" title="课下部分建议"></a>课下部分建议</h3><ul>
-<li><p>尽早开始 P7 的工作，因为 P7 有一定理解难度，在高压、时间紧张的状况下可能很难完成任务。即使之前已经挂 P，但如果完全有可能推进到 P7 课下，请一定提前开始准备。</p>
-</li>
-<li><p>不要依赖课下测试，而是尝试自己另外构造新数据。异常部分的数据还算好构造，“力大砖飞”即可；中断部分的测试数据可以“小而精”，不用太长，覆盖到异常时中断、阻塞时中断等特别情况即可。我的<a href="https://github.com/kkdcymnj/buaa_co_2025/tree/main/cpu_check_p7/sample_manual">仓库</a>中有少量这样的数据，大家可以批判性地使用，注意更改 testbench 中 <code>target_pc</code> 值。</p>
-</li>
-<li><p>关于 debug 方面，如果已经验证 P6 功能能够正常实现，那么如果出现寄存器读写的错误，请考虑 CP0 部分、异常检测部分的实现。CP0 寄存器数据的特定位能给我们很大提示。例如，中测时出现了寄存器数据的第 31 位错误但其他位都正确，这时我们就可以考虑延迟槽指令的判定，因为对于延迟槽指令，<code>Cause[31] == 1</code>。</p>
-</li>
+<h4 id="问题-2"><a href="#问题-2" class="headerlink" title="问题 2"></a>问题 2</h4><p><strong>现在我们的模块中 IM 使用 ROM， DM 使用 RAM， GRF 使用 Register，这种做法合理吗？ 请给出分析，若有改进意见也请一并给出。</strong></p>
+<p>在这个阶段大体是合理的，由于我们不会对指令进行写操作，所以用 ROM 来存储指令足矣。不过，在实际的 MIPS 架构中，指令的起始地址为 0x00003000，而我们 ROM 的起始地址为 0x00000000，这稍显不符合；并且，我们将指令和数据段（data）分开在两个元件中存放，且二者的地址并不连续，这也和实际中的 MIPS 架构有所不同。</p>
+<h4 id="问题-3"><a href="#问题-3" class="headerlink" title="问题 3"></a>问题 3</h4><p><strong>在上述提示的模块之外，你是否在实际实现时设计了其他的模块？如果是的话，请给出介绍和设计的思路。</strong></p>
+<p>具体描述见 Decoder 部分。</p>
+<h4 id="问题-4"><a href="#问题-4" class="headerlink" title="问题 4"></a>问题 4</h4><p><strong>事实上，实现 <code>nop</code> 空指令，我们并不需要将它加入控制信号真值表，为什么？</strong></p>
+<p><code>nop</code> 对应机器码的各个位均为 0，且本质是 <code>sll</code> 指令，这并不在本次课下作业的范围中。并且，若我们不将 <code>nop</code> 指令加入控制信号真值表：</p>
+<ul>
+<li>指定读入的寄存器 rt 为 0，而 <code>$0</code> 的值一直保持为 0，不会发生改变</li>
+<li>信号 <code>MemWrite</code> 设置为 0，不会向 DM 中读入数据，DM 状态不改变</li>
 </ul>
+<p>因此，执行 <code>nop</code> 指令后，电路中状态不会有改变，这也就是执行“空指令”的体现。</p>
+<h4 id="问题-5"><a href="#问题-5" class="headerlink" title="问题 5"></a>问题 5</h4><p><strong>阅读 Pre 的 <a href="http://cscore.buaa.edu.cn/tutorial/mips/mips-6/mips6-1/">“MIPS 指令集及汇编语言”</a> 一节中给出的测试样例，评价其强度（可从各个指令的覆盖情况，单一指令各种行为的覆盖情况等方面分析），并指出具体的不足之处。</strong></p>
+<p>这些样例一定程度上能够完成检测工作，且可以发现 CPU 设计中较明显的问题。不过还有一些不足：</p>
+<ul>
+<li>对于 <code>add</code> 指令，对边界条件（例如 <code>int_max</code> 附近）的测试不够</li>
+<li>对于 <code>lw</code> 和 <code>sw</code> 指令，没有在靠近最大地址的地方进行测试，且设置的 offset 均为 0，不能很好地检测对 base 和 offset 的运算。不过，由于本次实验没有实现 <code>li</code>，<code>addi</code> 等指令，offset 直接设为 0 无疑是最方便的。</li>
+<li>对于  <code>lui</code> 和 <code>ori</code> 指令，可以适当多考虑一些更一般的值（无论正负）</li>
+<li>对于 <code>beq</code> 指令，教程中的样例都是向后跳转，可以考虑添加向前 &#x2F; 原地跳转的情况</li>
+</ul>
+<h3 id="P4-思考题"><a href="#P4-思考题" class="headerlink" title="P4 思考题"></a>P4 思考题</h3><h4 id="问题-1-1"><a href="#问题-1-1" class="headerlink" title="问题 1"></a>问题 1</h4><p><strong>阅读下面给出的 DM 的输入示例中（示例 DM 容量为 4KB，即 32bit × 1024字），根据你的理解回答，这个 addr 信号又是从哪里来的？地址信号 addr 位数为什么是 [11:2] 而不是 [9:0] ？</strong></p>
+<ul>
+<li>addr 信号来自于 ALU，ALU 要对 offset 和 base 作加法运算；</li>
+<li>输入地址是以字为单位寻址的，要求为 4 的整数倍，对应到 DM 元件中需要除以 4 来寻址（即右移 2 位）。[1:0] 这两位可以用于半字、字节为单位的寻址，能预留用于添加 lh，lb 等指令。</li>
+</ul>
+<h4 id="问题-2-1"><a href="#问题-2-1" class="headerlink" title="问题 2"></a>问题 2</h4><p><strong>思考上述两种控制器设计的译码方式，给出代码示例，并尝试对比各方式的优劣。</strong></p>
+<ul>
+<li><p>将指令对应到信号：每个指令需要产生哪些控制信号一目了然，但是代码量较大；</p>
+</li>
+<li><p>将信号对应到指令：可以清楚地看到某个特定信号对应的指令，例如对于 <code>RegWrite</code>，我们可以很快就知道哪些指令需要写寄存器的操作。不过编程时要比较小心，因为不能直观地看到一个指令产生了什么控制信号，容易漏接线。</p>
+</li>
+<li><p>示例代码如下：</p>
+<figure class="highlight smalltalk"><table><tr><td class="code"><pre><code class="hljs smalltalk">//信号到指令<br>assign <span class="hljs-type">RegDst</span> = <br>(add || sub || nop) ? `rd:<br>(ori || lw || lui) ? `rt:<br>(jal) ? `ra:<br>`rd;<br><br>assign <span class="hljs-type">ALUSrc</span> = (ori || lw || sw || lui);<br><br>assign <span class="hljs-type">RegDataSrc</span> =<br>(add || sub || ori || lui || nop) ? `alu:<br>(lw) ? `mem:<br>(jal) ? `pc:<br>`alu;<br>...<br><br>//指令到信号<br>if (add) begin<br>        <span class="hljs-type">MemWrite</span>    =   <span class="hljs-number">0</span>       ;<br>        <span class="hljs-type">RegWrite</span>    =   <span class="hljs-number">1</span>       ;<br>        <span class="hljs-type">Jr</span>          =   <span class="hljs-number">0</span>       ;<br>        <span class="hljs-type">Jump</span>        =   <span class="hljs-number">0</span>       ;<br>        <span class="hljs-type">Branch</span>      =   <span class="hljs-number">0</span>	;<br>        <span class="hljs-type">ExtOp</span>       =   <span class="hljs-number">0</span>	;<br>        <span class="hljs-type">ALUSrc</span>      =   <span class="hljs-number">0</span>	;<br>        <span class="hljs-type">ALUOp</span>       =   `<span class="hljs-type">ADD</span>	；<br>        <span class="hljs-type">RegDst</span>      =   `rd	；<br>end<br>...<br></code></pre></td></tr></table></figure></li>
+</ul>
+<h4 id="问题-3-1"><a href="#问题-3-1" class="headerlink" title="问题 3"></a>问题 3</h4><p><strong>在相应的部件中，复位信号的设计都是同步复位 ，这与 P3 中的设计要求不同。请对比同步复位与异步复位这两种方式的 reset 信号与 clk 信号优先级的关系。</strong></p>
+<ul>
+<li>同步复位：reset 信号低级于 clk 信号，因为只有 clk 处于上升沿时 reset 信号才可能有效；</li>
+<li>异步复位：reset 信号高级于 clk 信号，因为一旦 reset 信号在高电平就复位，无所谓 clk 是否在上升沿。</li>
+</ul>
+<h4 id="问题-4-1"><a href="#问题-4-1" class="headerlink" title="问题 4"></a>问题 4</h4><p><strong>C 语言是一种弱类型程序设计语言。C 语言中不对计算结果溢出进行处理，这意味着 C 语言要求程序员必须很清楚计算结果是否会导致溢出。因此，如果仅仅支持 C 语言，MIPS 指令的所有计算指令均可以忽略溢出。 请说明为什么在忽略溢出的前提下，addi 与 addiu 是等价的，add 与 addu 是等价的。提示：阅读《MIPS32® Architecture For Programmers Volume II: The MIPS32® Instruction Set》中相关指令的 Operation 部分。</strong></p>
+<ul>
+<li>如何判断溢出：将  GPR[rs] 的第 31 位拼接到 GPR[rs] 之前，加法结果记为 temp，如果产生了进位就会溢出，这体现为 temp[32] ≠ temp[31]。</li>
+<li>如果我们不考虑溢出，temp[32] 不会发生变化，也不会被存入到寄存器中，此时存入的结果仍然是两个 32 位数加法得到的结果，addi 与 addiu &#x2F; add 与 addu 是等价的。</li>
+</ul>
+<h3 id="上机提示"><a href="#上机提示" class="headerlink" title="上机提示"></a>上机提示</h3><p>上机一开始就可以将课下提交的电路提交到各题的窗口中进行评测，每道题都有大约一半的数据点是对课下内容的强测，不涉及任何新增指令。如果提交后发现每道题均有约一半的测试点可以通过，那么上机时就不要多去考虑课下的 bug 了。</p>
 ]]></content>
       <categories>
         <category>计算机组成课下</category>
       </categories>
       <tags>
         <tag>计算机组成</tag>
-        <tag>流水线 CPU</tag>
-        <tag>MIPS 微系统</tag>
+        <tag>单周期 CPU</tag>
       </tags>
   </entry>
 </search>
