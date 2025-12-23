@@ -19,26 +19,26 @@
   <meta name="author" content="MscotMoe">
   <meta name="keywords" content="">
   
-    <meta name="description" content="写在前面在 BUAA CO 课程中，要求使用 Logisim 实现单周期 CPU，使用 Verilog 实现单周期 &#x2F; 流水线 CPU。为了给自己的 CPU 进行较为可靠的测试，我们需要生成具有一定强度的数据，自动化地评测自己的 CPU 是否能够正常工作。 CPU 评测机的架构大致是：数据生成 → 程序运行 → 结果判断。自动评测 Logisim 和 Verilog 实现的 CPU 的主">
+    <meta name="description" content="通过这篇文章，你可以大致了解如何搭建一个针对 CO 课程的 CPU 评测机。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="搭建属于你的 CPU 评测机——单周期 CPU">
+<meta property="og:title" content="搭建属于你的 CPU 评测机">
 <meta property="og:url" content="https://mscotmoe.github.io/2025/11/23/checker_build/index.html">
 <meta property="og:site_name" content="MscotMoe&#39;s Blog">
-<meta property="og:description" content="写在前面在 BUAA CO 课程中，要求使用 Logisim 实现单周期 CPU，使用 Verilog 实现单周期 &#x2F; 流水线 CPU。为了给自己的 CPU 进行较为可靠的测试，我们需要生成具有一定强度的数据，自动化地评测自己的 CPU 是否能够正常工作。 CPU 评测机的架构大致是：数据生成 → 程序运行 → 结果判断。自动评测 Logisim 和 Verilog 实现的 CPU 的主">
+<meta property="og:description" content="通过这篇文章，你可以大致了解如何搭建一个针对 CO 课程的 CPU 评测机。">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2025-11-23T04:23:48.551Z">
-<meta property="article:modified_time" content="2025-12-13T13:55:02.127Z">
+<meta property="article:modified_time" content="2025-12-23T00:45:09.793Z">
 <meta property="article:author" content="MscotMoe">
-<meta property="article:tag" content="CO 评测机">
 <meta property="article:tag" content="单周期 CPU">
 <meta property="article:tag" content="计算机组成">
+<meta property="article:tag" content="评测机">
 <meta name="twitter:card" content="summary_large_image">
   
   
     <meta name="referrer" content="no-referrer-when-downgrade">
   
   
-  <title>搭建属于你的 CPU 评测机——单周期 CPU - MscotMoe&#39;s Blog</title>
+  <title>搭建属于你的 CPU 评测机 - MscotMoe&#39;s Blog</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -207,7 +207,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle">搭建属于你的 CPU 评测机——单周期 CPU</span>
+            <span id="subtitle">搭建属于你的 CPU 评测机</span>
           
         </div>
 
@@ -319,10 +319,10 @@
     
       
       
-        <a href="/2025/11/23/checker_build/" title="搭建属于你的 CPU 评测机——单周期 CPU"
+        <a href="/2025/11/23/checker_build/" title="搭建属于你的 CPU 评测机"
            class="list-group-item list-group-item-action
            active">
-          <span class="category-post">搭建属于你的 CPU 评测机——单周期 CPU</span>
+          <span class="category-post">搭建属于你的 CPU 评测机</span>
         </a>
       
     
@@ -380,12 +380,12 @@
       <div class="container nopadding-x-md" id="board-ctn">
         <div id="board">
           <article class="post-content mx-auto">
-            <h1 id="seo-header">搭建属于你的 CPU 评测机——单周期 CPU</h1>
+            <h1 id="seo-header">搭建属于你的 CPU 评测机</h1>
             
               <p id="updated-time" class="note note-info" style="display: none">
                 
                   
-                    本文最后更新于 2025-12-13T21:55:02+08:00
+                    本文最后更新于 2025-12-23T08:45:09+08:00
                   
                   
 
@@ -397,8 +397,6 @@
                 
                 <h3 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h3><p>在 BUAA CO 课程中，要求使用 Logisim 实现单周期 CPU，使用 Verilog 实现单周期 &#x2F; 流水线 CPU。为了给自己的 CPU 进行较为可靠的测试，我们需要生成具有一定强度的数据，自动化地评测自己的 CPU 是否能够正常工作。</p>
 <p>CPU 评测机的架构大致是：数据生成 → 程序运行 → 结果判断。自动评测 Logisim 和 Verilog 实现的 CPU 的主要区别就在后两个环节上，在接下来的文字中我们将详细地介绍。</p>
-<span id="more"></span>
-
 <p>本篇博客只涉及单周期 CPU 评测机的搭建工作。搭建好单周期 CPU 的评测机后，搭建流水线 CPU 的评测机也就不是难事了——我们只需要按照要求修改数据生成代码。所以流水线 CPU 评测机的搭建就不另外写一篇博客了，具体的代码和样例请见本人仓库。</p>
 <h3 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h3><p>为了有一个更为顺畅的阅读和实践体验，请提前准备好 Toby 学长等人开发的符合北航计组课程需求的“魔改版”MARS。<a target="_blank" rel="noopener" href="https://github.com/Toby-Shi-cloud/Mars-with-BUAA-CO-extension">下载链接</a></p>
 <h3 id="测试样例构建"><a href="#测试样例构建" class="headerlink" title="测试样例构建"></a>测试样例构建</h3><p>这里我们讲解如何自动构造具有<strong>一定强度</strong>且<strong>合法</strong>的测试数据，这也是评测机最为重要的一个环节。</p>
@@ -437,7 +435,7 @@
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs python">cmd = <span class="hljs-string">f&quot;java -jar <span class="hljs-subst">&#123;mars_jar&#125;</span> a mc CompactLargeText dump .text HexText <span class="hljs-subst">&#123;output_file&#125;</span> <span class="hljs-subst">&#123;input_file&#125;</span>&quot;</span><br><br><span class="hljs-keyword">try</span>:<br>   <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;正在汇编: <span class="hljs-subst">&#123;filename&#125;</span>&quot;</span>)<br>   result = subprocess.run(cmd, shell=<span class="hljs-literal">True</span>, capture_output=<span class="hljs-literal">True</span>, text=<span class="hljs-literal">True</span>)<br><br>   <span class="hljs-keyword">if</span> result.returncode == <span class="hljs-number">0</span>:<br>       <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;成功生成: <span class="hljs-subst">&#123;output_file&#125;</span>&quot;</span>)<br>   <span class="hljs-keyword">else</span>:<br>       <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;汇编失败: <span class="hljs-subst">&#123;filename&#125;</span>&quot;</span>)<br>       <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;错误信息: <span class="hljs-subst">&#123;result.stderr&#125;</span>&quot;</span>)<br><br><span class="hljs-keyword">except</span> Exception <span class="hljs-keyword">as</span> e:<br>   <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;错误: <span class="hljs-subst">&#123;filename&#125;</span> - <span class="hljs-subst">&#123;e&#125;</span>&quot;</span>)<br></code></pre></td></tr></table></figure>
 
 <h3 id="运行-CPU-并实现对拍"><a href="#运行-CPU-并实现对拍" class="headerlink" title="运行 CPU 并实现对拍"></a>运行 CPU 并实现对拍</h3><h4 id="测试模块准备"><a href="#测试模块准备" class="headerlink" title="测试模块准备"></a>测试模块准备</h4><p>这一部分比较简单。Logisim 的测试电路搭建请参考教程，注意不要忘了 <code>halt</code> 信号，否则评测无法终止；Verilog 的 testbench 可以直接用下面这个，注意仿真时间不能设定得太短，否则样例还没执行完仿真就停止了。不要忘记添加 <code>$finish</code> 语句，因为 iVerilog 的仿真是默认一直进行的。</p>
-<figure class="highlight verilog"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><code class="hljs verilog"><span class="hljs-keyword">module</span> test;<br><br>	<span class="hljs-comment">// Inputs</span><br>	<span class="hljs-keyword">reg</span> clk;<br>	<span class="hljs-keyword">reg</span> reset;<br><br>	<span class="hljs-comment">// Instantiate the Unit Under Test (UUT)</span><br>	mips uut (<br>		<span class="hljs-variable">.clk</span>(clk), <br>		<span class="hljs-variable">.reset</span>(reset)<br>	);<br><br>	<span class="hljs-keyword">always</span> #<span class="hljs-number">1</span> clk=~clk;<br><br>	<span class="hljs-keyword">initial</span> <span class="hljs-keyword">begin</span><br>		<span class="hljs-comment">// Initialize Inputs</span><br>		clk = <span class="hljs-number">0</span>;<br>		reset = <span class="hljs-number">1</span>;<br><br>		<span class="hljs-comment">// Wait 100 ns for global reset to finish</span><br>		#<span class="hljs-number">100</span>;<br>		reset=<span class="hljs-number">0</span>;<br>    <br>		<span class="hljs-comment">// Add stimulus here</span><br>		#<span class="hljs-number">100000</span>;<br>		<span class="hljs-built_in">$finish</span>;<br>	<span class="hljs-keyword">end</span><br>  <br><span class="hljs-keyword">endmodule</span><br></code></pre></td></tr></table></figure>
+<figure class="highlight verilog"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><code class="hljs verilog"><span class="hljs-keyword">module</span> test;<br><br>	<span class="hljs-comment">// Inputs</span><br>	<span class="hljs-keyword">reg</span> clk;<br>	<span class="hljs-keyword">reg</span> reset;<br><br>	<span class="hljs-comment">// Instantiate the Unit Under Test (UUT)</span><br>	mips uut (<br>		<span class="hljs-variable">.clk</span>(clk), <br>		<span class="hljs-variable">.reset</span>(reset)<br>	);<br><br>	<span class="hljs-keyword">always</span> #<span class="hljs-number">1</span> clk=~clk;<br><br>	<span class="hljs-keyword">initial</span> <span class="hljs-keyword">begin</span><br>		<span class="hljs-comment">// Initialize Inputs</span><br>		clk = <span class="hljs-number">0</span>;<br>		reset = <span class="hljs-number">1</span>;<br><br>		<span class="hljs-comment">// Wait 100 ns for global reset to finish</span><br>		#<span class="hljs-number">100</span>;<br>		reset=<span class="hljs-number">0</span>;<br>  <br>		<span class="hljs-comment">// Add stimulus here</span><br>		#<span class="hljs-number">100000</span>;<br>		<span class="hljs-built_in">$finish</span>;<br>	<span class="hljs-keyword">end</span><br>  <br><span class="hljs-keyword">endmodule</span><br></code></pre></td></tr></table></figure>
 
 <p>此外，你还需要准备好 <code>logisim-generic-2.7.1.jar</code> 以及 iVerilog，这两项内容均可以在教程中找到资源链接。</p>
 <h4 id="样例载入"><a href="#样例载入" class="headerlink" title="样例载入"></a>样例载入</h4><p>Logisim 的样例载入会略微复杂一点，需要修改 <code>.xml</code> 文件。其实你的 <code>.circ</code> 电路就是一种 <code>.xml</code> 文件，可以尝试用 VSCode 查看。</p>
@@ -513,7 +511,7 @@
       
         <a href="/tags/%E5%8D%95%E5%91%A8%E6%9C%9F-CPU/" class="print-no-link">#单周期 CPU</a>
       
-        <a href="/tags/CO-%E8%AF%84%E6%B5%8B%E6%9C%BA/" class="print-no-link">#CO 评测机</a>
+        <a href="/tags/%E8%AF%84%E6%B5%8B%E6%9C%BA/" class="print-no-link">#评测机</a>
       
     </div>
   
@@ -525,7 +523,7 @@
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>搭建属于你的 CPU 评测机——单周期 CPU</div>
+      <div>搭建属于你的 CPU 评测机</div>
       <div>https://mscotmoe.github.io/2025/11/23/checker_build/</div>
     </div>
     <div class="license-meta">

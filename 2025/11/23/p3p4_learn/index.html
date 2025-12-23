@@ -19,17 +19,17 @@
   <meta name="author" content="MscotMoe">
   <meta name="keywords" content="">
   
-    <meta name="description" content="写在前面通过阅读这篇帖子，你能够学习到如何搭建一个单周期的 CPU，并能对其中的一些重要问题加以认识。由于 P3 和 P4 课下任务相似度高，所以这里将两次课下作业的学习内容合并到同一篇帖子中来讲述。">
+    <meta name="description" content="通过阅读这篇文章，你能够学习到如何搭建一个单周期的 CPU，对数据通路这一重点加以认识。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="计算机组成 P3 &#x2F; P4 课下——单周期 CPU">
 <meta property="og:url" content="https://mscotmoe.github.io/2025/11/23/p3p4_learn/index.html">
 <meta property="og:site_name" content="MscotMoe&#39;s Blog">
-<meta property="og:description" content="写在前面通过阅读这篇帖子，你能够学习到如何搭建一个单周期的 CPU，并能对其中的一些重要问题加以认识。由于 P3 和 P4 课下任务相似度高，所以这里将两次课下作业的学习内容合并到同一篇帖子中来讲述。">
+<meta property="og:description" content="通过阅读这篇文章，你能够学习到如何搭建一个单周期的 CPU，对数据通路这一重点加以认识。">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://mscotmoe.github.io/images/p3p4learn_mips.png">
 <meta property="og:image" content="https://mscotmoe.github.io/images/p3p4learn_1.png">
 <meta property="article:published_time" content="2025-11-23T04:23:17.494Z">
-<meta property="article:modified_time" content="2025-12-13T13:54:50.137Z">
+<meta property="article:modified_time" content="2025-12-23T00:50:53.111Z">
 <meta property="article:author" content="MscotMoe">
 <meta property="article:tag" content="单周期 CPU">
 <meta property="article:tag" content="计算机组成">
@@ -237,7 +237,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          3.3k 字
+          3.2k 字
         
       </span>
     
@@ -321,10 +321,10 @@
     
       
       
-        <a href="/2025/11/23/checker_build/" title="搭建属于你的 CPU 评测机——单周期 CPU"
+        <a href="/2025/11/23/checker_build/" title="搭建属于你的 CPU 评测机"
            class="list-group-item list-group-item-action
            ">
-          <span class="category-post">搭建属于你的 CPU 评测机——单周期 CPU</span>
+          <span class="category-post">搭建属于你的 CPU 评测机</span>
         </a>
       
     
@@ -387,7 +387,7 @@
               <p id="updated-time" class="note note-info" style="display: none">
                 
                   
-                    本文最后更新于 2025-12-13T21:54:50+08:00
+                    本文最后更新于 2025-12-23T08:50:53+08:00
                   
                   
 
@@ -397,10 +397,7 @@
             
               <div class="markdown-body">
                 
-                <h3 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h3><p>通过阅读这篇帖子，你能够学习到如何搭建一个单周期的 CPU，并能对其中的一些重要问题加以认识。由于 P3 和 P4 课下任务相似度高，所以这里将两次课下作业的学习内容合并到同一篇帖子中来讲述。</p>
-<span id="more"></span>
-
-<h3 id="任务描述"><a href="#任务描述" class="headerlink" title="任务描述"></a>任务描述</h3><p>搭建支持 <code>add</code>，<code>sub</code>，<code>ori</code>，<code>lui</code>，<code>lw</code>，<code>sw</code>，<code>beq</code>，<code>jal</code>，<code>jr</code>，<code>nop</code> 指令的<strong>单周期</strong> CPU。</p>
+                <h3 id="任务描述"><a href="#任务描述" class="headerlink" title="任务描述"></a>任务描述</h3><p>搭建支持 <code>add</code>，<code>sub</code>，<code>ori</code>，<code>lui</code>，<code>lw</code>，<code>sw</code>，<code>beq</code>，<code>jal</code>，<code>jr</code>，<code>nop</code> 指令的<strong>单周期</strong> CPU。</p>
 <h3 id="明确设计"><a href="#明确设计" class="headerlink" title="明确设计"></a>明确设计</h3><p>先从 P3 的 Logisim CPU 开始，因为它比较直观，能够为 P4：用 Verilog 描述 CPU 提供较大的帮助。根据教程，我们的 CPU 大致由这几个模块构成：IFU、CTRL、GRF、EXT、ALU、DM。这些缩写对应的组件及其功能在教程中都有详细的说明，这里不再赘述。</p>
 <h4 id="IFU"><a href="#IFU" class="headerlink" title="IFU"></a>IFU</h4><p>内部包含了 IM、PC、nPC 组件。IM 根据当前 PC 值取出对应的指令；PC 中有寄存器，在时钟上升沿时写入下一个 PC 值；nPC 则是一个状态转移单元，根据当前 PC 以及其他信号的输出判断下一个 PC 值。</p>
 <ul>
@@ -1114,9 +1111,9 @@
                   <article class="post-prev col-6">
                     
                     
-                      <a href="/2025/11/23/checker_build/" title="搭建属于你的 CPU 评测机——单周期 CPU">
+                      <a href="/2025/11/23/checker_build/" title="搭建属于你的 CPU 评测机">
                         <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">搭建属于你的 CPU 评测机——单周期 CPU</span>
+                        <span class="hidden-mobile">搭建属于你的 CPU 评测机</span>
                         <span class="visible-mobile">上一篇</span>
                       </a>
                     

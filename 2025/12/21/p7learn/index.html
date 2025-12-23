@@ -19,20 +19,23 @@
   <meta name="author" content="MscotMoe">
   <meta name="keywords" content="">
   
-    <meta name="description" content="写在前面在 P7 中，我们需要搭建一个简单的支持异常和中断的 MIPS 微系统。在之前的 Project 中，我们的 CPU 并没有考虑这些问题（例如： add 指令其实是按照 addu 实现的），但一个合格的处理器不能抛开这些问题不管。">
+    <meta name="description" content="通过这篇文章，你能够学习到如何在之前搭建的 CPU 基础上支持中断和异常处理，从而搭建出简易的 MIPS 微系统，对异常判定、异常优先级、CP0 工作机制、系统桥等内容加以认识。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="计算机组成 P7 课下——MIPS 微系统">
 <meta property="og:url" content="https://mscotmoe.github.io/2025/12/21/p7learn/index.html">
 <meta property="og:site_name" content="MscotMoe&#39;s Blog">
-<meta property="og:description" content="写在前面在 P7 中，我们需要搭建一个简单的支持异常和中断的 MIPS 微系统。在之前的 Project 中，我们的 CPU 并没有考虑这些问题（例如： add 指令其实是按照 addu 实现的），但一个合格的处理器不能抛开这些问题不管。">
+<meta property="og:description" content="通过这篇文章，你能够学习到如何在之前搭建的 CPU 基础上支持中断和异常处理，从而搭建出简易的 MIPS 微系统，对异常判定、异常优先级、CP0 工作机制、系统桥等内容加以认识。">
 <meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://mscotmoe.github.io/images/p7_exam_record.png">
+<meta property="og:image" content="https://mscotmoe.github.io/images/p7_end.png">
 <meta property="article:published_time" content="2025-12-21T05:06:49.999Z">
-<meta property="article:modified_time" content="2025-12-21T05:06:31.703Z">
+<meta property="article:modified_time" content="2025-12-23T01:17:33.957Z">
 <meta property="article:author" content="MscotMoe">
 <meta property="article:tag" content="MIPS 微系统">
 <meta property="article:tag" content="流水线 CPU">
 <meta property="article:tag" content="计算机组成">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://mscotmoe.github.io/images/p7_exam_record.png">
   
   
     <meta name="referrer" content="no-referrer-when-downgrade">
@@ -235,7 +238,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          3.6k 字
+          3.9k 字
         
       </span>
     
@@ -319,10 +322,10 @@
     
       
       
-        <a href="/2025/11/23/checker_build/" title="搭建属于你的 CPU 评测机——单周期 CPU"
+        <a href="/2025/11/23/checker_build/" title="搭建属于你的 CPU 评测机"
            class="list-group-item list-group-item-action
            ">
-          <span class="category-post">搭建属于你的 CPU 评测机——单周期 CPU</span>
+          <span class="category-post">搭建属于你的 CPU 评测机</span>
         </a>
       
     
@@ -385,7 +388,7 @@
               <p id="updated-time" class="note note-info" style="display: none">
                 
                   
-                    本文最后更新于 2025-12-21T13:06:31+08:00
+                    本文最后更新于 2025-12-23T09:17:33+08:00
                   
                   
 
@@ -396,8 +399,6 @@
               <div class="markdown-body">
                 
                 <h3 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h3><p>在 P7 中，我们需要搭建一个简单的支持<strong>异常</strong>和<strong>中断</strong>的 MIPS 微系统。在之前的 Project 中，我们的 CPU 并没有考虑这些问题（例如： <code>add</code> 指令其实是按照 <code>addu</code> 实现的），但一个合格的处理器不能抛开这些问题不管。</p>
-<span id="more"></span>
-
 <p>P7 大约涉及以下几个方面的工作：</p>
 <ol>
 <li><p>在流水线各级检测指令异常，并将异常信息流水；</p>
@@ -821,6 +822,7 @@
 <p>若 CPU 该级所有信息均为空，携带的 PC 和延迟槽信息都可能是不正确的，这对异常信息的记录是很不利的；空泡中指令应该变为 <code>nop</code>，其他信息应保持与前一条指令一致，尤其是 PC 和 BD。</p>
 <h4 id="第六题"><a href="#第六题" class="headerlink" title="第六题"></a>第六题</h4><p><strong>为什么 <code>jalr</code> 指令的两个寄存器不能相同，例如 <code>jalr $31, $31</code> ？</strong></p>
 <p><code>$31</code> 的值更新和 PC 更新在同一时刻发生，我们对同一个寄存器同时读写，这种行为是“未定义”的。</p>
+<h3 id="代码问题"><a href="#代码问题" class="headerlink" title="代码问题"></a>代码问题</h3><p>在中断部分的强测中，有很小几率触发 <code>*00007f20 &lt;= 00000000</code> 输出，导致内存操作输出内容过多。由于不知道课程组评测使用的 testbench 具体做出了什么修改，所以目前无法定位这一问题发生的原因。</p>
 <h3 id="课下部分建议"><a href="#课下部分建议" class="headerlink" title="课下部分建议"></a>课下部分建议</h3><ul>
 <li><p>尽早开始 P7 的工作，因为 P7 有一定理解难度，在高压、时间紧张的状况下可能很难完成任务。即使之前已经挂 P，但如果完全有可能推进到 P7 课下，请一定提前开始准备。</p>
 </li>
@@ -829,7 +831,11 @@
 <li><p>关于 debug 方面，如果已经验证 P6 功能能够正常实现，那么如果出现寄存器读写的错误，请考虑 CP0 部分、异常检测部分的实现。CP0 寄存器数据的特定位能给我们很大提示。例如，中测时出现了寄存器数据的第 31 位错误但其他位都正确，这时我们就可以考虑延迟槽指令的判定，因为对于延迟槽指令，<code>Cause[31] == 1</code>。</p>
 </li>
 </ul>
+<h3 id="终章"><a href="#终章" class="headerlink" title="终章"></a>终章</h3><p>笔者的水平和那些一次通过所有 P 的大佬不可比，但还是借助最后一次上机机会完成了 P7，达成了“通关”。通过下面的考试记录，你可以看到笔者 P5 和 P7 都是一遍通过，但在所谓“比 P5 简单”的 P6 连死两回——计算机组成上机每个 P 的难易都是因人而异的，不要认为“P5 和 P7 必有一死”，也不要认为某些“简单”的 P 可以不认真准备。对别人难的不一定对你难，对别人容易的不一定对你容易，结合自身状况认真准备每次上机才是正解。</p>
+<p>祝大家能披荆斩棘，克服困难，见到“通关”的曙光！</p>
+<img src="/images/p7_exam_record.png" srcset="/img/loading.gif" lazyload width=100% height=100% align=center/>
 
+<img src="/images/p7_end.png" srcset="/img/loading.gif" lazyload width=100% height=100% align=center/>
                 
               </div>
             
