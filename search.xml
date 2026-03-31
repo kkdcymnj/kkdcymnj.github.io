@@ -1,6 +1,98 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>搭建属于你的 CPU 评测机</title>
+    <url>/2025/11/23/checker_build/</url>
+    <content><![CDATA[<h3 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h3><p>在 BUAA CO 课程中，要求使用 Logisim 实现单周期 CPU，使用 Verilog 实现单周期 &#x2F; 流水线 CPU。为了给自己的 CPU 进行较为可靠的测试，我们需要生成具有一定强度的数据，自动化地评测自己的 CPU 是否能够正常工作。</p>
+<p>CPU 评测机的架构大致是：数据生成 → 程序运行 → 结果判断。自动评测 Logisim 和 Verilog 实现的 CPU 的主要区别就在后两个环节上，在接下来的文字中我们将详细地介绍。</p>
+<p>本篇博客只涉及单周期 CPU 评测机的搭建工作。搭建好单周期 CPU 的评测机后，搭建流水线 CPU 的评测机也就不是难事了——我们只需要按照要求修改数据生成代码。所以流水线 CPU 评测机的搭建就不另外写一篇博客了，具体的代码和样例请见本人仓库。</p>
+<h3 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h3><p>为了有一个更为顺畅的阅读和实践体验，请提前准备好 Toby 学长等人开发的符合北航计组课程需求的“魔改版”MARS。<a href="https://github.com/Toby-Shi-cloud/Mars-with-BUAA-CO-extension">下载链接</a></p>
+<h3 id="测试样例构建"><a href="#测试样例构建" class="headerlink" title="测试样例构建"></a>测试样例构建</h3><p>这里我们讲解如何自动构造具有<strong>一定强度</strong>且<strong>合法</strong>的测试数据，这也是评测机最为重要的一个环节。</p>
+<h4 id="合法性"><a href="#合法性" class="headerlink" title="合法性"></a>合法性</h4><p>这一点在 P4 的评测中尤其重要。P4 时我们会利用“魔改版” MARS 生成样例对应的正确结果，所以我们需要保证程序能够被正确编译，且能被正常执行（主要体现在<strong>不能有死循环</strong>）。</p>
+<p>为了解决这个问题，我们一般采用分块构造 + 公共跳转块的办法。我们生成的评测程序大体可以被切分为多个循环块，每个循环块执行完毕后，会跳转到公共跳转块，执行完公共跳转块的程序后，再进入下一个循环块……如此往复，直到到达 <code>end</code> 块，程序执行完毕。在这个过程中，我们可以对 <code>beq</code>、<code>jal</code>、<code>jr</code> 这样的特殊语句进行测试——如果我们没能正确执行这些语句，循环块内的代码很可能不被执行，输出的结果自然也就不正确。</p>
+<p>下面以一种“抽象”的方式给出了程序的大致结构，如果看不太明白，仓库中放了一份示例代码，大家可以去参考。可能有的读者注意到了，<code>beq</code>、<code>jal</code>、<code>jr</code> 语句后都添加了 <code>nop</code>，这是为后续流水线 CPU 测试准备的，目前不用太在意这个细节。</p>
+<figure class="highlight clean"><table><tr><td class="code"><pre><code class="hljs clean">########<br>    初始化代码<br>########<br><br>jal label_begin<br>nop<br><br>label_begin:<br>    ########<br>        循环体代码<br>    ########<br><br>    ori $<span class="hljs-number">1</span>,$<span class="hljs-number">0</span>,<span class="hljs-number">1</span><br>    add $loop_var,$<span class="hljs-number">1</span>,$loop_var<br><br>    #跳转测试<br>    beq $loop_var, $cycle_num, label_end<br>    nop<br><br>    #跳回测试<br>    jr $ra<br>    nop<br><br>label_end:<br>    ########<br>        循环结束区代码<br>    ########<br><br>    #跳转链接测试<br>    jal common_block<br>    nop<br><br>    #初始化下一个循环块的变量<br>    ori $loop_var_1,$<span class="hljs-number">0</span>,<span class="hljs-number">0</span><br>  <br>    #进入下一个循环块<br>    jal label_begin_1<br>    nop<br><br>########<br>    省略多个循环块 <br>########<br><br>label_last_end:<br>    ########<br>        循环结束区代码<br>    ########<br><br>    #程序即将终止<br>    ori $<span class="hljs-number">5</span>,$<span class="hljs-number">0</span>,<span class="hljs-number">5</span> <br>    jal end<br>    nop<br><br>common_block:<br>    ########<br>        公共跳转区代码<br>    ########<br><br>    #跳回测试<br>    jr $ra<br>    nop<br><br>end:<br>    beq $<span class="hljs-number">0</span>,$<span class="hljs-number">5</span>,common_block  <br>    nop<br></code></pre></td></tr></table></figure>
+
+<p>需要注意的是，每一个循环块的执行都会涉及到一个“循环变量”。在循环块内不要操纵“循环变量”，否则很容易产生死循环。</p>
+<p>解决了合法性的问题后，我们就可以大胆生成数据，填充循环主体代码了。</p>
+<p>注：P3 时我们可以不过多考虑“死循环”问题，因为我们采用两个 Logisim 电路同时对拍的方法，经过一定周期后评测会自动停止。但是到 P4 的评测这个问题就必须纳入考虑，理由已经在上文中说明。</p>
+<h4 id="数据强度"><a href="#数据强度" class="headerlink" title="数据强度"></a>数据强度</h4><p>对于数据强度的评价，我们可以从以下几个基本角度评判：</p>
+<ol>
+<li>是否覆盖了所有指令（这是最基本的要求）</li>
+<li>是否能够随机地测试大部分寄存器（这主要体现在 P3 的评测，群里有同学的 GRF 模块漏接线问题没有被课程组的测试测出，尽管这是一个相当明显且严重的问题）</li>
+<li>对于内存的读写操作的评判是否真正有效（例如，如果所有内存块内的值都为 0，这时即使你没能正确读出内存内的值，返回的结果也可能为 0，导致无法定位问题）</li>
+<li>对于分支 &#x2F; 跳转的评测是否有效、全面（例如 <code>beq</code> 不能从来没有执行过，此种情况下无法查出分支的潜在问题；跳转应该覆盖向前、向后的情况）</li>
+<li>是否覆盖了边界值的情况（例如 <code>int</code> 数据范围上下界，0 附近，内存地址上下界等，可以通过手动构造特殊样例来解决）</li>
+<li>……</li>
+</ol>
+<p>总的来说，我们的测试数据应该有较强的随机性，能够覆盖到比较“极端”的情况；应该有较好的有效性，即如果没能正确执行某条指令，会对输出结果产生比较明显的影响。对于数据的生成，我提出一些我的见解，大家可以参考。当然，如果你有比这聪明得多的想法，下面的内容可以忽略。</p>
+<ol>
+<li>随机初始化，包括寄存器和内存。这里可以对 <code>ori</code>、<code>lui</code>、<code>lw</code>、<code>sw</code> 指令进行测试。如此一来，后面针对寄存器的运算一旦出错，对结果会有比较明显的影响，能够起到“评测”的作用。</li>
+<li>对少部分寄存器 &#x2F; 内存地址进行频繁操作。对于寄存器 &#x2F; 内存的频繁操作会频繁地改变其中存储的内容，指令执行不正确可以很快被发现。</li>
+<li>涉及到立即数的指令，可以在较大的范围随机生成立即数。例如我通过 <code>randint(immediate_max // 2, immediate)</code> 来生成立即数。当然，也可以设置一定概率，直接生成 <code>immediate_max</code> 作为立即数，其余情况下随机生成。</li>
+<li>尽量不要生成无法控制的分支 &#x2F; 跳转指令。极端情况下，PC 可以直接跳到程序末尾，这起不到任何评测的作用。</li>
+<li>……</li>
+</ol>
+<h4 id="数据生成"><a href="#数据生成" class="headerlink" title="数据生成"></a>数据生成</h4><p>下面来讲解一下数据生成的代码实现，这里会给出一个简单的框架，完整的代码请查看仓库。类似的生成办法可以推广到其他评测机的制作中（例如 OO 课程的），希望大家多加尝试，形成自己的体会。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python"><br>supported_instr = [...] <span class="hljs-comment">#列表中存储支持的指令类型</span><br>instr_probs = [...] <span class="hljs-comment">#每个指令生成几率，分支、跳转、空指令的几率可以适当小一些</span><br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">generate_loop</span>(<span class="hljs-params">loop_var, cycle_num, body_len, label_num, allowed_instr, generate_prop, instr_list</span>):<br>    <span class="hljs-comment">#循环变量、循环次数、循环体长度、标签、允许在循环体中出现的指令、生成几率、指令列表</span><br><br>    <span class="hljs-comment">#初始化循环变量</span><br>    ...<br>  <br>    <span class="hljs-comment">#添加标签</span><br>    cur_label = <span class="hljs-string">f&quot;label<span class="hljs-subst">&#123;label_num&#125;</span>&quot;</span><br>    instr_list.append(<span class="hljs-string">f&quot;jal <span class="hljs-subst">&#123;cur_label&#125;</span>_begin&quot;</span>) <span class="hljs-comment">#向指令列表中添加指令</span><br>    instr_list.append(<span class="hljs-string">f&quot;<span class="hljs-subst">&#123;cur_label&#125;</span>_begin:&quot;</span>)<br><br>    <span class="hljs-comment">#循环体内容生成</span><br>    <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(body_len):<br><br>        <span class="hljs-comment">#选择需要操作的寄存器</span><br>        choice_range = [i <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(reg_size) <span class="hljs-keyword">if</span> <span class="hljs-number">2</span> &lt;= i &lt;= <span class="hljs-number">25</span> <span class="hljs-keyword">and</span> i != loop_var]<br>        rs = random.choice(choice_range)<br>        rt = random.choice(choice_range)<br>        rd = random.choice(choice_range)<br><br>        cur_instr = random.choices(allowed_instr, generate_prop)[<span class="hljs-number">0</span>]<br>        <span class="hljs-keyword">match</span> cur_instr:<br>            <span class="hljs-keyword">case</span> <span class="hljs-string">&quot;add&quot;</span> | <span class="hljs-string">&quot;sub&quot;</span>:<br>                instr_list.append(<span class="hljs-string">f&quot;<span class="hljs-subst">&#123;cur_instr&#125;</span> $<span class="hljs-subst">&#123;rd&#125;</span>,$<span class="hljs-subst">&#123;rs&#125;</span>,$<span class="hljs-subst">&#123;rt&#125;</span>&quot;</span>)<br>            <span class="hljs-keyword">case</span> <span class="hljs-string">&quot;lw&quot;</span> | <span class="hljs-string">&quot;sw&quot;</span>:<br>                <span class="hljs-keyword">while</span> <span class="hljs-literal">True</span>:<br>                    address = random.randint(<span class="hljs-number">0</span>, mem_size)<br>                    <span class="hljs-keyword">if</span> address % <span class="hljs-number">4</span> == <span class="hljs-number">0</span>:<br>                        <span class="hljs-keyword">break</span><br>                instr_list.append(<span class="hljs-string">f&quot;<span class="hljs-subst">&#123;cur_instr&#125;</span> $<span class="hljs-subst">&#123;rt&#125;</span>,<span class="hljs-subst">&#123;address&#125;</span>($<span class="hljs-subst">&#123;<span class="hljs-number">0</span>&#125;</span>)&quot;</span>)<br>            <span class="hljs-keyword">case</span> <span class="hljs-string">&quot;ori&quot;</span>:<br>                immediate = random.randint(max_immediate // <span class="hljs-number">2</span>, max_immediate)<br>                instr_list.append(<span class="hljs-string">f&quot;ori $<span class="hljs-subst">&#123;rt&#125;</span>,$<span class="hljs-subst">&#123;rs&#125;</span>,<span class="hljs-subst">&#123;immediate&#125;</span>&quot;</span>)<br>            <span class="hljs-keyword">case</span> <span class="hljs-string">&quot;nop&quot;</span>:<br>                instr_list.append(<span class="hljs-string">f&quot;nop&quot;</span>)<br>            <span class="hljs-keyword">case</span> <span class="hljs-string">&quot;lui&quot;</span>:<br>                immediate = random.randint(max_immediate // <span class="hljs-number">2</span>, max_immediate)<br>                instr_list.append(<span class="hljs-string">f&quot;lui $<span class="hljs-subst">&#123;rt&#125;</span>,<span class="hljs-subst">&#123;immediate&#125;</span>&quot;</span>)<br><br>    <span class="hljs-comment">#循环尾部代码</span><br>    ...<br><br></code></pre></td></tr></table></figure>
+
+<h4 id="汇编文件及机器码生成"><a href="#汇编文件及机器码生成" class="headerlink" title="汇编文件及机器码生成"></a>汇编文件及机器码生成</h4><p>执行完数据生成的代码后，我们会获得一个 <code>list</code>，我们需要用 <code>\n</code> 拼接 <code>list</code> 中各元素形成一个 <code>str</code>，并导出到 <code>.asm</code> 文件中。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python">test_case = <span class="hljs-string">&#x27;\n&#x27;</span>.join(instr_list)<br><br><span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(<span class="hljs-string">f&#x27;sample.asm&#x27;</span>, <span class="hljs-string">&#x27;w&#x27;</span>, encoding=<span class="hljs-string">&#x27;utf-8&#x27;</span>) <span class="hljs-keyword">as</span> f:<br>    f.write(test_case)<br></code></pre></td></tr></table></figure>
+
+<p>接着，我们需要将 <code>.asm</code> 文件在 MARS 中进行编译，生成机器码的 <code>.txt</code> 文件，并进行保存。这一步利用命令行完成会比较方便。注意，如果你想直接使用以下代码，请保证你已经准备好了“魔改版”MARS。官方的 MARS 并没有 <code>CompactLargeText</code> 选项，最多只能支持 1024 条指令。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python">cmd = <span class="hljs-string">f&quot;java -jar <span class="hljs-subst">&#123;mars_jar&#125;</span> a mc CompactLargeText dump .text HexText <span class="hljs-subst">&#123;output_file&#125;</span> <span class="hljs-subst">&#123;input_file&#125;</span>&quot;</span><br><br><span class="hljs-keyword">try</span>:<br>   <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;正在汇编: <span class="hljs-subst">&#123;filename&#125;</span>&quot;</span>)<br>   result = subprocess.run(cmd, shell=<span class="hljs-literal">True</span>, capture_output=<span class="hljs-literal">True</span>, text=<span class="hljs-literal">True</span>)<br><br>   <span class="hljs-keyword">if</span> result.returncode == <span class="hljs-number">0</span>:<br>       <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;成功生成: <span class="hljs-subst">&#123;output_file&#125;</span>&quot;</span>)<br>   <span class="hljs-keyword">else</span>:<br>       <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;汇编失败: <span class="hljs-subst">&#123;filename&#125;</span>&quot;</span>)<br>       <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;错误信息: <span class="hljs-subst">&#123;result.stderr&#125;</span>&quot;</span>)<br><br><span class="hljs-keyword">except</span> Exception <span class="hljs-keyword">as</span> e:<br>   <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;错误: <span class="hljs-subst">&#123;filename&#125;</span> - <span class="hljs-subst">&#123;e&#125;</span>&quot;</span>)<br></code></pre></td></tr></table></figure>
+
+<h3 id="运行-CPU-并实现对拍"><a href="#运行-CPU-并实现对拍" class="headerlink" title="运行 CPU 并实现对拍"></a>运行 CPU 并实现对拍</h3><h4 id="测试模块准备"><a href="#测试模块准备" class="headerlink" title="测试模块准备"></a>测试模块准备</h4><p>这一部分比较简单。Logisim 的测试电路搭建请参考教程，注意不要忘了 <code>halt</code> 信号，否则评测无法终止；Verilog 的 testbench 可以直接用下面这个，注意仿真时间不能设定得太短，否则样例还没执行完仿真就停止了。不要忘记添加 <code>$finish</code> 语句，因为 iVerilog 的仿真是默认一直进行的。</p>
+<figure class="highlight verilog"><table><tr><td class="code"><pre><code class="hljs verilog"><span class="hljs-keyword">module</span> test;<br><br>	<span class="hljs-comment">// Inputs</span><br>	<span class="hljs-keyword">reg</span> clk;<br>	<span class="hljs-keyword">reg</span> reset;<br><br>	<span class="hljs-comment">// Instantiate the Unit Under Test (UUT)</span><br>	mips uut (<br>		<span class="hljs-variable">.clk</span>(clk), <br>		<span class="hljs-variable">.reset</span>(reset)<br>	);<br><br>	<span class="hljs-keyword">always</span> #<span class="hljs-number">1</span> clk=~clk;<br><br>	<span class="hljs-keyword">initial</span> <span class="hljs-keyword">begin</span><br>		<span class="hljs-comment">// Initialize Inputs</span><br>		clk = <span class="hljs-number">0</span>;<br>		reset = <span class="hljs-number">1</span>;<br><br>		<span class="hljs-comment">// Wait 100 ns for global reset to finish</span><br>		#<span class="hljs-number">100</span>;<br>		reset=<span class="hljs-number">0</span>;<br>  <br>		<span class="hljs-comment">// Add stimulus here</span><br>		#<span class="hljs-number">100000</span>;<br>		<span class="hljs-built_in">$finish</span>;<br>	<span class="hljs-keyword">end</span><br>  <br><span class="hljs-keyword">endmodule</span><br></code></pre></td></tr></table></figure>
+
+<p>此外，你还需要准备好 <code>logisim-generic-2.7.1.jar</code> 以及 iVerilog，这两项内容均可以在教程中找到资源链接。</p>
+<h4 id="样例载入"><a href="#样例载入" class="headerlink" title="样例载入"></a>样例载入</h4><p>Logisim 的样例载入会略微复杂一点，需要修改 <code>.xml</code> 文件。其实你的 <code>.circ</code> 电路就是一种 <code>.xml</code> 文件，可以尝试用 VSCode 查看。</p>
+<p>我们需要将机器码注入到 IFU 模块的 ROM 中。在 <code>.circ</code> 文件中定位到 ROM 处，“…”表示了机器码应当被填充的位置。</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><code class="hljs xml"><span class="hljs-tag">&lt;<span class="hljs-name">comp</span> <span class="hljs-attr">lib</span>=<span class="hljs-string">&quot;4&quot;</span> <span class="hljs-attr">loc</span>=<span class="hljs-string">&quot;(750,1020)&quot;</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;ROM&quot;</span>&gt;</span><br>      <span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;addrWidth&quot;</span> <span class="hljs-attr">val</span>=<span class="hljs-string">&quot;12&quot;</span>/&gt;</span><br>      <span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;dataWidth&quot;</span> <span class="hljs-attr">val</span>=<span class="hljs-string">&quot;32&quot;</span>/&gt;</span><br>      <span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;contents&quot;</span>&gt;</span>addr/data: 12 32<br><br>...<br><br><span class="hljs-tag">&lt;/<span class="hljs-name">comp</span>&gt;</span><br></code></pre></td></tr></table></figure>
+
+<p>我们可以使用<strong>正则表达式</strong>来匹配这一部分的内容，然后利用 <code>re.sub</code> 将匹配到的内容、机器码内容进行拼接，这样我们就成功注入了机器码。注意各个 32 位机器码间应该用空格分隔，亲身实践用 <code>\n</code> 分隔会报错。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(machine_code_file, <span class="hljs-string">&#x27;r&#x27;</span>) <span class="hljs-keyword">as</span> f:<br>        new_content = f.read()<br><br>    <span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(file_a, <span class="hljs-string">&#x27;r&#x27;</span>) <span class="hljs-keyword">as</span> f:<br>        circ_a = f.read()<br><br>    <span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(file_b, <span class="hljs-string">&#x27;r&#x27;</span>) <span class="hljs-keyword">as</span> f:<br>        circ_b = f.read()<br><br>    ptn = (<span class="hljs-string">r&#x27;(&lt;comp lib=&quot;\d+&quot; loc=&quot;\(\d+,\d+\)&quot; name=&quot;ROM&quot;&gt;&#x27;</span><br>           <span class="hljs-string">r&#x27;\s*&lt;a name=&quot;addrWidth&quot; val=&quot;\d+&quot;/&gt;&#x27;</span><br>           <span class="hljs-string">r&#x27;\s*&lt;a name=&quot;dataWidth&quot; val=&quot;\d+&quot;/&gt;&#x27;</span><br>           <span class="hljs-string">r&#x27;\s*&lt;a name=&quot;contents&quot;&gt;)[\s\S]*?(&lt;/a&gt;)&#x27;</span>)<br>  <br>    <span class="hljs-comment">#()中存放了两“块”正则匹配到的内容，match.group(1) 和 match.group(2) 分别对应这两块内容。</span><br><br>    <span class="hljs-keyword">match</span> = re.search(ptn, circ_a)<br>    <span class="hljs-comment">#我的电路中 ROM 地址宽度是 12 位，使用这个程序时注意地址宽度能否匹配</span><br>    replacement = <span class="hljs-keyword">match</span>.group(<span class="hljs-number">1</span>) + <span class="hljs-string">&quot;addr/data: 12 32\n&quot;</span> + new_content + <span class="hljs-string">&quot;\n&quot;</span> + <br>    <span class="hljs-keyword">match</span>.group(<span class="hljs-number">2</span>)<br>    new_circ_a = re.sub(ptn, replacement, circ_a)<br><br>    <span class="hljs-keyword">match</span> = re.search(ptn, circ_b)<br>    replacement = <span class="hljs-keyword">match</span>.group(<span class="hljs-number">1</span>) + <span class="hljs-string">&quot;addr/data: 12 32\n&quot;</span> + new_content + <span class="hljs-string">&quot;\n&quot;</span> + <span class="hljs-keyword">match</span>.group(<span class="hljs-number">2</span>)<br>    new_circ_b = re.sub(ptn, replacement, circ_b)<br><br>    <span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(file_a, <span class="hljs-string">&#x27;w&#x27;</span>) <span class="hljs-keyword">as</span> f:<br>        f.write(new_circ_a)<br><br>    <span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(file_b, <span class="hljs-string">&#x27;w&#x27;</span>) <span class="hljs-keyword">as</span> f:<br>        f.write(new_circ_b)<br></code></pre></td></tr></table></figure>
+
+<p>Verilog 的样例载入就要简单很多。我们只需要将生成的机器码文件复制到与 Verilog 源代码在同一目录下的 <code>code.txt</code> 中，这一步还是通过命令行完成。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><code class="hljs bash"><span class="hljs-variable">$copy</span> &#123;machine_code&#125;  &#123;injection_file&#125;<br></code></pre></td></tr></table></figure>
+
+<h4 id="运行-CPU-并获得输出"><a href="#运行-CPU-并获得输出" class="headerlink" title="运行 CPU 并获得输出"></a>运行 CPU 并获得输出</h4><p>运行 Logisim 测试电路时，我们需要将我们搭建的 CPU 作为一个模块导入。<code>machine</code> 在这里即为 <code>logisim-generic-2.7.1.jar</code>，<code>testbench</code> 为测试电路文件名，<code>file_name</code> 为待评测电路文件的文件名。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><code class="hljs bash"><span class="hljs-variable">$java</span> -jar &#123;machine&#125; &#123;testbench&#125; -load &#123;file_name&#125;<br></code></pre></td></tr></table></figure>
+
+<p>然后我们以最快速度运行测试电路，以表格形式输出结果。表格中每一列代表一个输出端口在每一个时钟周期的输出值，每一列的具体含义取决于电路中端口的排列顺序。CO 平台上会要求你将输出端口按照给定顺序排列，因为评测时会直接比较你的电路输出的二进制文件是否与正确输出完全一致，若你的端口排列顺序不同，那么每一列的对应关系就“乱”了，评测自然也不会通过。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><code class="hljs bash"><span class="hljs-variable">$java</span> -jar &#123;machine&#125; &#123;testbench&#125; -<span class="hljs-built_in">tty</span> table<br></code></pre></td></tr></table></figure>
+
+<p>运行 Verilog 测试模块前，先要使用 Icarus Verilog 编译器将多个 Verilog 文件编译成一个可执行的仿真文件。<code>*.v</code> 会包含当前目录下所有的 Verilog 源文件，<code>-s</code> 参数告诉编译器哪个模块是测试的顶层模块，生成的输出文件 <code>.out</code> 是一个可以在终端直接运行的仿真程序。</p>
+<blockquote>
+<p>注意：这里的 <code>test_module_name</code> 应该是测试文件的<strong>模块名称</strong>，而不是测试文件的文件名。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="code"><pre><code class="hljs bash">iverilog -s &#123;test_module_name&#125; -o &#123;test_module_name&#125;.out *.v<br></code></pre></td></tr></table></figure>
+
+<p>然后运行仿真程序。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><code class="hljs bash">vvp &#123;test_module_name&#125;.out<br></code></pre></td></tr></table></figure>
+
+<p>最后，别忘了把获得的输出写到输出文件中，这一步就交给大家自行完成。</p>
+<h4 id="运行“魔改版”-MARS-获得输出"><a href="#运行“魔改版”-MARS-获得输出" class="headerlink" title="运行“魔改版” MARS 获得输出"></a>运行“魔改版” MARS 获得输出</h4><p>在 P3 的评测中这一步其实可以省略，我们可以直接对拍两份电路，然后比对输出的二进制文件。当然，由于“表格”中每一列对应关系明确，我们可以另外写一份解析程序来获得寄存器和内存的操作信息，与魔改版 MARS 的输出作比对。这一步骤相信对大家来说并不困难，这里就不提供代码了。</p>
+<p>在 P3 和 P4 中，我们的 <code>add</code> 和 <code>sub</code> 指令并不考虑溢出异常，所以我们运行“魔改版” MARS 时也需要忽略溢出，命令行中 <code>ig</code> 参数就起到了这一作用。使用 <code>coL1</code> 参数能够输出对内存和寄存器的操作，<code>coL2</code> 参数能够获得更为详细的输出信息以便 debug，评测时我们只需要使用 <code>coL1</code>。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><code class="hljs bash"><span class="hljs-variable">$java</span> -jar &#123;machine&#125; &#123;file&#125; mc CompactLargeText coL1 ig<br></code></pre></td></tr></table></figure>
+
+<h4 id="比较输出"><a href="#比较输出" class="headerlink" title="比较输出"></a>比较输出</h4><p>这一部分只需要对输出进行简单的比较。在 P3 和 P4 中，直接比较两份文件（测试模块输出、对拍对象输出）的输出是否相同就可以；P5 中由于同一时刻可能对内存、寄存器均有操作，所以对内存、寄存器的操作需要分开来比较。</p>
+<h3 id="结语"><a href="#结语" class="headerlink" title="结语"></a>结语</h3><p>写到这里，评测机的构造也就慢慢清晰了——无非是数据生成、运行标准程序和待测程序、比较输出这几步，这也是评测机最为常见且容易实现的架构。</p>
+<p>万事开头难，当你初次完成了评测机的搭建，“对拍”部分的代码一般就不会有大的变动了（至少对于 CO 课程来说如此），后续迭代只需要对“数据生成”代码进行调整。数据生成可以说是评测机的“灵魂”——评测效果如何，几乎全看数据强度如何。本文虽然介绍了如何随机生成数据，但是随机的数据并不能覆盖到所有的边界情况。<strong>随机生成结合“手搓”往往才是最优解</strong>。</p>
+<p>希望这篇文章能够“抛砖引玉”，帮助大家搭建起自己的评测机。当你有了不错的评测机，意味着每次课下你都可以进行“强测”，能够尽量多地发现设计中的细节问题，从而可以将更能经受住考验的架构带到课上——上机时不用以 debug 课下“开局”，能将全部心思投入到新增指令上，“一遍过”这时不再是幻想。</p>
+<p>希望在评测机的辅助下，大家能够准备好 bug-free 的设计，能够更有底气、更有自信地进入课上环节，顺利地推进上机测试。</p>
+<p><strong>祝愿大家在计算机组成实验的道路上稳步前行！</strong></p>
+]]></content>
+      <categories>
+        <category>计算机组成课下</category>
+      </categories>
+      <tags>
+        <tag>计算机组成</tag>
+        <tag>单周期 CPU</tag>
+        <tag>评测机</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>计算机组成 P2 课下“factorial”题解</title>
     <url>/2025/10/26/P2_off_factorial/</url>
     <content><![CDATA[<h3 id="题面回顾"><a href="#题面回顾" class="headerlink" title="题面回顾"></a>题面回顾</h3><p>运用 MIPS 汇编编写一个计算阶乘的程序。阶乘的结果在 1000 位以内。</p>
@@ -315,87 +407,630 @@
       </tags>
   </entry>
   <entry>
-    <title>搭建属于你的 CPU 评测机</title>
-    <url>/2025/11/23/checker_build/</url>
-    <content><![CDATA[<h3 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h3><p>在 BUAA CO 课程中，要求使用 Logisim 实现单周期 CPU，使用 Verilog 实现单周期 &#x2F; 流水线 CPU。为了给自己的 CPU 进行较为可靠的测试，我们需要生成具有一定强度的数据，自动化地评测自己的 CPU 是否能够正常工作。</p>
-<p>CPU 评测机的架构大致是：数据生成 → 程序运行 → 结果判断。自动评测 Logisim 和 Verilog 实现的 CPU 的主要区别就在后两个环节上，在接下来的文字中我们将详细地介绍。</p>
-<p>本篇博客只涉及单周期 CPU 评测机的搭建工作。搭建好单周期 CPU 的评测机后，搭建流水线 CPU 的评测机也就不是难事了——我们只需要按照要求修改数据生成代码。所以流水线 CPU 评测机的搭建就不另外写一篇博客了，具体的代码和样例请见本人仓库。</p>
-<h3 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h3><p>为了有一个更为顺畅的阅读和实践体验，请提前准备好 Toby 学长等人开发的符合北航计组课程需求的“魔改版”MARS。<a href="https://github.com/Toby-Shi-cloud/Mars-with-BUAA-CO-extension">下载链接</a></p>
-<h3 id="测试样例构建"><a href="#测试样例构建" class="headerlink" title="测试样例构建"></a>测试样例构建</h3><p>这里我们讲解如何自动构造具有<strong>一定强度</strong>且<strong>合法</strong>的测试数据，这也是评测机最为重要的一个环节。</p>
-<h4 id="合法性"><a href="#合法性" class="headerlink" title="合法性"></a>合法性</h4><p>这一点在 P4 的评测中尤其重要。P4 时我们会利用“魔改版” MARS 生成样例对应的正确结果，所以我们需要保证程序能够被正确编译，且能被正常执行（主要体现在<strong>不能有死循环</strong>）。</p>
-<p>为了解决这个问题，我们一般采用分块构造 + 公共跳转块的办法。我们生成的评测程序大体可以被切分为多个循环块，每个循环块执行完毕后，会跳转到公共跳转块，执行完公共跳转块的程序后，再进入下一个循环块……如此往复，直到到达 <code>end</code> 块，程序执行完毕。在这个过程中，我们可以对 <code>beq</code>、<code>jal</code>、<code>jr</code> 这样的特殊语句进行测试——如果我们没能正确执行这些语句，循环块内的代码很可能不被执行，输出的结果自然也就不正确。</p>
-<p>下面以一种“抽象”的方式给出了程序的大致结构，如果看不太明白，仓库中放了一份示例代码，大家可以去参考。可能有的读者注意到了，<code>beq</code>、<code>jal</code>、<code>jr</code> 语句后都添加了 <code>nop</code>，这是为后续流水线 CPU 测试准备的，目前不用太在意这个细节。</p>
-<figure class="highlight clean"><table><tr><td class="code"><pre><code class="hljs clean">########<br>    初始化代码<br>########<br><br>jal label_begin<br>nop<br><br>label_begin:<br>    ########<br>        循环体代码<br>    ########<br><br>    ori $<span class="hljs-number">1</span>,$<span class="hljs-number">0</span>,<span class="hljs-number">1</span><br>    add $loop_var,$<span class="hljs-number">1</span>,$loop_var<br><br>    #跳转测试<br>    beq $loop_var, $cycle_num, label_end<br>    nop<br><br>    #跳回测试<br>    jr $ra<br>    nop<br><br>label_end:<br>    ########<br>        循环结束区代码<br>    ########<br><br>    #跳转链接测试<br>    jal common_block<br>    nop<br><br>    #初始化下一个循环块的变量<br>    ori $loop_var_1,$<span class="hljs-number">0</span>,<span class="hljs-number">0</span><br>  <br>    #进入下一个循环块<br>    jal label_begin_1<br>    nop<br><br>########<br>    省略多个循环块 <br>########<br><br>label_last_end:<br>    ########<br>        循环结束区代码<br>    ########<br><br>    #程序即将终止<br>    ori $<span class="hljs-number">5</span>,$<span class="hljs-number">0</span>,<span class="hljs-number">5</span> <br>    jal end<br>    nop<br><br>common_block:<br>    ########<br>        公共跳转区代码<br>    ########<br><br>    #跳回测试<br>    jr $ra<br>    nop<br><br>end:<br>    beq $<span class="hljs-number">0</span>,$<span class="hljs-number">5</span>,common_block  <br>    nop<br></code></pre></td></tr></table></figure>
-
-<p>需要注意的是，每一个循环块的执行都会涉及到一个“循环变量”。在循环块内不要操纵“循环变量”，否则很容易产生死循环。</p>
-<p>解决了合法性的问题后，我们就可以大胆生成数据，填充循环主体代码了。</p>
-<p>注：P3 时我们可以不过多考虑“死循环”问题，因为我们采用两个 Logisim 电路同时对拍的方法，经过一定周期后评测会自动停止。但是到 P4 的评测这个问题就必须纳入考虑，理由已经在上文中说明。</p>
-<h4 id="数据强度"><a href="#数据强度" class="headerlink" title="数据强度"></a>数据强度</h4><p>对于数据强度的评价，我们可以从以下几个基本角度评判：</p>
-<ol>
-<li>是否覆盖了所有指令（这是最基本的要求）</li>
-<li>是否能够随机地测试大部分寄存器（这主要体现在 P3 的评测，群里有同学的 GRF 模块漏接线问题没有被课程组的测试测出，尽管这是一个相当明显且严重的问题）</li>
-<li>对于内存的读写操作的评判是否真正有效（例如，如果所有内存块内的值都为 0，这时即使你没能正确读出内存内的值，返回的结果也可能为 0，导致无法定位问题）</li>
-<li>对于分支 &#x2F; 跳转的评测是否有效、全面（例如 <code>beq</code> 不能从来没有执行过，此种情况下无法查出分支的潜在问题；跳转应该覆盖向前、向后的情况）</li>
-<li>是否覆盖了边界值的情况（例如 <code>int</code> 数据范围上下界，0 附近，内存地址上下界等，可以通过手动构造特殊样例来解决）</li>
-<li>……</li>
-</ol>
-<p>总的来说，我们的测试数据应该有较强的随机性，能够覆盖到比较“极端”的情况；应该有较好的有效性，即如果没能正确执行某条指令，会对输出结果产生比较明显的影响。对于数据的生成，我提出一些我的见解，大家可以参考。当然，如果你有比这聪明得多的想法，下面的内容可以忽略。</p>
-<ol>
-<li>随机初始化，包括寄存器和内存。这里可以对 <code>ori</code>、<code>lui</code>、<code>lw</code>、<code>sw</code> 指令进行测试。如此一来，后面针对寄存器的运算一旦出错，对结果会有比较明显的影响，能够起到“评测”的作用。</li>
-<li>对少部分寄存器 &#x2F; 内存地址进行频繁操作。对于寄存器 &#x2F; 内存的频繁操作会频繁地改变其中存储的内容，指令执行不正确可以很快被发现。</li>
-<li>涉及到立即数的指令，可以在较大的范围随机生成立即数。例如我通过 <code>randint(immediate_max // 2, immediate)</code> 来生成立即数。当然，也可以设置一定概率，直接生成 <code>immediate_max</code> 作为立即数，其余情况下随机生成。</li>
-<li>尽量不要生成无法控制的分支 &#x2F; 跳转指令。极端情况下，PC 可以直接跳到程序末尾，这起不到任何评测的作用。</li>
-<li>……</li>
-</ol>
-<h4 id="数据生成"><a href="#数据生成" class="headerlink" title="数据生成"></a>数据生成</h4><p>下面来讲解一下数据生成的代码实现，这里会给出一个简单的框架，完整的代码请查看仓库。类似的生成办法可以推广到其他评测机的制作中（例如 OO 课程的），希望大家多加尝试，形成自己的体会。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python"><br>supported_instr = [...] <span class="hljs-comment">#列表中存储支持的指令类型</span><br>instr_probs = [...] <span class="hljs-comment">#每个指令生成几率，分支、跳转、空指令的几率可以适当小一些</span><br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">generate_loop</span>(<span class="hljs-params">loop_var, cycle_num, body_len, label_num, allowed_instr, generate_prop, instr_list</span>):<br>    <span class="hljs-comment">#循环变量、循环次数、循环体长度、标签、允许在循环体中出现的指令、生成几率、指令列表</span><br><br>    <span class="hljs-comment">#初始化循环变量</span><br>    ...<br>  <br>    <span class="hljs-comment">#添加标签</span><br>    cur_label = <span class="hljs-string">f&quot;label<span class="hljs-subst">&#123;label_num&#125;</span>&quot;</span><br>    instr_list.append(<span class="hljs-string">f&quot;jal <span class="hljs-subst">&#123;cur_label&#125;</span>_begin&quot;</span>) <span class="hljs-comment">#向指令列表中添加指令</span><br>    instr_list.append(<span class="hljs-string">f&quot;<span class="hljs-subst">&#123;cur_label&#125;</span>_begin:&quot;</span>)<br><br>    <span class="hljs-comment">#循环体内容生成</span><br>    <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(body_len):<br><br>        <span class="hljs-comment">#选择需要操作的寄存器</span><br>        choice_range = [i <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(reg_size) <span class="hljs-keyword">if</span> <span class="hljs-number">2</span> &lt;= i &lt;= <span class="hljs-number">25</span> <span class="hljs-keyword">and</span> i != loop_var]<br>        rs = random.choice(choice_range)<br>        rt = random.choice(choice_range)<br>        rd = random.choice(choice_range)<br><br>        cur_instr = random.choices(allowed_instr, generate_prop)[<span class="hljs-number">0</span>]<br>        <span class="hljs-keyword">match</span> cur_instr:<br>            <span class="hljs-keyword">case</span> <span class="hljs-string">&quot;add&quot;</span> | <span class="hljs-string">&quot;sub&quot;</span>:<br>                instr_list.append(<span class="hljs-string">f&quot;<span class="hljs-subst">&#123;cur_instr&#125;</span> $<span class="hljs-subst">&#123;rd&#125;</span>,$<span class="hljs-subst">&#123;rs&#125;</span>,$<span class="hljs-subst">&#123;rt&#125;</span>&quot;</span>)<br>            <span class="hljs-keyword">case</span> <span class="hljs-string">&quot;lw&quot;</span> | <span class="hljs-string">&quot;sw&quot;</span>:<br>                <span class="hljs-keyword">while</span> <span class="hljs-literal">True</span>:<br>                    address = random.randint(<span class="hljs-number">0</span>, mem_size)<br>                    <span class="hljs-keyword">if</span> address % <span class="hljs-number">4</span> == <span class="hljs-number">0</span>:<br>                        <span class="hljs-keyword">break</span><br>                instr_list.append(<span class="hljs-string">f&quot;<span class="hljs-subst">&#123;cur_instr&#125;</span> $<span class="hljs-subst">&#123;rt&#125;</span>,<span class="hljs-subst">&#123;address&#125;</span>($<span class="hljs-subst">&#123;<span class="hljs-number">0</span>&#125;</span>)&quot;</span>)<br>            <span class="hljs-keyword">case</span> <span class="hljs-string">&quot;ori&quot;</span>:<br>                immediate = random.randint(max_immediate // <span class="hljs-number">2</span>, max_immediate)<br>                instr_list.append(<span class="hljs-string">f&quot;ori $<span class="hljs-subst">&#123;rt&#125;</span>,$<span class="hljs-subst">&#123;rs&#125;</span>,<span class="hljs-subst">&#123;immediate&#125;</span>&quot;</span>)<br>            <span class="hljs-keyword">case</span> <span class="hljs-string">&quot;nop&quot;</span>:<br>                instr_list.append(<span class="hljs-string">f&quot;nop&quot;</span>)<br>            <span class="hljs-keyword">case</span> <span class="hljs-string">&quot;lui&quot;</span>:<br>                immediate = random.randint(max_immediate // <span class="hljs-number">2</span>, max_immediate)<br>                instr_list.append(<span class="hljs-string">f&quot;lui $<span class="hljs-subst">&#123;rt&#125;</span>,<span class="hljs-subst">&#123;immediate&#125;</span>&quot;</span>)<br><br>    <span class="hljs-comment">#循环尾部代码</span><br>    ...<br><br></code></pre></td></tr></table></figure>
-
-<h4 id="汇编文件及机器码生成"><a href="#汇编文件及机器码生成" class="headerlink" title="汇编文件及机器码生成"></a>汇编文件及机器码生成</h4><p>执行完数据生成的代码后，我们会获得一个 <code>list</code>，我们需要用 <code>\n</code> 拼接 <code>list</code> 中各元素形成一个 <code>str</code>，并导出到 <code>.asm</code> 文件中。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python">test_case = <span class="hljs-string">&#x27;\n&#x27;</span>.join(instr_list)<br><br><span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(<span class="hljs-string">f&#x27;sample.asm&#x27;</span>, <span class="hljs-string">&#x27;w&#x27;</span>, encoding=<span class="hljs-string">&#x27;utf-8&#x27;</span>) <span class="hljs-keyword">as</span> f:<br>    f.write(test_case)<br></code></pre></td></tr></table></figure>
-
-<p>接着，我们需要将 <code>.asm</code> 文件在 MARS 中进行编译，生成机器码的 <code>.txt</code> 文件，并进行保存。这一步利用命令行完成会比较方便。注意，如果你想直接使用以下代码，请保证你已经准备好了“魔改版”MARS。官方的 MARS 并没有 <code>CompactLargeText</code> 选项，最多只能支持 1024 条指令。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python">cmd = <span class="hljs-string">f&quot;java -jar <span class="hljs-subst">&#123;mars_jar&#125;</span> a mc CompactLargeText dump .text HexText <span class="hljs-subst">&#123;output_file&#125;</span> <span class="hljs-subst">&#123;input_file&#125;</span>&quot;</span><br><br><span class="hljs-keyword">try</span>:<br>   <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;正在汇编: <span class="hljs-subst">&#123;filename&#125;</span>&quot;</span>)<br>   result = subprocess.run(cmd, shell=<span class="hljs-literal">True</span>, capture_output=<span class="hljs-literal">True</span>, text=<span class="hljs-literal">True</span>)<br><br>   <span class="hljs-keyword">if</span> result.returncode == <span class="hljs-number">0</span>:<br>       <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;成功生成: <span class="hljs-subst">&#123;output_file&#125;</span>&quot;</span>)<br>   <span class="hljs-keyword">else</span>:<br>       <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;汇编失败: <span class="hljs-subst">&#123;filename&#125;</span>&quot;</span>)<br>       <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;错误信息: <span class="hljs-subst">&#123;result.stderr&#125;</span>&quot;</span>)<br><br><span class="hljs-keyword">except</span> Exception <span class="hljs-keyword">as</span> e:<br>   <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;错误: <span class="hljs-subst">&#123;filename&#125;</span> - <span class="hljs-subst">&#123;e&#125;</span>&quot;</span>)<br></code></pre></td></tr></table></figure>
-
-<h3 id="运行-CPU-并实现对拍"><a href="#运行-CPU-并实现对拍" class="headerlink" title="运行 CPU 并实现对拍"></a>运行 CPU 并实现对拍</h3><h4 id="测试模块准备"><a href="#测试模块准备" class="headerlink" title="测试模块准备"></a>测试模块准备</h4><p>这一部分比较简单。Logisim 的测试电路搭建请参考教程，注意不要忘了 <code>halt</code> 信号，否则评测无法终止；Verilog 的 testbench 可以直接用下面这个，注意仿真时间不能设定得太短，否则样例还没执行完仿真就停止了。不要忘记添加 <code>$finish</code> 语句，因为 iVerilog 的仿真是默认一直进行的。</p>
-<figure class="highlight verilog"><table><tr><td class="code"><pre><code class="hljs verilog"><span class="hljs-keyword">module</span> test;<br><br>	<span class="hljs-comment">// Inputs</span><br>	<span class="hljs-keyword">reg</span> clk;<br>	<span class="hljs-keyword">reg</span> reset;<br><br>	<span class="hljs-comment">// Instantiate the Unit Under Test (UUT)</span><br>	mips uut (<br>		<span class="hljs-variable">.clk</span>(clk), <br>		<span class="hljs-variable">.reset</span>(reset)<br>	);<br><br>	<span class="hljs-keyword">always</span> #<span class="hljs-number">1</span> clk=~clk;<br><br>	<span class="hljs-keyword">initial</span> <span class="hljs-keyword">begin</span><br>		<span class="hljs-comment">// Initialize Inputs</span><br>		clk = <span class="hljs-number">0</span>;<br>		reset = <span class="hljs-number">1</span>;<br><br>		<span class="hljs-comment">// Wait 100 ns for global reset to finish</span><br>		#<span class="hljs-number">100</span>;<br>		reset=<span class="hljs-number">0</span>;<br>  <br>		<span class="hljs-comment">// Add stimulus here</span><br>		#<span class="hljs-number">100000</span>;<br>		<span class="hljs-built_in">$finish</span>;<br>	<span class="hljs-keyword">end</span><br>  <br><span class="hljs-keyword">endmodule</span><br></code></pre></td></tr></table></figure>
-
-<p>此外，你还需要准备好 <code>logisim-generic-2.7.1.jar</code> 以及 iVerilog，这两项内容均可以在教程中找到资源链接。</p>
-<h4 id="样例载入"><a href="#样例载入" class="headerlink" title="样例载入"></a>样例载入</h4><p>Logisim 的样例载入会略微复杂一点，需要修改 <code>.xml</code> 文件。其实你的 <code>.circ</code> 电路就是一种 <code>.xml</code> 文件，可以尝试用 VSCode 查看。</p>
-<p>我们需要将机器码注入到 IFU 模块的 ROM 中。在 <code>.circ</code> 文件中定位到 ROM 处，“…”表示了机器码应当被填充的位置。</p>
-<figure class="highlight xml"><table><tr><td class="code"><pre><code class="hljs xml"><span class="hljs-tag">&lt;<span class="hljs-name">comp</span> <span class="hljs-attr">lib</span>=<span class="hljs-string">&quot;4&quot;</span> <span class="hljs-attr">loc</span>=<span class="hljs-string">&quot;(750,1020)&quot;</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;ROM&quot;</span>&gt;</span><br>      <span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;addrWidth&quot;</span> <span class="hljs-attr">val</span>=<span class="hljs-string">&quot;12&quot;</span>/&gt;</span><br>      <span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;dataWidth&quot;</span> <span class="hljs-attr">val</span>=<span class="hljs-string">&quot;32&quot;</span>/&gt;</span><br>      <span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;contents&quot;</span>&gt;</span>addr/data: 12 32<br><br>...<br><br><span class="hljs-tag">&lt;/<span class="hljs-name">comp</span>&gt;</span><br></code></pre></td></tr></table></figure>
-
-<p>我们可以使用<strong>正则表达式</strong>来匹配这一部分的内容，然后利用 <code>re.sub</code> 将匹配到的内容、机器码内容进行拼接，这样我们就成功注入了机器码。注意各个 32 位机器码间应该用空格分隔，亲身实践用 <code>\n</code> 分隔会报错。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(machine_code_file, <span class="hljs-string">&#x27;r&#x27;</span>) <span class="hljs-keyword">as</span> f:<br>        new_content = f.read()<br><br>    <span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(file_a, <span class="hljs-string">&#x27;r&#x27;</span>) <span class="hljs-keyword">as</span> f:<br>        circ_a = f.read()<br><br>    <span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(file_b, <span class="hljs-string">&#x27;r&#x27;</span>) <span class="hljs-keyword">as</span> f:<br>        circ_b = f.read()<br><br>    ptn = (<span class="hljs-string">r&#x27;(&lt;comp lib=&quot;\d+&quot; loc=&quot;\(\d+,\d+\)&quot; name=&quot;ROM&quot;&gt;&#x27;</span><br>           <span class="hljs-string">r&#x27;\s*&lt;a name=&quot;addrWidth&quot; val=&quot;\d+&quot;/&gt;&#x27;</span><br>           <span class="hljs-string">r&#x27;\s*&lt;a name=&quot;dataWidth&quot; val=&quot;\d+&quot;/&gt;&#x27;</span><br>           <span class="hljs-string">r&#x27;\s*&lt;a name=&quot;contents&quot;&gt;)[\s\S]*?(&lt;/a&gt;)&#x27;</span>)<br>  <br>    <span class="hljs-comment">#()中存放了两“块”正则匹配到的内容，match.group(1) 和 match.group(2) 分别对应这两块内容。</span><br><br>    <span class="hljs-keyword">match</span> = re.search(ptn, circ_a)<br>    <span class="hljs-comment">#我的电路中 ROM 地址宽度是 12 位，使用这个程序时注意地址宽度能否匹配</span><br>    replacement = <span class="hljs-keyword">match</span>.group(<span class="hljs-number">1</span>) + <span class="hljs-string">&quot;addr/data: 12 32\n&quot;</span> + new_content + <span class="hljs-string">&quot;\n&quot;</span> + <br>    <span class="hljs-keyword">match</span>.group(<span class="hljs-number">2</span>)<br>    new_circ_a = re.sub(ptn, replacement, circ_a)<br><br>    <span class="hljs-keyword">match</span> = re.search(ptn, circ_b)<br>    replacement = <span class="hljs-keyword">match</span>.group(<span class="hljs-number">1</span>) + <span class="hljs-string">&quot;addr/data: 12 32\n&quot;</span> + new_content + <span class="hljs-string">&quot;\n&quot;</span> + <span class="hljs-keyword">match</span>.group(<span class="hljs-number">2</span>)<br>    new_circ_b = re.sub(ptn, replacement, circ_b)<br><br>    <span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(file_a, <span class="hljs-string">&#x27;w&#x27;</span>) <span class="hljs-keyword">as</span> f:<br>        f.write(new_circ_a)<br><br>    <span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(file_b, <span class="hljs-string">&#x27;w&#x27;</span>) <span class="hljs-keyword">as</span> f:<br>        f.write(new_circ_b)<br></code></pre></td></tr></table></figure>
-
-<p>Verilog 的样例载入就要简单很多。我们只需要将生成的机器码文件复制到与 Verilog 源代码在同一目录下的 <code>code.txt</code> 中，这一步还是通过命令行完成。</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><code class="hljs bash"><span class="hljs-variable">$copy</span> &#123;machine_code&#125;  &#123;injection_file&#125;<br></code></pre></td></tr></table></figure>
-
-<h4 id="运行-CPU-并获得输出"><a href="#运行-CPU-并获得输出" class="headerlink" title="运行 CPU 并获得输出"></a>运行 CPU 并获得输出</h4><p>运行 Logisim 测试电路时，我们需要将我们搭建的 CPU 作为一个模块导入。<code>machine</code> 在这里即为 <code>logisim-generic-2.7.1.jar</code>，<code>testbench</code> 为测试电路文件名，<code>file_name</code> 为待评测电路文件的文件名。</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><code class="hljs bash"><span class="hljs-variable">$java</span> -jar &#123;machine&#125; &#123;testbench&#125; -load &#123;file_name&#125;<br></code></pre></td></tr></table></figure>
-
-<p>然后我们以最快速度运行测试电路，以表格形式输出结果。表格中每一列代表一个输出端口在每一个时钟周期的输出值，每一列的具体含义取决于电路中端口的排列顺序。CO 平台上会要求你将输出端口按照给定顺序排列，因为评测时会直接比较你的电路输出的二进制文件是否与正确输出完全一致，若你的端口排列顺序不同，那么每一列的对应关系就“乱”了，评测自然也不会通过。</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><code class="hljs bash"><span class="hljs-variable">$java</span> -jar &#123;machine&#125; &#123;testbench&#125; -<span class="hljs-built_in">tty</span> table<br></code></pre></td></tr></table></figure>
-
-<p>运行 Verilog 测试模块前，先要使用 Icarus Verilog 编译器将多个 Verilog 文件编译成一个可执行的仿真文件。<code>*.v</code> 会包含当前目录下所有的 Verilog 源文件，<code>-s</code> 参数告诉编译器哪个模块是测试的顶层模块，生成的输出文件 <code>.out</code> 是一个可以在终端直接运行的仿真程序。</p>
+    <title>计算机组成 P3 / P4 课下——单周期 CPU</title>
+    <url>/2025/11/23/p3p4_learn/</url>
+    <content><![CDATA[<h3 id="任务描述"><a href="#任务描述" class="headerlink" title="任务描述"></a>任务描述</h3><p>搭建支持 <code>add</code>，<code>sub</code>，<code>ori</code>，<code>lui</code>，<code>lw</code>，<code>sw</code>，<code>beq</code>，<code>jal</code>，<code>jr</code>，<code>nop</code> 指令的<strong>单周期</strong> CPU。</p>
+<h3 id="明确设计"><a href="#明确设计" class="headerlink" title="明确设计"></a>明确设计</h3><p>先从 P3 的 Logisim CPU 开始，因为它比较直观，能够为 P4：用 Verilog 描述 CPU 提供较大的帮助。根据教程，我们的 CPU 大致由这几个模块构成：IFU、CTRL、GRF、EXT、ALU、DM。这些缩写对应的组件及其功能在教程中都有详细的说明，这里不再赘述。</p>
+<h4 id="IFU"><a href="#IFU" class="headerlink" title="IFU"></a>IFU</h4><p>内部包含了 IM、PC、nPC 组件。IM 根据当前 PC 值取出对应的指令；PC 中有寄存器，在时钟上升沿时写入下一个 PC 值；nPC 则是一个状态转移单元，根据当前 PC 以及其他信号的输出判断下一个 PC 值。</p>
+<ul>
+<li>IM</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PC</td>
+<td>input</td>
+<td>32</td>
+<td>当前 PC 值</td>
+</tr>
+<tr>
+<td>Instr</td>
+<td>output</td>
+<td>32</td>
+<td>取出的指令</td>
+</tr>
+</tbody></table>
+<p>这里需要注意，在实际的 MIPS 架构中，PC 的起始地址是 0x00003000，对应存储单元的地址是 0；PC 每增加4，对应存储单元的地址增加 1。无论是在 Logisim 还是在 Verilog 中都需要注意这一映射关系。</p>
+<ul>
+<li>PC</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>clk</td>
+<td>input</td>
+<td>1</td>
+<td>时钟信号</td>
+</tr>
+<tr>
+<td>reset</td>
+<td>input</td>
+<td>1</td>
+<td>复位信号</td>
+</tr>
+<tr>
+<td>nPC</td>
+<td>input</td>
+<td>32</td>
+<td>下一个 PC 值</td>
+</tr>
+<tr>
+<td>PC</td>
+<td>output</td>
+<td>32</td>
+<td>当前 PC 值</td>
+</tr>
+</tbody></table>
+<ul>
+<li>nPC</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PC</td>
+<td>input</td>
+<td>32</td>
+<td>当前 PC 值</td>
+</tr>
+<tr>
+<td>offset</td>
+<td>input</td>
+<td>16</td>
+<td>16 位立即数</td>
+</tr>
+<tr>
+<td>instr_index</td>
+<td>input</td>
+<td>26</td>
+<td>26 位立即数</td>
+</tr>
+<tr>
+<td>PC_from_rs</td>
+<td>input</td>
+<td>32</td>
+<td>rs 寄存器中存储的 PC（<code>jr</code> 使用）</td>
+</tr>
+<tr>
+<td>branch</td>
+<td>input</td>
+<td>1</td>
+<td>是否分支</td>
+</tr>
+<tr>
+<td>jump</td>
+<td>input</td>
+<td>1</td>
+<td>是否跳转</td>
+</tr>
+<tr>
+<td>jump_back</td>
+<td>input</td>
+<td>1</td>
+<td>是否跳回</td>
+</tr>
+<tr>
+<td>nPC</td>
+<td>output</td>
+<td>32</td>
+<td>下一个 PC 值</td>
+</tr>
+<tr>
+<td>PCwith4</td>
+<td>output</td>
+<td>32</td>
+<td>PC + 4（<code>jal</code> 使用）</td>
+</tr>
+</tbody></table>
+<ul>
+<li>IM</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PC</td>
+<td>input</td>
+<td>32</td>
+<td>当前 PC 值</td>
+</tr>
+<tr>
+<td>Instr</td>
+<td>output</td>
+<td>32</td>
+<td>当前指令</td>
+</tr>
+</tbody></table>
+<ul>
+<li>Decode</li>
+</ul>
+<p>由于后续过程中我们需要用到 rs、rt、rd 等值，这里我们新增 Decode 模块，根据当前指令“翻译”出这些值。</p>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Instr</td>
+<td>input</td>
+<td>32</td>
+<td>当前指令</td>
+</tr>
+<tr>
+<td>op</td>
+<td>output</td>
+<td>6</td>
+<td>[31:26]</td>
+</tr>
+<tr>
+<td>func</td>
+<td>output</td>
+<td>6</td>
+<td>[5:0]</td>
+</tr>
+<tr>
+<td>rs</td>
+<td>output</td>
+<td>5</td>
+<td>[25:21]</td>
+</tr>
+<tr>
+<td>rt</td>
+<td>output</td>
+<td>5</td>
+<td>[20:16]</td>
+</tr>
+<tr>
+<td>rd</td>
+<td>output</td>
+<td>5</td>
+<td>[15:11]</td>
+</tr>
+<tr>
+<td>shamt</td>
+<td>output</td>
+<td>5</td>
+<td>[10:6]（供 <code>nop</code> 和 <code>sll</code> 等使用）</td>
+</tr>
+<tr>
+<td>immediate16</td>
+<td>output</td>
+<td>16</td>
+<td>[15:0]</td>
+</tr>
+<tr>
+<td>immediate26</td>
+<td>output</td>
+<td>26</td>
+<td>[25:0]</td>
+</tr>
+</tbody></table>
+<h4 id="CTRL"><a href="#CTRL" class="headerlink" title="CTRL"></a>CTRL</h4><p>CTRL 用于根据当前指令生成控制信号，这里我们采用和教程中相同的 AND-OR 方法，即现根据 op 和 func 判断当前指令，再生成对应控制信号。</p>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>op</td>
+<td>input</td>
+<td>6</td>
+<td></td>
+</tr>
+<tr>
+<td>func</td>
+<td>input</td>
+<td>6</td>
+<td></td>
+</tr>
+<tr>
+<td>RegDst</td>
+<td>output</td>
+<td>1</td>
+<td>写入寄存器是否是 rd</td>
+</tr>
+<tr>
+<td>RegWrite</td>
+<td>output</td>
+<td>1</td>
+<td>是否写寄存器</td>
+</tr>
+<tr>
+<td>MemRead</td>
+<td>output</td>
+<td>1</td>
+<td>是否读内存</td>
+</tr>
+<tr>
+<td>MemWrite</td>
+<td>output</td>
+<td>1</td>
+<td>是否写内存</td>
+</tr>
+<tr>
+<td>ExtOp</td>
+<td>output</td>
+<td>1</td>
+<td>零扩展（0），符号扩展（1）</td>
+</tr>
+<tr>
+<td>ALUSrc</td>
+<td>output</td>
+<td>1</td>
+<td>第二个操作数源于 rt（0），源于扩展后立即数（1）</td>
+</tr>
+<tr>
+<td>ALUOp</td>
+<td>output</td>
+<td>3</td>
+<td>ALU 运算类型</td>
+</tr>
+<tr>
+<td>MemToReg</td>
+<td>output</td>
+<td>1</td>
+<td>是否将内存读出的内容写入寄存器</td>
+</tr>
+<tr>
+<td>branch</td>
+<td>output</td>
+<td>1</td>
+<td>是否分支</td>
+</tr>
+<tr>
+<td>jump</td>
+<td>output</td>
+<td>1</td>
+<td>是否跳转</td>
+</tr>
+<tr>
+<td>jump_back</td>
+<td>output</td>
+<td>1</td>
+<td>是否跳回</td>
+</tr>
+<tr>
+<td>link</td>
+<td>output</td>
+<td>1</td>
+<td>是否链接 PC + 4</td>
+</tr>
+</tbody></table>
 <blockquote>
-<p>注意：这里的 <code>test_module_name</code> 应该是测试文件的<strong>模块名称</strong>，而不是测试文件的文件名。</p>
+<p>注意这里的 <code>branch</code> 信号的含义其实是“是否是<strong>分支类型的指令</strong>”，NPC 中 <code>branch</code> 的实际含义是“是否<strong>执行分支</strong>”，执行分支的条件是：是分支类型的指令，且满足某个条件。</p>
+<p>对于 <code>jump</code>、<code>jump_back</code> 等信号也是类似的，执行跳转、跳回可能也是需要条件的，这一点在课上部分会有所体现。</p>
 </blockquote>
-<figure class="highlight bash"><table><tr><td class="code"><pre><code class="hljs bash">iverilog -s &#123;test_module_name&#125; -o &#123;test_module_name&#125;.out *.v<br></code></pre></td></tr></table></figure>
+<h4 id="GRF"><a href="#GRF" class="headerlink" title="GRF"></a>GRF</h4><p>具有 32 个寄存器的寄存器堆，这一部分可以直接把 P0 课下的设计挪用过来。</p>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>clk</td>
+<td>input</td>
+<td>1</td>
+<td>时钟信号</td>
+</tr>
+<tr>
+<td>reset</td>
+<td>input</td>
+<td>1</td>
+<td>复位信号</td>
+</tr>
+<tr>
+<td>A1</td>
+<td>input</td>
+<td>5</td>
+<td>读寄存器地址 1</td>
+</tr>
+<tr>
+<td>A2</td>
+<td>input</td>
+<td>5</td>
+<td>读寄存器地址 2</td>
+</tr>
+<tr>
+<td>A3</td>
+<td>input</td>
+<td>5</td>
+<td>写寄存器地址</td>
+</tr>
+<tr>
+<td>WD</td>
+<td>input</td>
+<td>32</td>
+<td>写寄存器数据</td>
+</tr>
+<tr>
+<td>write_enable</td>
+<td>input</td>
+<td>1</td>
+<td>是否写寄存器</td>
+</tr>
+<tr>
+<td>WD1</td>
+<td>output</td>
+<td>32</td>
+<td>读寄存器数据 1</td>
+</tr>
+<tr>
+<td>WD2</td>
+<td>output</td>
+<td>32</td>
+<td>读寄存器数据 2</td>
+</tr>
+</tbody></table>
+<h4 id="EXT"><a href="#EXT" class="headerlink" title="EXT"></a>EXT</h4><p>对 16 位立即数进行扩展，有零扩展、符号扩展两种选项。</p>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>immediate16</td>
+<td>input</td>
+<td>16</td>
+<td>16 位立即数</td>
+</tr>
+<tr>
+<td>ExtOp</td>
+<td>input</td>
+<td>1</td>
+<td>零扩展（0），符号扩展（1）</td>
+</tr>
+<tr>
+<td>extended</td>
+<td>output</td>
+<td>32</td>
+<td>扩展结果</td>
+</tr>
+</tbody></table>
+<h4 id="ALU"><a href="#ALU" class="headerlink" title="ALU"></a>ALU</h4><p>根据输入的操作数及 ALUOp 进行运算。</p>
+<table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A</td>
+<td>input</td>
+<td>32</td>
+<td>操作数 1</td>
+</tr>
+<tr>
+<td>B</td>
+<td>input</td>
+<td>32</td>
+<td>操作数 2</td>
+</tr>
+<tr>
+<td>S</td>
+<td>input</td>
+<td>5</td>
+<td>shamt</td>
+</tr>
+<tr>
+<td>ALUOp</td>
+<td>input</td>
+<td>3</td>
+<td>运算类型</td>
+</tr>
+<tr>
+<td>ALUOut</td>
+<td>output</td>
+<td>32</td>
+<td>运算结果</td>
+</tr>
+<tr>
+<td>Zero</td>
+<td>output</td>
+<td>1</td>
+<td>运算结果是否为0（<code>beq</code> 使用）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>ALUOp 值及对应的运算类型</p>
+<table>
+<thead>
+<tr>
+<th>编码</th>
+<th>操作</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>A + B</td>
+</tr>
+<tr>
+<td>1</td>
+<td>A - B</td>
+</tr>
+<tr>
+<td>2</td>
+<td>A | B</td>
+</tr>
+<tr>
+<td>3</td>
+<td>B &lt;&lt; 16</td>
+</tr>
+<tr>
+<td>4</td>
+<td>B &lt;&lt; S</td>
+</tr>
+<tr>
+<td>5</td>
+<td>预留</td>
+</tr>
+</tbody></table>
+</blockquote>
+<h4 id="DM"><a href="#DM" class="headerlink" title="DM"></a>DM</h4><table>
+<thead>
+<tr>
+<th>信号名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>clk</td>
+<td>input</td>
+<td>1</td>
+<td>时钟信号</td>
+</tr>
+<tr>
+<td>reset</td>
+<td>input</td>
+<td>1</td>
+<td>复位信号</td>
+</tr>
+<tr>
+<td>address</td>
+<td>input</td>
+<td>32</td>
+<td>操作地址</td>
+</tr>
+<tr>
+<td>write_data</td>
+<td>input</td>
+<td>32</td>
+<td>写入数据</td>
+</tr>
+<tr>
+<td>write_enable</td>
+<td>input</td>
+<td>32</td>
+<td>是否写内存</td>
+</tr>
+<tr>
+<td>out_data</td>
+<td>output</td>
+<td>32</td>
+<td>读出数据</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>Logisim 中，我们的 DM 利用 RAM 实现，RAM 的地址按照字编号，但是在实际的 MIPS 架构中，<code>.space</code> 的地址按照字节编号，这中间差了一个 4 倍。所以如果我们想要读出对应的字，需要将 <code>address</code> 右移 2 位得到 RAM 中对应字的地址。</p>
+</blockquote>
+<h3 id="电路及代码参考"><a href="#电路及代码参考" class="headerlink" title="电路及代码参考"></a>电路及代码参考</h3><p>对应的作业电路以及代码已经放到了我的 Github 仓库中，都能通过课上强测（但也不代表其设计完全合理）。建议大家批判性地参考仓库中内容。</p>
+<p>顶层电路的连接如下图所示，这一工作也可以参考“黑书“和老师的 PPT 来完成。P4 和 P3 没有本质上的区别，完成 P4 比较容易的方式就是对照 P3 的设计图直接实例化各个模块，然后接线。</p>
+<img src="/images/p3p4learn_mips.png" width=100% height=100% align=center/>
 
-<p>然后运行仿真程序。</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><code class="hljs bash">vvp &#123;test_module_name&#125;.out<br></code></pre></td></tr></table></figure>
-
-<p>最后，别忘了把获得的输出写到输出文件中，这一步就交给大家自行完成。</p>
-<h4 id="运行“魔改版”-MARS-获得输出"><a href="#运行“魔改版”-MARS-获得输出" class="headerlink" title="运行“魔改版” MARS 获得输出"></a>运行“魔改版” MARS 获得输出</h4><p>在 P3 的评测中这一步其实可以省略，我们可以直接对拍两份电路，然后比对输出的二进制文件。当然，由于“表格”中每一列对应关系明确，我们可以另外写一份解析程序来获得寄存器和内存的操作信息，与魔改版 MARS 的输出作比对。这一步骤相信对大家来说并不困难，这里就不提供代码了。</p>
-<p>在 P3 和 P4 中，我们的 <code>add</code> 和 <code>sub</code> 指令并不考虑溢出异常，所以我们运行“魔改版” MARS 时也需要忽略溢出，命令行中 <code>ig</code> 参数就起到了这一作用。使用 <code>coL1</code> 参数能够输出对内存和寄存器的操作，<code>coL2</code> 参数能够获得更为详细的输出信息以便 debug，评测时我们只需要使用 <code>coL1</code>。</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><code class="hljs bash"><span class="hljs-variable">$java</span> -jar &#123;machine&#125; &#123;file&#125; mc CompactLargeText coL1 ig<br></code></pre></td></tr></table></figure>
-
-<h4 id="比较输出"><a href="#比较输出" class="headerlink" title="比较输出"></a>比较输出</h4><p>这一部分只需要对输出进行简单的比较。在 P3 和 P4 中，直接比较两份文件（测试模块输出、对拍对象输出）的输出是否相同就可以；P5 中由于同一时刻可能对内存、寄存器均有操作，所以对内存、寄存器的操作需要分开来比较。</p>
-<h3 id="结语"><a href="#结语" class="headerlink" title="结语"></a>结语</h3><p>写到这里，评测机的构造也就慢慢清晰了——无非是数据生成、运行标准程序和待测程序、比较输出这几步，这也是评测机最为常见且容易实现的架构。</p>
-<p>万事开头难，当你初次完成了评测机的搭建，“对拍”部分的代码一般就不会有大的变动了（至少对于 CO 课程来说如此），后续迭代只需要对“数据生成”代码进行调整。数据生成可以说是评测机的“灵魂”——评测效果如何，几乎全看数据强度如何。本文虽然介绍了如何随机生成数据，但是随机的数据并不能覆盖到所有的边界情况。<strong>随机生成结合“手搓”往往才是最优解</strong>。</p>
-<p>希望这篇文章能够“抛砖引玉”，帮助大家搭建起自己的评测机。当你有了不错的评测机，意味着每次课下你都可以进行“强测”，能够尽量多地发现设计中的细节问题，从而可以将更能经受住考验的架构带到课上——上机时不用以 debug 课下“开局”，能将全部心思投入到新增指令上，“一遍过”这时不再是幻想。</p>
-<p>希望在评测机的辅助下，大家能够准备好 bug-free 的设计，能够更有底气、更有自信地进入课上环节，顺利地推进上机测试。</p>
-<p><strong>祝愿大家在计算机组成实验的道路上稳步前行！</strong></p>
+<h3 id="设计建议"><a href="#设计建议" class="headerlink" title="设计建议"></a>设计建议</h3><ol>
+<li><p>我们在课下作业中已经实现了 <code>lw</code> 和 <code>sw</code>，那么也可以利用类似的思路实现对 <code>byte</code> 和 <code>half</code> 的读写，具体读写哪些位由 <code>address</code> 的低两位决定，具体内容参见 MIPS 指令集手册。</p>
+</li>
+<li><p>课上会要求新增一些奇怪的指令，可以试着做如下预留：</p>
+<ul>
+<li>在 CTRL 模块预留 <code>new</code> 输出（判断是否为新增指令）。</li>
+<li>在 ALU 模块预留输出，用于输出其他的判断信号等</li>
+<li>在 DM 模块预留输入接口，应对课上奇怪指令</li>
+</ul>
+<p>新增的指令在寄存器读写、内存读写上的逻辑会比较“独特”，下面我举出一例：</p>
+<blockquote>
+<p>对于新增指令 <code>new</code>，若满足一定条件才写寄存器</p>
+</blockquote>
+<p> 应对方法：改造 <code>RegWrite</code> 信号的生成逻辑，写寄存器的条件是：“是新指令且满足某个条件”或“是一定会写寄存器的指令”。注意输出的“写寄存器”的信号是<strong>经过或门的</strong>！</p>
+ <img src="/images/p3p4learn_1.png" width=60% height=35% align=center/>
+</li>
+<li><p>课下的电路图不要画得太局促，以免课上新增数据通路时难以操作，这一点在 P3 中需要格外注意。P4 及以后都是用 Verilog 描述 CPU，应该不会存在这个问题。</p>
+</li>
+</ol>
+<h3 id="P3-思考题"><a href="#P3-思考题" class="headerlink" title="P3 思考题"></a>P3 思考题</h3><h4 id="问题-1"><a href="#问题-1" class="headerlink" title="问题 1"></a>问题 1</h4><p><strong>上面我们介绍了通过 FSM 理解单周期 CPU 的基本方法。请大家指出单周期 CPU 所用到的模块中，哪些发挥状态存储功能，哪些发挥状态转移功能。</strong></p>
+<ul>
+<li>状态存储：GRF 和 DM 部分。GRF 模块中保存了 32 个寄存器的当前值，这是我们判断自己的 CPU 能够正确工作的重要部分；DM 模块中存储了从指定寄存器加载的数据；GRF、DM 中存储的内容与输入一起，决定了如何向下一个状态转移。</li>
+<li>状态转移：其他能够产生控制信号的部分。控制信号决定我们在这一时刻是否需要读写寄存器、是否需要读写数据存储单元、从哪些寄存器取出值、ALU 作什么运算…… 它们与当前状态存储部分一起，决定了下一个状态应该是什么。</li>
+</ul>
+<h4 id="问题-2"><a href="#问题-2" class="headerlink" title="问题 2"></a>问题 2</h4><p><strong>现在我们的模块中 IM 使用 ROM， DM 使用 RAM， GRF 使用 Register，这种做法合理吗？ 请给出分析，若有改进意见也请一并给出。</strong></p>
+<p>在这个阶段大体是合理的，由于我们不会对指令进行写操作，所以用 ROM 来存储指令足矣。不过，在实际的 MIPS 架构中，指令的起始地址为 0x00003000，而我们 ROM 的起始地址为 0x00000000，这稍显不符合；并且，我们将指令和数据段（data）分开在两个元件中存放，且二者的地址并不连续，这也和实际中的 MIPS 架构有所不同。</p>
+<h4 id="问题-3"><a href="#问题-3" class="headerlink" title="问题 3"></a>问题 3</h4><p><strong>在上述提示的模块之外，你是否在实际实现时设计了其他的模块？如果是的话，请给出介绍和设计的思路。</strong></p>
+<p>具体描述见 Decoder 部分。</p>
+<h4 id="问题-4"><a href="#问题-4" class="headerlink" title="问题 4"></a>问题 4</h4><p><strong>事实上，实现 <code>nop</code> 空指令，我们并不需要将它加入控制信号真值表，为什么？</strong></p>
+<p><code>nop</code> 对应机器码的各个位均为 0，且本质是 <code>sll</code> 指令，这并不在本次课下作业的范围中。并且，若我们不将 <code>nop</code> 指令加入控制信号真值表：</p>
+<ul>
+<li>指定读入的寄存器 rt 为 0，而 <code>$0</code> 的值一直保持为 0，不会发生改变</li>
+<li>信号 <code>MemWrite</code> 设置为 0，不会向 DM 中读入数据，DM 状态不改变</li>
+</ul>
+<p>因此，执行 <code>nop</code> 指令后，电路中状态不会有改变，这也就是执行“空指令”的体现。</p>
+<h4 id="问题-5"><a href="#问题-5" class="headerlink" title="问题 5"></a>问题 5</h4><p><strong>阅读 Pre 的 <a href="http://cscore.buaa.edu.cn/tutorial/mips/mips-6/mips6-1/">“MIPS 指令集及汇编语言”</a> 一节中给出的测试样例，评价其强度（可从各个指令的覆盖情况，单一指令各种行为的覆盖情况等方面分析），并指出具体的不足之处。</strong></p>
+<p>这些样例一定程度上能够完成检测工作，且可以发现 CPU 设计中较明显的问题。不过还有一些不足：</p>
+<ul>
+<li>对于 <code>add</code> 指令，对边界条件（例如 <code>int_max</code> 附近）的测试不够</li>
+<li>对于 <code>lw</code> 和 <code>sw</code> 指令，没有在靠近最大地址的地方进行测试，且设置的 offset 均为 0，不能很好地检测对 base 和 offset 的运算。不过，由于本次实验没有实现 <code>li</code>，<code>addi</code> 等指令，offset 直接设为 0 无疑是最方便的。</li>
+<li>对于  <code>lui</code> 和 <code>ori</code> 指令，可以适当多考虑一些更一般的值（无论正负）</li>
+<li>对于 <code>beq</code> 指令，教程中的样例都是向后跳转，可以考虑添加向前 &#x2F; 原地跳转的情况</li>
+</ul>
+<h3 id="P4-思考题"><a href="#P4-思考题" class="headerlink" title="P4 思考题"></a>P4 思考题</h3><h4 id="问题-1-1"><a href="#问题-1-1" class="headerlink" title="问题 1"></a>问题 1</h4><p><strong>阅读下面给出的 DM 的输入示例中（示例 DM 容量为 4KB，即 32bit × 1024字），根据你的理解回答，这个 addr 信号又是从哪里来的？地址信号 addr 位数为什么是 [11:2] 而不是 [9:0] ？</strong></p>
+<ul>
+<li>addr 信号来自于 ALU，ALU 要对 offset 和 base 作加法运算；</li>
+<li>输入地址是以字为单位寻址的，要求为 4 的整数倍，对应到 DM 元件中需要除以 4 来寻址（即右移 2 位）。[1:0] 这两位可以用于半字、字节为单位的寻址，能预留用于添加 lh，lb 等指令。</li>
+</ul>
+<h4 id="问题-2-1"><a href="#问题-2-1" class="headerlink" title="问题 2"></a>问题 2</h4><p><strong>思考上述两种控制器设计的译码方式，给出代码示例，并尝试对比各方式的优劣。</strong></p>
+<ul>
+<li><p>将指令对应到信号：每个指令需要产生哪些控制信号一目了然，但是代码量较大；</p>
+</li>
+<li><p>将信号对应到指令：可以清楚地看到某个特定信号对应的指令，例如对于 <code>RegWrite</code>，我们可以很快就知道哪些指令需要写寄存器的操作。不过编程时要比较小心，因为不能直观地看到一个指令产生了什么控制信号，容易漏接线。</p>
+</li>
+<li><p>示例代码如下：</p>
+<figure class="highlight smalltalk"><table><tr><td class="code"><pre><code class="hljs smalltalk">//信号到指令<br>assign <span class="hljs-type">RegDst</span> = <br>(add || sub || nop) ? `rd:<br>(ori || lw || lui) ? `rt:<br>(jal) ? `ra:<br>`rd;<br><br>assign <span class="hljs-type">ALUSrc</span> = (ori || lw || sw || lui);<br><br>assign <span class="hljs-type">RegDataSrc</span> =<br>(add || sub || ori || lui || nop) ? `alu:<br>(lw) ? `mem:<br>(jal) ? `pc:<br>`alu;<br>...<br><br>//指令到信号<br>if (add) begin<br>        <span class="hljs-type">MemWrite</span>    =   <span class="hljs-number">0</span>       ;<br>        <span class="hljs-type">RegWrite</span>    =   <span class="hljs-number">1</span>       ;<br>        <span class="hljs-type">Jr</span>          =   <span class="hljs-number">0</span>       ;<br>        <span class="hljs-type">Jump</span>        =   <span class="hljs-number">0</span>       ;<br>        <span class="hljs-type">Branch</span>      =   <span class="hljs-number">0</span>	;<br>        <span class="hljs-type">ExtOp</span>       =   <span class="hljs-number">0</span>	;<br>        <span class="hljs-type">ALUSrc</span>      =   <span class="hljs-number">0</span>	;<br>        <span class="hljs-type">ALUOp</span>       =   `<span class="hljs-type">ADD</span>	；<br>        <span class="hljs-type">RegDst</span>      =   `rd	；<br>end<br>...<br></code></pre></td></tr></table></figure></li>
+</ul>
+<h4 id="问题-3-1"><a href="#问题-3-1" class="headerlink" title="问题 3"></a>问题 3</h4><p><strong>在相应的部件中，复位信号的设计都是同步复位 ，这与 P3 中的设计要求不同。请对比同步复位与异步复位这两种方式的 reset 信号与 clk 信号优先级的关系。</strong></p>
+<ul>
+<li>同步复位：reset 信号低级于 clk 信号，因为只有 clk 处于上升沿时 reset 信号才可能有效；</li>
+<li>异步复位：reset 信号高级于 clk 信号，因为一旦 reset 信号在高电平就复位，无所谓 clk 是否在上升沿。</li>
+</ul>
+<h4 id="问题-4-1"><a href="#问题-4-1" class="headerlink" title="问题 4"></a>问题 4</h4><p><strong>C 语言是一种弱类型程序设计语言。C 语言中不对计算结果溢出进行处理，这意味着 C 语言要求程序员必须很清楚计算结果是否会导致溢出。因此，如果仅仅支持 C 语言，MIPS 指令的所有计算指令均可以忽略溢出。 请说明为什么在忽略溢出的前提下，addi 与 addiu 是等价的，add 与 addu 是等价的。提示：阅读《MIPS32® Architecture For Programmers Volume II: The MIPS32® Instruction Set》中相关指令的 Operation 部分。</strong></p>
+<ul>
+<li>如何判断溢出：将  GPR[rs] 的第 31 位拼接到 GPR[rs] 之前，加法结果记为 temp，如果产生了进位就会溢出，这体现为 temp[32] ≠ temp[31]。</li>
+<li>如果我们不考虑溢出，temp[32] 不会发生变化，也不会被存入到寄存器中，此时存入的结果仍然是两个 32 位数加法得到的结果，addi 与 addiu &#x2F; add 与 addu 是等价的。</li>
+</ul>
+<h3 id="上机提示"><a href="#上机提示" class="headerlink" title="上机提示"></a>上机提示</h3><p>上机一开始就可以将课下提交的电路提交到各题的窗口中进行评测，每道题都有大约一半的数据点是对课下内容的强测，不涉及任何新增指令。如果提交后发现每道题均有约一半的测试点可以通过，那么上机时就不要多去考虑课下的 bug 了。</p>
 ]]></content>
       <categories>
         <category>计算机组成课下</category>
@@ -403,7 +1038,6 @@
       <tags>
         <tag>计算机组成</tag>
         <tag>单周期 CPU</tag>
-        <tag>评测机</tag>
       </tags>
   </entry>
   <entry>
@@ -543,453 +1177,425 @@
       </tags>
   </entry>
   <entry>
-    <title>计算机组成 P7 课下——MIPS 微系统</title>
-    <url>/2025/12/21/p7learn/</url>
-    <content><![CDATA[<h3 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h3><p>在 P7 中，我们需要搭建一个简单的支持<strong>异常</strong>和<strong>中断</strong>的 MIPS 微系统。在之前的 Project 中，我们的 CPU 并没有考虑这些问题（例如： <code>add</code> 指令其实是按照 <code>addu</code> 实现的），但一个合格的处理器不能抛开这些问题不管。</p>
-<p>P7 大约涉及以下几个方面的工作：</p>
-<ol>
-<li><p>在流水线各级检测指令异常，并将异常信息流水；</p>
+    <title>《面向对象设计与构造》第一单元总结</title>
+    <url>/2026/03/31/oo_u1_blog/</url>
+    <content><![CDATA[<h2 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h2><p>第一单元的主题是<strong>表达式展开</strong>，主要训练层次化设计，我们需要对表达式进行解析，对不同类型元素进行建模，抽象出它们在运算上的共同特征，“以不变应万变”，这样我们才可以以尽量少的修改来应对每次新增的需求，降低维护和迭代难度。</p>
+<h2 id="最终架构"><a href="#最终架构" class="headerlink" title="最终架构"></a>最终架构</h2><img src="/images/Hw3.png" width=100% height=100% align=center/>
+
+<h2 id="第一次迭代"><a href="#第一次迭代" class="headerlink" title="第一次迭代"></a>第一次迭代</h2><h3 id="任务"><a href="#任务" class="headerlink" title="任务"></a>任务</h3><p>展开一个形式较为简单的多项式，多项式中各项的因子只能是常数因子、幂函数因子、表达式因子。</p>
+<h3 id="架构分析"><a href="#架构分析" class="headerlink" title="架构分析"></a>架构分析</h3><p>本次作业的架构主要分为以下几部分，这也为后续的作业打下了基础。</p>
+<ul>
+<li>预处理：去除多余的空格和tab符，对表达式作基本的化简（例如 <code>-+</code>化简为 <code>-</code>，<code>*+</code>化简为 <code>*</code>，<code>(+</code>化简为 <code>(</code>……），方便文法解析进行。</li>
+<li>文法解析：使用<strong>递归下降法</strong>分析表达式、项和因子。当解析Factor时碰到了括号，则调用解析Expr的方法。</li>
+<li>表达式组成：Expr→Term→Factor，其中Factor是一个接口，不同的因子都需要实现这个接口。</li>
+<li>表达式转换和运算：使用Mono→Poly结构，若干Mono相加得到一个Poly。本次作业的Mono项形式为：$Ax^b$，这一形式可以统一地表示常数和幂函数，也方便计算。</li>
+</ul>
+<h3 id="具体实现"><a href="#具体实现" class="headerlink" title="具体实现"></a>具体实现</h3><h4 id="表达式解析"><a href="#表达式解析" class="headerlink" title="表达式解析"></a>表达式解析</h4><p>具体的实现在实验课代码中已经给出。和实验课代码不同的是，我将正负号信息保存在 <code>Term</code>类中。正负号信息主要用于决定各个Mono的系数，所以它主要在“元素→Mono&#x2F;Poly”的部分发挥作用，至于后续的计算，我们并不需要具体的正负号信息。</p>
+<h4 id="表达式计算"><a href="#表达式计算" class="headerlink" title="表达式计算"></a>表达式计算</h4><p>这里借鉴了往届同学的写法，Expr，Poly，Factor等元素都实现了 <code>toPoly</code>方法，最后的计算就可以统一为<strong>多项式计算</strong>。运用基本的数学知识，<code>addPoly()</code>，<code>multPoly()</code>，<code>powerPoly()</code>等方法的编写是容易完成的。</p>
+<ul>
+<li><p>转化为Poly</p>
+<ul>
+<li>对于NumFactor和PowerFactor，转化为仅含一个Mono的Poly，在Mono中设置好系数和变量幂次即可。</li>
+<li>对于Term，将各个Factor转化出的Poly进行 <code>multPoly()</code>即可。特别地，如果这个Term的符号为 <code>-</code>，还需要对各个Mono的系数取相反数。</li>
+<li>对于Expr，将各个Term转化出的Poly进行 <code>addPoly()</code>即可。</li>
+</ul>
 </li>
-<li><p>在 M 级添加协处理器 CP0；</p>
+<li><p>Poly的计算</p>
+<ul>
+<li>重点是实现同类项的判定。这一作业的同类项判定很简单，只需要判断幂次相等即可。</li>
+<li>在 <code>addPoly</code>中实现同类项合并，这依赖于同类项的判定。同类项合并的好处是节省存储空间，也有利于优化输出。</li>
+<li>在 <code>addPoly</code>中完成0系数项的丢弃，节省空间，也能防止 <code>multPoly</code>和 <code>powerPoly</code>方法运行时占用过高内存。</li>
+</ul>
 </li>
-<li><p>添加 Bridge 实现 CPU 与外设的交互。</p>
+</ul>
+<h4 id="表达式输出"><a href="#表达式输出" class="headerlink" title="表达式输出"></a>表达式输出</h4><p>总体来说，表达式的输出是一个按照文法层次递归调用的过程。由于我们将各个元素统一成了Mono&#x2F;Poly的形式，所以这一工作的本质是处理好Mono&#x2F;Poly的输出。而Poly的输出又循环调用了Mono的输出，所以Mono的输出逻辑最为关键。</p>
+<p>Mono的输出处理大致可以分为以下几种情况：</p>
+<ul>
+<li>系数为0：不用输出。</li>
+<li>系数不为0，幂次为0：将系数直接输出即可。</li>
+<li>系数和幂次全不为0：<ul>
+<li>系数为±1：可以把“1”省略，只输出前面的正负号以及后面的PowerFactor。PowerFactor的输出逻辑也较为简单，遇到0次幂输出“1”，遇到1次幂输出“x”，其他幂次正常输出。</li>
+<li>系数不为±1：正常输出即可。</li>
+</ul>
 </li>
-<li><p>对流水线进行其他调整（清空逻辑、转发阻塞逻辑等）</p>
+</ul>
+<p>对于最终结果的输出，如果之前自下而上构建的输出字符串为空，则输出“0”，其他情况正常输出即可。为了优化输出长度，可以将输出表达式再进行处理（和输入处理一样，应用 <code>Processor</code>类），且输出时可以省略最开头的“+”号。</p>
+<h2 id="第二次迭代"><a href="#第二次迭代" class="headerlink" title="第二次迭代"></a>第二次迭代</h2><h3 id="任务-1"><a href="#任务-1" class="headerlink" title="任务"></a>任务</h3><p>新增exp因子、选择式因子 <code>[(A==B)?C:D]</code>、函数因子 <code>f(x)</code>。</p>
+<h3 id="架构分析-1"><a href="#架构分析-1" class="headerlink" title="架构分析"></a>架构分析</h3><p>相比第一次作业，架构有了以下调整。</p>
+<ul>
+<li>新增因子类：<code>ExpFactor</code>，<code>SelectFactor</code>，<code>FuncFactor</code>。</li>
+<li>新增函数解析与存储类：<code>FuncManager</code>。</li>
+<li>由于String→Expr，String→Poly操作会被复用，所以单独建立 <code>StrPolyExchanger</code>类。</li>
+<li>在 <code>Poly</code>类中新增方法 <code>judgeEqual</code>用于多项式判等（原理：<code>A==B</code>则必有 <code>A+B.negative==0</code>）。这一方法在同类项判定、选择表达式计算等场景会被反复使用。</li>
+</ul>
+<h3 id="具体实现-1"><a href="#具体实现-1" class="headerlink" title="具体实现"></a>具体实现</h3><h4 id="表达式解析-1"><a href="#表达式解析-1" class="headerlink" title="表达式解析"></a>表达式解析</h4><ul>
+<li><p>选择式因子</p>
+<p>将选择式因子中涉及到的4个因子分别解析为Factor后存储起来，但这时不能盲目地将因子C和因子D转化为Poly形式：不被选中的那个因子可能极为复杂，如果我们立即将它转化为Poly，则会浪费大量时间。下面的例子充分地说明了“短路处理”的必要性。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java">f(x)=exp(x)+exp(x^<span class="hljs-number">2</span>)+exp(x^<span class="hljs-number">3</span>)+exp(x^<span class="hljs-number">4</span>)<br>[(<span class="hljs-number">0</span>==<span class="hljs-number">0</span>)?<span class="hljs-number">1</span>:f(f(f(f(x))))]<br></code></pre></td></tr></table></figure>
 </li>
-</ol>
-<h3 id="异常检测与流水"><a href="#异常检测与流水" class="headerlink" title="异常检测与流水"></a>异常检测与流水</h3><p>按照指导书要求，P7 的异常分为“内部异常”和“外部中断”，其中<strong>后者优先级更高</strong>，这一点在编写 CP0 相关代码时需要注意。</p>
-<h4 id="异常检测"><a href="#异常检测" class="headerlink" title="异常检测"></a>异常检测</h4><p>对于异常的检测，<strong>不能</strong>全部到 M 级（CP0 所在流水级）才检测。以 PC 不合法异常为例，如果我们不在 F 级检测这一异常并将指令机器码当作 0x00000000，我们的 CPU 就会尝试访问不合法的指令内存地址，这是不安全的。所以，最好尽早检测异常。</p>
-<p>教程的异常代码表格中给出了多种异常，我们可以进行如下分类，在不同的流水级检测不同的异常。</p>
+<li><p>函数因子</p>
+<p>函数因子的解析分为以下几步。</p>
+<ul>
+<li>读入函数定义后，先预处理并化简（展开）<code>f(x)</code>的表达式，以方便后续实参带入计算。使用HashMap存储函数的信息，key为函数名 <code>f</code>，value为展开后的 <code>f(x)</code>定义式。</li>
+<li>在最后一行的表达式读到 <code>f</code>则代表出现了一处函数，接下来递归解析函数实参，并创建对象 <code>FuncFactor(funcName, realArg)</code>。</li>
+<li>如果<strong>需要</strong>具体计算这个函数，则将 <code>realArg</code>转化为字符串，然后<strong>直接替换</strong>掉 <code>f(x)</code>定义式中的形参 <code>x</code>，得到代入后的表达式。注意 <code>exp</code>中的 <code>x</code>不可以被替换，所以需要判定 <code>x</code>的前后是否都是字母，如果是，则不能替换。</li>
+<li>将代入实参后的函数表达式转化为Poly参与计算。</li>
+</ul>
+</li>
+</ul>
+<h4 id="表达式计算-1"><a href="#表达式计算-1" class="headerlink" title="表达式计算"></a>表达式计算</h4><ul>
+<li><p>调整Mono的组成：$Ax^b$以及一系列exp因子的乘积（用 <code>ArrayList</code>存储）。</p>
+</li>
+<li><p>同类项判定：</p>
+<ul>
+<li>x的幂次相等。如果幂次不等，应当直接<strong>熔断</strong>，不要在exp项的判等上浪费时间。这一简单的操作作用不小，尤其是碰到含有大量exp因子但x幂次各不相同的样例时。</li>
+<li>由于两个Mono中exp因子数量和形式差异很大，所以exp项是否相等要具体计算。将多个exp的乘积表示为单个exp因子的形式（将各个exp项的指数相加即可），判定新的“单exp”的指数项是否相等。例如，MonoA中含有<code>exp(a)</code>和<code>exp(b)</code>，MonoA中含有<code>exp(c)</code>和<code>exp(d)</code>，此时要判断的是<code>a+b==c+d</code>是否成立。</li>
+</ul>
+</li>
+<li><p>利用部分因子的不变性：在我的实现中，exp因子不可变，每涉及到exp的计算都会创建新的对象，而不改变当前已有对象。所以可以将exp指数项的Poly形式存储好，需要的时候直接拿取即可，而不需要重复地将同一个Expr转化为Poly。由于同类项的判定需要反复用到exp的指数项的Poly形式，这一处理的效果相当明显。</p>
+</li>
+<li><p>只在真正需要计算的时候才进行计算：在函数因子解析与计算中，需要代入实参，将Expr类的实参转化为String会相当消耗时间（如果实参极为复杂），所以这一操作只在必要时才会进行，如下面代码所示。对于exp项转化为Poly形式，也应当遵循这一原则。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> Poly <span class="hljs-title function_">toPoly</span><span class="hljs-params">()</span> &#123;<br>    <span class="hljs-keyword">if</span> (realArgStrings == <span class="hljs-literal">null</span>) &#123;<br>        realArgStrings = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ArrayList</span>&lt;&gt;();<br>        <span class="hljs-keyword">for</span> (Expr arg : realArgs) &#123;<br>            realArgStrings.add(Processor.process(arg.toPoly().toString()));<br>        &#125;<br>    &#125;<br>    convertedExpr = convert();<br>    result = convertedExpr.toPoly();<br>    <span class="hljs-keyword">return</span> result;<br>&#125;<br></code></pre></td></tr></table></figure></li>
+</ul>
+<h4 id="表达式输出-1"><a href="#表达式输出-1" class="headerlink" title="表达式输出"></a>表达式输出</h4><p>主要增加了exp的输出逻辑。</p>
+<ul>
+<li><p>exp指数为0，直接输出“+1”即可。</p>
+</li>
+<li><p>若exp的指数项是单个因子，则可以省略一层括号。判定指数项是“单个因子”的过程如下，这里检查的是指数的Poly形式。</p>
+<ul>
+<li>这个Poly是否只由1个Mono组成。</li>
+<li>这个Mono中，x的幂次是否为0。</li>
+<li>这个Mono中，exp因子的指数项是否为0。</li>
+</ul>
+</li>
+</ul>
+<h2 id="第三次迭代"><a href="#第三次迭代" class="headerlink" title="第三次迭代"></a>第三次迭代</h2><h3 id="任务-2"><a href="#任务-2" class="headerlink" title="任务"></a>任务</h3><p>新增变量 <code>y</code>；新增求导因子 <code>dx</code>&#x2F;<code>dy</code>&#x2F;<code>grad</code>；新增递归函数因子 <code>f{n}(x)</code>。</p>
+<h3 id="架构分析-2"><a href="#架构分析-2" class="headerlink" title="架构分析"></a>架构分析</h3><p>相比第二次作业，架构有了以下调整。</p>
+<ul>
+<li><p>新增因子类：<code>DeriveFactor</code>。其中标识符 <code>deriveX</code>，<code>deriveY</code>标识了结果中是否需要包含对x&#x2F;y变量求导，这将不同的求导因子的表示进行了统一。</p>
+</li>
+<li><p>调整函数解析与计算相关类：</p>
+<ul>
+<li><p><code>FuncFactor</code>类：增加属性 <code>layer</code>，如果 <code>layer == -1</code>，代表是一个普通函数；反之，代表这是一个递归函数，需要计算对应层次的函数定义式。这做到了不同函数形式的统一。</p>
+</li>
+<li><p><code>FuncManager</code>类：</p>
+<ul>
+<li>增加 <code>RecursiveFuncMap</code>对递归函数进行存储。key值 <code>HashMap&lt;String, Integer&gt;</code>即为 <code>&lt;函数名，递归层数&gt;</code>，value为 <code>f{i}</code>的定义式。</li>
+<li>对于递归函数形式 <code>f{n}(x) = 常数因子 * f{n-1}(因子) +|- 常数因子 * f{n-2}(因子) [+|- 函数表达式]</code>，对应地记录 <code>recursiveCoeffA</code>（常数因子），<code>recursiveCoeffB</code>，<code>recursiveArgA</code>（实参），<code>recursiveArgB</code>，<code>recursiveAlterExpr</code>（跟在最后的可有可无的函数表达式）。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="具体实现-2"><a href="#具体实现-2" class="headerlink" title="具体实现"></a>具体实现</h3><h4 id="表达式解析-2"><a href="#表达式解析-2" class="headerlink" title="表达式解析"></a>表达式解析</h4><p>工作的重心在递归函数的解析上。</p>
+<ul>
+<li><p>输入处理</p>
+<ul>
+<li><p>如果读取到 <code>f{0}</code>和 <code>f{1}</code>， 直接向 <code>RecursiveFuncMap</code>写入定义式。</p>
+</li>
+<li><p>如果读取到 <code>f{n}</code></p>
+<ul>
+<li>读取系数，直到碰到 <code>*</code>符号。</li>
+<li>读取实参，由于实参中会有括号的嵌套，所以需要维护一个变量 <code>count</code>来记录不匹配的括号数量。若 <code>count == 0</code>，这代表读取到了 <code>f(&lt;因子&gt;)</code>最右端的那个括号，实参读取完成。</li>
+<li>读取最后附加的表达式（条件：读取完第二个实参，<code>pos</code>还没到最末尾）。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>表达式中的递归函数</p>
+<p>读取到 <code>f</code>，代表是函数因子；若后续字符是 <code>{</code>，相应地读取一个Number作为函数层数参数，否则当作普通函数对待，认为 <code>layer == -1</code>；读取实参的步骤不用变化。</p>
+</li>
+<li><p>递归函数定义式计算</p>
+<ul>
+<li>对于传入的 <code>&lt;函数名，递归层数&gt;</code>，先在 <code>RecursiveFuncMap</code>中查找是否存在对应的key和value，如果有，直接调用即可。</li>
+<li>否则，寻找已经计算过的最大 <code>layer</code>，并基于先前的信息逐个计算第 <code>layer+1</code>层至第 <code>n</code>层的定义式。若计算 <code>f{i}(x)</code>，从 <code>RecursiveFuncMap </code>中读出 <code>f{i-1}</code>和 <code>f{i-2}</code>的定义式，替换实参，并拼接上 <code>recursiveCoeffA </code>，<code>recursiveCoeffB </code>，<code>recursiveArgA </code>（实参），<code>recursiveArgB </code>，<code>recursiveAlterExpr </code>信息，最后计算出 <code>f{i}(x)</code>的定义式并存储起来。</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> String <span class="hljs-title function_">calcRecursiveFunc</span><span class="hljs-params">(String funcName, <span class="hljs-type">int</span> layer)</span> &#123;<br>  HashMap&lt;String, Integer&gt; key = <span class="hljs-keyword">new</span> <span class="hljs-title class_">HashMap</span>&lt;&gt;();<br>  key.put(funcName, layer);<br>  <span class="hljs-keyword">if</span> (recursiveFuncMap.containsKey(key)) &#123;<br>      <span class="hljs-keyword">return</span> recursiveFuncMap.get(key);   <span class="hljs-comment">// 如果有就不再计算</span><br>  &#125;<br><br>  <span class="hljs-comment">// 寻找已经计算过的最大阶数</span><br>  <span class="hljs-type">int</span> <span class="hljs-variable">maxLayer</span> <span class="hljs-operator">=</span> <span class="hljs-number">0</span>;<br>  <span class="hljs-keyword">for</span> (HashMap&lt;String, Integer&gt; hashKey : recursiveFuncMap.keySet()) &#123;<br>      maxLayer = Math.max(maxLayer, hashKey.get(funcName));<br>  &#125;<br>  <span class="hljs-comment">// System.out.println(&quot;current max layer: &quot; + maxLayer);</span><br><br>  <span class="hljs-comment">// 依次计算到所需阶数</span><br>  <span class="hljs-keyword">for</span> (<span class="hljs-type">int</span> <span class="hljs-variable">i</span> <span class="hljs-operator">=</span> maxLayer + <span class="hljs-number">1</span>; i &lt;= layer; i++) &#123;<br>      <span class="hljs-keyword">final</span> <span class="hljs-type">Poly</span> <span class="hljs-variable">coeAPoly</span> <span class="hljs-operator">=</span> Poly.intToPoly(recursiveCoeffA);<br>      <span class="hljs-keyword">final</span> <span class="hljs-type">Poly</span> <span class="hljs-variable">coeBPoly</span> <span class="hljs-operator">=</span> Poly.intToPoly(recursiveCoeffB);<br>      <span class="hljs-keyword">final</span> <span class="hljs-type">Poly</span> <span class="hljs-variable">alterPoly</span> <span class="hljs-operator">=</span> StrPolyExchanger.exchange(recursiveAlterExpr, <span class="hljs-literal">false</span>);<br><br>      HashMap&lt;String, Integer&gt; funcKey = <span class="hljs-keyword">new</span> <span class="hljs-title class_">HashMap</span>&lt;&gt;();<br>      funcKey.put(funcName, i - <span class="hljs-number">1</span>);<br>      <span class="hljs-keyword">final</span> <span class="hljs-type">String</span> <span class="hljs-variable">funcDefA</span> <span class="hljs-operator">=</span> recursiveFuncMap.get(funcKey);<br>      ArrayList&lt;String&gt; argList = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ArrayList</span>&lt;&gt;();<br>      argList.add(recursiveArgA);<br>      <span class="hljs-keyword">final</span> <span class="hljs-type">Poly</span> <span class="hljs-variable">funAPoly</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">FuncFactor</span>(funcDefA, argList).toPoly();<br><br>      funcKey.clear();<br>      funcKey.put(funcName, i - <span class="hljs-number">2</span>);<br>      <span class="hljs-keyword">final</span> <span class="hljs-type">String</span> <span class="hljs-variable">funcDefB</span> <span class="hljs-operator">=</span> recursiveFuncMap.get(funcKey);<br>      argList.clear();<br>      argList.add(recursiveArgB);<br>      <span class="hljs-keyword">final</span> <span class="hljs-type">Poly</span> <span class="hljs-variable">funBPoly</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">FuncFactor</span>(funcDefB, argList).toPoly();<br><br>      funcKey.clear();<br>      funcKey.put(funcName, i);<br>      <span class="hljs-type">String</span> <span class="hljs-variable">funcDef</span> <span class="hljs-operator">=</span><br>              coeAPoly.multPoly(funAPoly).<br>                      addPoly(coeBPoly.multPoly(funBPoly)).<br>                      addPoly(alterPoly).toString();<br>      recursiveFuncMap.put(funcKey, Processor.process(funcDef));<br>  &#125;<br><br>  <span class="hljs-comment">// 拿取结果</span><br>  <span class="hljs-keyword">return</span> recursiveFuncMap.get(key);<br>&#125;<br></code></pre></td></tr></table></figure></li>
+</ul>
+<h4 id="表达式计算-2"><a href="#表达式计算-2" class="headerlink" title="表达式计算"></a>表达式计算</h4><ul>
+<li><p>调整Mono的组成：新增了y的幂次项$y^c$。</p>
+</li>
+<li><p>同类项判定：新增对y的幂次是否相等的判定即可。</p>
+</li>
+<li><p>求导运算的融入：</p>
+<ul>
+<li>为了统一，求导的对象是各个元素转化出来的Poly，Poly的导数又可以分解为各个Mono的导数之和，所以重点是Mono导数的计算。Mono形式固定，计算起来也方便。</li>
+<li>为方便计算，这里选择将exp因子先合并为“单个exp因子”，这和第二次作业判定exp同类项中相关操作无异。这时Mono可以被表示成$A\cdot x^b\cdot y^c \cdot \mathrm{exp}(Expr)^d$。</li>
+<li>Mono的导数：调用 <code>derive</code>方法后，直接返回如下的Poly即可。</li>
+</ul>
+<p>$$<br>A\cdot \mathrm{d}(x^b)\cdot y^c \cdot \mathrm{exp}(Expr)^d +<br>A\cdot x^b\cdot \mathrm{d}(y^c) \cdot \mathrm{exp}(Expr)^d +<br>A\cdot x^b\cdot y^c \cdot \mathrm{d}(\mathrm{exp}(Expr)^d)<br>$$</p>
+</li>
+</ul>
+<h2 id="后续可行的迭代场景"><a href="#后续可行的迭代场景" class="headerlink" title="后续可行的迭代场景"></a>后续可行的迭代场景</h2><ul>
+<li><p>新增三角函数的运算</p>
+<ul>
+<li>新增三角函数因子 <code>sin(Expr)</code>和 <code>cos(Expr)</code>。</li>
+<li>Mono中还需要有一个三角函数项的 <code>ArrayList</code>。</li>
+<li>对于同类项的判定影响：因为三角函数的相乘形式难以简化，只能依次比较每一个sin&#x2F;cos项的内部表达式是否相等。当然，$\sin(x)$和$\sin(-x)$也可以被认为是同类项。</li>
+<li>对于化简的影响：三角函数的化简几乎只能依赖和差化积&#x2F;积化和差、$\sin^2(x)+\cos^2(x)&#x3D;1$，额外的判定和比较逻辑相当复杂，不过 <code>judgeEqualPoly</code>方法仍然是有用的。此外，可以将$\sin(0)$和$\cos(0)$等特殊三角函数直接转化为常数因子来节省存储空间。</li>
+</ul>
+</li>
+<li><p>新增含有多个参量的函数定义式</p>
+<ul>
+<li>重点是处理“，”分隔符，主要对 <code>FuncManager</code>类产生影响，如果不太复杂，直接字符串替换进行实参带入的方法仍然可以撑过去。</li>
+</ul>
+</li>
+</ul>
+<h2 id="作业中采用的优化"><a href="#作业中采用的优化" class="headerlink" title="作业中采用的优化"></a>作业中采用的优化</h2><ul>
+<li>第一次作业：合并同类项。</li>
+<li>第二次作业：<ul>
+<li>正项提前输出。例如 <code>1-x</code>的长度优于 <code>-x+1</code>。</li>
+<li>将多个exp项的乘积合并输出。例如$\exp{(A)}\times \exp{(B)} &#x3D; \exp{(AB)}$。</li>
+<li>提取exp指数项的公因式到幂次上。例如$\exp{(2x+2x^2)}&#x3D;[\exp{(x+x^2)}]^2$。（这一个优化并不总能取到最优结果，例如$\exp{(98x+94x^2)}&#x3D;[\exp{(49x+47x^2)}]^2$，反而导致输出更长。听说有同学似乎会穷举公因子&#x2F;状态压缩DP以寻求最短输出，不过我比较保守，并且代码上也不太会写。）</li>
+<li>exp的指数项若只有单个因子，则省略一层括号。</li>
+</ul>
+</li>
+<li>第三次作业：新引入的因子都被转化为带符号整数、幂函数、指数函数的组合形式参与计算，所以不需要改动优化部分的主体。在本次作业的bug修复中，减少了重复操作，提高了运行效率。</li>
+</ul>
+<h2 id="复杂度分析"><a href="#复杂度分析" class="headerlink" title="复杂度分析"></a>复杂度分析</h2><h3 id="分析指标"><a href="#分析指标" class="headerlink" title="分析指标"></a>分析指标</h3><p>Metrics工具中提供了如下的复杂度分析的指标，这里选择一部分列出。</p>
+<ul>
+<li><p>Method Metrics</p>
 <table>
 <thead>
 <tr>
-<th>检测流水级</th>
-<th>异常类型</th>
+<th>指标名称</th>
+<th>含义</th>
+<th>解释</th>
 </tr>
 </thead>
 <tbody><tr>
-<td>F</td>
-<td>PC 不合法</td>
+<td>CogC</td>
+<td>认知复杂度</td>
+<td>衡量代码阅读和理解的难度。嵌套越深（如多层if&#x2F;for），分数越高。</td>
 </tr>
 <tr>
-<td>D</td>
-<td>未知指令、Syscall</td>
+<td>ev(G)</td>
+<td>基本复杂度</td>
+<td>衡量代码的非结构化程度。分数越高，代码越“乱”，难以模块化和维护。</td>
 </tr>
 <tr>
-<td>E</td>
-<td>ALU 溢出（算术溢出 &#x2F; 读写地址计算溢出）</td>
+<td>iv(G)</td>
+<td>设计复杂度</td>
+<td>衡量方法之间的调用紧密程度。分数高说明模块耦合紧，集成测试时需更多用例。</td>
 </tr>
 <tr>
-<td>M</td>
-<td>读写地址不合法</td>
+<td>v(G)</td>
+<td>圈复杂度</td>
+<td>衡量一个方法中独立路径的条数。v(G)&#x3D;分支判断数+1，代表测试该方法所需的最少用例数。</td>
 </tr>
 </tbody></table>
-<h4 id="异常流水"><a href="#异常流水" class="headerlink" title="异常流水"></a>异常流水</h4><p>关于检测到的异常不可以直接提交到 CP0 的原因，教程中给出了详细解释，这里不赘述。在上一部分，我们在 M 级及之前的每一个流水级进行了异常检测，这里我们只需要将异常代码通过流水线寄存器进行流水。关于异常的流水，有两个注意点：</p>
-<ol>
-<li><p>对于不同的两条异常指令，先执行的指令的异常更优先（<strong>精确异常</strong>要求的体现）；</p>
 </li>
-<li><p>对于同一条指令的多个异常，在更靠前的流水级检出的异常更优先（<strong>尽早发现</strong>异常）。例如，一条指令在 F、D 级都被检出了异常，异常码以 F 级给出的为准，下面这段代码可以体现这一点。</p>
-</li>
-</ol>
-<figure class="highlight verilog"><table><tr><td class="code"><pre><code class="hljs verilog"><span class="hljs-keyword">assign</span> D_exceptionCode = <br>(D_exceptionCodeTemp != <span class="hljs-number">1</span>) ? D_exceptionCodeTemp : <br>(D_Syscall) ? `cp0_Syscall :<br>(D_RI) ? `cp0_RI :<br><span class="hljs-number">1</span>;<br><br><span class="hljs-comment">//D_exceptionCodeTemp 由 F_exceptionCode 流水而来</span><br></code></pre></td></tr></table></figure>
-
-<h3 id="添加协处理器-CP0"><a href="#添加协处理器-CP0" class="headerlink" title="添加协处理器 CP0"></a>添加协处理器 CP0</h3><p>这里我选择将 CP0 放置在 <strong>M 级</strong>，因为异常判定涉及到对内存读写地址的判定。一般情况下，内存读写地址在 E 级 ALU 部件得出，经过 E → M 流水寄存器后传递给 M 级部件。因此，将 CP0 放在 M 级是更为方便的，这样一来不需要添加额外的转发通路。（大多数人会将 CP0 放置在 M 级，如果想要后续对拍方便，我建议“随大流”。）</p>
-<h4 id="CP0-端口设计"><a href="#CP0-端口设计" class="headerlink" title="CP0 端口设计"></a>CP0 端口设计</h4><table>
+<li><p>Class Metrics</p>
+<table>
 <thead>
 <tr>
-<th>端口名</th>
-<th>方向</th>
-<th>位宽</th>
+<th>指标名称</th>
 <th>含义</th>
+<th>解释</th>
 </tr>
 </thead>
 <tbody><tr>
-<td>clk</td>
-<td>in</td>
-<td>1</td>
+<td>WMC</td>
+<td>总圈复杂度</td>
+<td>将类中所有方法的v(G)值累加得到。数值过高说明类的职责可能过多，应遵循单一职责原则，将其拆分为多个更小、更专注的类。</td>
+</tr>
+<tr>
+<td>OCavg</td>
+<td>平均圈复杂度</td>
+<td>OCavg&#x3D;WMC&#x2F;类中方法总数。它反映了一个类的平均方法复杂度。如果OCavg值较高，说明该类中的大部分方法都比较复杂，代码的可读性和可测试性整体偏低。</td>
+</tr>
+<tr>
+<td>OCmax</td>
+<td>最大圈复杂度</td>
+<td>类中所有方法的v(G)的最大值。</td>
+</tr>
+</tbody></table>
+</li>
+</ul>
+<h3 id="分析结果"><a href="#分析结果" class="headerlink" title="分析结果"></a>分析结果</h3><p>为节省篇幅，这里只标出复杂度得分过高的方法和类。</p>
+<h4 id="高复杂度的方法"><a href="#高复杂度的方法" class="headerlink" title="高复杂度的方法"></a>高复杂度的方法</h4><table>
+<thead>
+<tr>
+<th>方法名称</th>
+<th>CovG</th>
+<th>ev(G)</th>
+<th>iv(G)</th>
+<th>v(G)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ExpFactor.toString()</td>
 <td></td>
-</tr>
-<tr>
-<td>reset</td>
-<td>in</td>
-<td>1</td>
-<td></td>
-</tr>
-<tr>
-<td>writeEnable</td>
-<td>in</td>
-<td>1</td>
-<td>是否写 CP0</td>
-</tr>
-<tr>
-<td>CP0Addr</td>
-<td>in</td>
-<td>5</td>
-<td>写 CP0 寄存器地址</td>
-</tr>
-<tr>
-<td>CP0In</td>
-<td>in</td>
-<td>32</td>
-<td>写入 CP0 的数据</td>
-</tr>
-<tr>
-<td>CP0Out</td>
-<td>out</td>
-<td>32</td>
-<td>从 CP0 读出的数据</td>
-</tr>
-<tr>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>M_PC</td>
-<td>in</td>
-<td>32</td>
-<td>M 级 PC（宏观 PC）</td>
-</tr>
-<tr>
-<td>BDIn</td>
-<td>in</td>
-<td>1</td>
-<td>是否是延迟槽指令</td>
-</tr>
-<tr>
-<td>ExcCodeIn</td>
-<td>in</td>
-<td>5</td>
-<td>异常码</td>
-</tr>
-<tr>
-<td>HWInt</td>
-<td>in</td>
 <td>6</td>
-<td>外部中断信息，<code>&#123;&#123;3&#39;b000&#125;,&#123;interrupt&#125;,&#123;timer1IRQ&#125;,&#123;timer0IRQ&#125;&#125;</code></td>
-</tr>
-<tr>
-<td>EXLClear</td>
-<td>in</td>
-<td>1</td>
-<td>清空 EXL 位</td>
-</tr>
-<tr>
-<td>EPCOut</td>
-<td>out</td>
-<td>32</td>
-<td>受害 PC</td>
-</tr>
-<tr>
-<td>Request</td>
-<td>out</td>
-<td>1</td>
-<td>异常处理请求</td>
-</tr>
-<tr>
-<td>externalInterruptRequest</td>
-<td>out</td>
-<td>1</td>
-<td>是否响应外部中断器中断信号 <code>interrupt</code></td>
-</tr>
-</tbody></table>
-<h4 id="异常处理请求"><a href="#异常处理请求" class="headerlink" title="异常处理请求"></a>异常处理请求</h4><p>异常处理请求的条件：发生外部中断或内部异常，且<strong>中断被允许</strong>。由于教程中给出的异常码表中不包含“1”，所以我用 <code>ExcCodeIn == 1</code> 表示无内部异常的情况。</p>
-<ul>
-<li><p>响应外部中断（INT）：</p>
-<ol>
-<li><p>全局中断使能（<code>SR[0] == 1</code>）</p>
-</li>
-<li><p>当前不在核心态（<code>SR[1] == 0</code>）</p>
-</li>
-<li><p>外部有中断且对应中断被允许（<code>HWInt &amp; SR[15:10] != 0</code>）</p>
-</li>
-</ol>
-</li>
-<li><p>响应内部异常（EXC）：  </p>
-<ol>
-<li><p>当前不在核心态（<code>SR[1] == 0</code>）</p>
-</li>
-<li><p>有内部异常（<code>ExcCodeIn != 1 &amp;&amp; ExcCodeIn != 0</code>）</p>
-</li>
-</ol>
-</li>
-</ul>
-<h4 id="记录异常"><a href="#记录异常" class="headerlink" title="记录异常"></a>记录异常</h4><p>当检测到异常时，需要向 SR、Cause 和 EPC 寄存器中写入信息。对于每个寄存器的特定位，需要写入的信息如下：</p>
-<table>
-<thead>
-<tr>
-<th>寄存器</th>
-<th>位域</th>
-<th>写入信息</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>SR</td>
-<td>1</td>
-<td>写入 1，因为检测到异常</td>
-</tr>
-<tr>
-<td>Cause</td>
-<td>31</td>
-<td>是延迟槽指令则写入 1</td>
-</tr>
-<tr>
-<td>Cause</td>
-<td>15:10</td>
-<td>每周期更新，传入 <code>HWInt</code></td>
-</tr>
-<tr>
-<td>Casue</td>
-<td>6:2</td>
-<td>异常码</td>
-</tr>
-<tr>
-<td>EPC</td>
 <td></td>
-<td>受害 PC，注意延迟槽指令的受害 PC 为 M_PC - 4</td>
-</tr>
-</tbody></table>
-<p>需要注意的是，由于外部中断优先级更高，则响应外部中断时，即使该指令有内部异常，也需要向 <code>Cause[6:2]</code> 中写入<strong>外部中断异常码</strong>。</p>
-<h4 id="EXL-位清空"><a href="#EXL-位清空" class="headerlink" title="EXL 位清空"></a>EXL 位清空</h4><p>EXL 位置 1 代表强制进入核心态（执行异常处理程序），则当异常处理程序执行完成时，需要退出核心态。在 P7 中，<code>eret</code> 指令负责跳转到 EPC 执行接下来的主程序，所以 M 级检测到 <code>eret</code> 指令时（这个信号可以从 D 级流水过来），<code>EXLClear</code> 应当置 1，且 EXL 位应当被清空。</p>
-<h4 id="CP0-的读写"><a href="#CP0-的读写" class="headerlink" title="CP0 的读写"></a>CP0 的读写</h4><p>与 D 级 GRF 部件的读写操作没有本质上不同，这里不再赘述。</p>
-<h3 id="实现与外设的交互"><a href="#实现与外设的交互" class="headerlink" title="实现与外设的交互"></a>实现与外设的交互</h3><h4 id="系统桥"><a href="#系统桥" class="headerlink" title="系统桥"></a>系统桥</h4><p>系统桥 Bridge 需要实现对外设的读写操作。在这一部分，外设指两个 Timer。我们可以通过 Bridge 向 Timer 的特定寄存器（有对应地址）中写入数据，也可以从 Timer 读出数据（例如中断信号，HWInt 是需要的）。</p>
-<table>
-<thead>
-<tr>
-<th>端口名</th>
-<th>方向</th>
-<th>位宽</th>
-<th>含义</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>addrIn</td>
-<td>in</td>
-<td>32</td>
-<td>写 Timer 的地址</td>
+<td></td>
 </tr>
 <tr>
-<td>dataIn</td>
-<td>in</td>
-<td>32</td>
-<td>写 Timer 的数据</td>
+<td>Mono.isAddable(Mono)</td>
+<td></td>
+<td>5</td>
+<td></td>
+<td></td>
 </tr>
 <tr>
-<td>byteEnable</td>
-<td>in</td>
+<td>Mono.mergeExpFactors()</td>
+<td></td>
+<td>5</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Mono.toString()</td>
+<td>29</td>
+<td>7</td>
+<td>12</td>
+<td>15</td>
+</tr>
+<tr>
+<td>Poly.addPoly(Poly)</td>
+<td></td>
 <td>4</td>
-<td>写对应地址的哪些字节</td>
-</tr>
-<tr>
-<td>addrOut</td>
-<td>out</td>
-<td>32</td>
-<td>连接 Timer 地址输入端</td>
-</tr>
-<tr>
-<td>dataOut</td>
-<td>out</td>
-<td>32</td>
-<td>连接 Timer 地址输出端</td>
-</tr>
-<tr>
-<td>timerWrite0</td>
-<td>out</td>
-<td>1</td>
-<td>连接 Timer0 写使能端</td>
-</tr>
-<tr>
-<td>timerWrite1</td>
-<td>out</td>
-<td>1</td>
-<td>连接 Timer1 写使能端</td>
-</tr>
-<tr>
-<td></td>
-<td></td>
 <td></td>
 <td></td>
 </tr>
 <tr>
-<td>timerIn0</td>
-<td>in</td>
-<td>32</td>
-<td>连接 Timer0 数据输出端</td>
+<td>Poly.judgeSingularPoly()</td>
+<td>21</td>
+<td>8</td>
+<td></td>
+<td></td>
 </tr>
 <tr>
-<td>timerIn1</td>
-<td>in</td>
-<td>32</td>
-<td>连接 Timer1 数据输出端</td>
+<td>Poly.simplifyPoly()</td>
+<td></td>
+<td>4</td>
+<td></td>
+<td></td>
 </tr>
 <tr>
-<td>timerIRQIn0</td>
-<td>in</td>
-<td>32</td>
-<td>连接 Timer0 中断输出端</td>
+<td>FuncManager.parseRealArg(String)</td>
+<td></td>
+<td>5</td>
+<td></td>
+<td></td>
 </tr>
 <tr>
-<td>timerIRQIn1</td>
-<td>in</td>
-<td>32</td>
-<td>连接 Timer1 中断输出端</td>
-</tr>
-<tr>
-<td>timerOut</td>
-<td>in</td>
-<td>32</td>
-<td>从 Timer 读出的数据</td>
-</tr>
-<tr>
-<td>timerIRQOut0</td>
-<td>in</td>
-<td>32</td>
-<td>从 Timer0 读出的中断数据，传给 HWInt</td>
-</tr>
-<tr>
-<td>timerIRQOut1</td>
-<td>in</td>
-<td>32</td>
-<td>从 Timer1 读出的中断数据，传给 HWInt</td>
+<td>Parser.parseFactor</td>
+<td></td>
+<td>8</td>
+<td>14</td>
+<td>14</td>
 </tr>
 </tbody></table>
-<p>对于 <code>timerWrite0</code> 和 <code>timerWrite1</code> 的使能，直接通过写地址 <code>addrIn</code> 判断即可；输出的 <code>timerOut</code> 也是根据 <code>addrIn</code> 判断输出的是哪个 <code>Timer</code> 的对应数据。Bridge 的其他端口与 Timer 对应端口的接线可以直接参考仓库里的代码。</p>
-<figure class="highlight verilog"><table><tr><td class="code"><pre><code class="hljs verilog"><span class="hljs-keyword">assign</span> timerWrite0 = <br>(addrIn &gt;= <span class="hljs-number">32&#x27;h00007f00</span> &amp;&amp; addrIn &lt;= <span class="hljs-number">32&#x27;h00007f0b</span> &amp;&amp; byteEnable != <span class="hljs-number">4&#x27;b0000</span>);<br><span class="hljs-keyword">assign</span> timerWrite1 = <br>(addrIn &gt;= <span class="hljs-number">32&#x27;h00007f10</span> &amp;&amp; addrIn &lt;= <span class="hljs-number">32&#x27;h00007f1b</span> &amp;&amp; byteEnable != <span class="hljs-number">4&#x27;b0000</span>);<br><span class="hljs-keyword">assign</span> timerOut = <br>(addrIn &gt;= <span class="hljs-number">32&#x27;h00007f00</span> &amp;&amp; addrIn &lt;= <span class="hljs-number">32&#x27;h00007f0b</span>) ? timerIn0:<br>(addrIn &gt;= <span class="hljs-number">32&#x27;h00007f10</span> &amp;&amp; addrIn &lt;= <span class="hljs-number">32&#x27;h00007f1b</span>) ? timerIn1:<br><span class="hljs-number">0</span>;<br></code></pre></td></tr></table></figure>
-
-<h4 id="响应中断发生器的中断"><a href="#响应中断发生器的中断" class="headerlink" title="响应中断发生器的中断"></a>响应中断发生器的中断</h4><p>按照教程，如果这时中断发生器产生中断（<code>interrupt == 1</code>）且允许响应外部中断器中断信号（<code>externalInterruptRequest == 1</code>），则写地址 0x7f20。官方提供了 <code>m_int_addr</code> 和 <code>m_int_byteen</code> 接口，直接更改对应输出数据即可：</p>
-<figure class="highlight verilog"><table><tr><td class="code"><pre><code class="hljs verilog"><span class="hljs-keyword">assign</span> m_int_addr = m_data_addr;<br><span class="hljs-keyword">assign</span> m_int_byteen = <br>(M_externalInterruptResponse &amp;&amp; interrupt) ? <span class="hljs-number">4&#x27;b0001</span> : <span class="hljs-number">4&#x27;b0000</span>;<br></code></pre></td></tr></table></figure>
-
-<p><code>externalInterruptRequest</code> 信号的置位逻辑与 <code>INT</code> 信号基本一致，但判断的是 <code>HWInt[2]</code> 和 <code>SR[12]</code> 是否均为 1。</p>
-<h3 id="当异常请求（Request）到来时"><a href="#当异常请求（Request）到来时" class="headerlink" title="当异常请求（Request）到来时"></a>当异常请求（Request）到来时</h3><h4 id="PC-跳转"><a href="#PC-跳转" class="headerlink" title="PC 跳转"></a>PC 跳转</h4><p>此时 PC 应当跳转到 0x4180，修改 F 级 nextPC 模块即可。</p>
-<h4 id="清空流水线"><a href="#清空流水线" class="headerlink" title="清空流水线"></a>清空流水线</h4><p>为了符合<strong>精确异常</strong>的要求，我们需要清空流水线——插入 <code>nop</code>，防止异常指令及其后续指令被真正执行产生影响。这一操作和 <code>reset</code> 时比较相像，不过由于异常处理程序从 0x4180 开始，所以 <code>request</code> 时，PC 应复位到 0x4180。</p>
-<p>同时，异常码应该清空为“1”，即表示既没有外部中断（0），也没有内部异常。</p>
-<h4 id="乘除模块"><a href="#乘除模块" class="headerlink" title="乘除模块"></a>乘除模块</h4><p>按照教程中要求，如果异常发生时 E 级有<strong>还没开始的</strong>涉及乘除模块的运算，则这一运算不应开始；若这一运算还没有执行到修改 HI、LO 寄存器的阶段，则不应当修改 HI、LO 寄存器。</p>
-<p>只需要给 MDU 的工作条件增加 <code>!request</code> 即可：</p>
 <ul>
-<li><p>如果运算没有开始，此时运算所需数据不会被写入寄存器，<code>state</code> 不变，运算不能开始；</p>
-</li>
-<li><p>运算正在进行，还没写 HI、LO：由于此时 <code>request</code> 为高，MDU 的 <code>state</code> 不会改变，从而不会继续工作，不产生影响；</p>
-</li>
+<li><code>toString()</code>方法的复杂似乎是难以避免的。对于exp项，为了追求必要的短输出，需要判定指数项是不是“单个因子”；对于 <code>Mono</code>的字符串形式输出，同样也是为了追求输出更优，需要针对不同的系数、幂次、exp项情况构建不同的输出。</li>
+<li><code>judgeSingularPoly()</code>方法的复杂度也是难以避免的。如果一个Poly中只有“单个因子”，说明它只含有一项mono，且这个mono只含带符号整数项 &#x2F; 1×[x幂函数，y幂函数之一] &#x2F; 1×指数函数。多样情况的判定必然导致复杂。</li>
+<li><code>isAddable(Mono)</code>复杂度高也不是太容易避免。判定两个Mono是不是可加的同类项，要判定x幂函数次数，y幂函数次数，exp项乘积是否都相同。</li>
+<li><code>addPoly(Poly)</code>，<code>simplify(Poly)</code>，<code>mergeExpFactors()</code>都涉及到多项式的加法运算，而加法运算正常进行必然涉及 <code>isAddable(Mono)</code>方法（判定同类项）；并且，由于容器选择的问题，这几个方法几乎都需要作二重循环。</li>
+<li><code>parseRealArg(String)</code>也难以简化。方法的主要逻辑是读取到函数名后，从第一个 <code>(</code>开始读取，直到读到最后一个 <code>)</code>，就得到实参的字符串形式。对于用字符串替换来实现实参带入的方法而言，这一步也躲不开。</li>
+<li><code>parseFactor()</code>的复杂我认为几乎无法避免。作业中涉及不少种类的因子，不同因子的解析方法往往又不相同，这也必然导致分支数量较多。</li>
 </ul>
-<h4 id="内存读写"><a href="#内存读写" class="headerlink" title="内存读写"></a>内存读写</h4><p>有异常或是 <code>request</code> 时都不应该对内存进行写入操作，以消除影响。</p>
-<h3 id="当-eret-到来时"><a href="#当-eret-到来时" class="headerlink" title="当 eret 到来时"></a>当 <code>eret</code> 到来时</h3><p>我选择在 D 级 CTRL 模块检测当前指令是否为 <code>eret</code>。</p>
+<h4 id="高复杂度的类"><a href="#高复杂度的类" class="headerlink" title="高复杂度的类"></a>高复杂度的类</h4><table>
+<thead>
+<tr>
+<th>类名称</th>
+<th>OCavg</th>
+<th>OCmax</th>
+<th>WMC</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Mono</td>
+<td></td>
+<td></td>
+<td>56</td>
+</tr>
+<tr>
+<td>Poly</td>
+<td></td>
+<td></td>
+<td>51</td>
+</tr>
+<tr>
+<td>FuncManager</td>
+<td></td>
+<td></td>
+<td>31</td>
+</tr>
+<tr>
+<td>Parser</td>
+<td>3.09</td>
+<td></td>
+<td>34</td>
+</tr>
+<tr>
+<td>MainClass</td>
+<td>5.00</td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
 <ul>
-<li><p>由于 <code>eret</code> 没有延迟槽，若 D 级检测到 <code>eret</code>，则 F 级需要插入一个 <code>nop</code> ——这是清空延迟槽最快捷的方法。</p>
+<li><code>Mono</code>和 <code>Poly</code>类WMC高是意料之中的，因为所有的元素最终都可以转化为Mono&#x2F;Poly形式进行计算，并且这两个类还要承担合并、化简、去除0项等工作。这也提示了可以新建一个单独的类负责Mono&#x2F;Poly的化简。</li>
+<li><code>FuncManager</code>类方法较多，因为作业中同时涉及了普通函数和递归函数的解析。尤其是递归函数，解析完了还需要依照层次挨个计算定义式，调用其他方法较多（例如涉及到Poly运算），这也使得复杂度直线上升。</li>
+<li><code>Parser</code>类圈复杂度、总复杂度高是不可避免的。表达式分为多个层次，且因子类型多样，解析的时候必须要全面覆盖。</li>
+<li><code>MainClass</code>类的高复杂度应该是受Parser影响。<code>MainClass</code>类代码很少，只负责输入信息的传递以及必要的方法调用，关键的逻辑都在其他类中。</li>
+</ul>
+<h2 id="架构设计优劣"><a href="#架构设计优劣" class="headerlink" title="架构设计优劣"></a>架构设计优劣</h2><h3 id="优势"><a href="#优势" class="headerlink" title="优势"></a>优势</h3><ul>
+<li>建立了Mono→Poly层次结构，将表达式中不同的要素统一为 <code>Mono</code>和 <code>Poly</code>的形式，方便了计算、化简，同时也方便了输出。</li>
+<li><code>Poly</code>类中设立了 <code>judgeEqualPoly</code>方法，这一方法可以应用在选择式解析、同类项判定等多个场景，抽象出了不同功能间的共同需求。</li>
+<li>建立了专门的 <code>Preprocess</code>类进行字符串处理，以去除多余空格和重叠的符号。这个类的方法会在输入处理、输出处理情形中复用。</li>
+</ul>
+<h3 id="缺陷"><a href="#缺陷" class="headerlink" title="缺陷"></a>缺陷</h3><ul>
+<li>对于Poly中Mono的存储，只使用了 <code>ArrayList</code>，而没有使用 <code>HashMap</code>（key：不含系数的 <code>Mono</code>对象，value：系数），这也就导致合并同类项、加法运算的高复杂度，具体实现上也多出了好一些代码。使用 <code>HashMap</code>的合并预期能得到更高的效率。</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 低效代码示例</span><br><span class="hljs-keyword">public</span> Poly <span class="hljs-title function_">addPoly</span><span class="hljs-params">(Poly poly)</span> &#123;<br>    ArrayList&lt;Mono&gt; hisMonos = poly.getMonos();<br>    <span class="hljs-keyword">for</span> (Mono hisMono : hisMonos) &#123;<br>        <span class="hljs-comment">// 合并同类项</span><br>        <span class="hljs-type">boolean</span> <span class="hljs-variable">flag</span> <span class="hljs-operator">=</span> <span class="hljs-literal">false</span>;<br>        <span class="hljs-keyword">for</span> (Mono myMono : monos) &#123;<br>            <span class="hljs-keyword">if</span> (hisMono.isAddable(myMono)) &#123;<br>                flag = <span class="hljs-literal">true</span>;<br>                myMono.setCoefficient(<br>                        myMono.getCoefficient().add(hisMono.getCoefficient())<br>                );<br>                <span class="hljs-keyword">break</span>;<br>            &#125;<br>        &#125;<br>        <span class="hljs-keyword">if</span> (!flag) &#123;<br>            monos.add(hisMono);<br>        &#125;<br>    &#125;<br>    <span class="hljs-built_in">this</span>.removeZeroCoeffMonos();<br>    <span class="hljs-keyword">return</span> <span class="hljs-built_in">this</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>对于函数实参的代入仅采取简单的字符串替换方法，导致解析出的Expr形式实参要先被转化成String代入定义式，然后再把代入后的定义式转化成Poly参与计算，多出了一些迂回动作，可能导致时间复杂度上的风险。</li>
+</ul>
+<h2 id="Bug检测与成因分析"><a href="#Bug检测与成因分析" class="headerlink" title="Bug检测与成因分析"></a>Bug检测与成因分析</h2><h3 id="选择表达式的短路处理"><a href="#选择表达式的短路处理" class="headerlink" title="选择表达式的短路处理"></a>选择表达式的短路处理</h3><p>这个bug在自行构造测试样例后被发现。我当时没有优化运算部分的处理逻辑，所以程序对exp项的计算效率较低，这让我“歪打正着”地发现了选择表达式解析的bug。修改后，对于函数带入实参结果的计算不会立即进行，而是在调用诸如<code>toPoly</code>方法后才会开始计算，之前一味图方便而忽略了这部分。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java">f(x)=exp(x)+exp(x^<span class="hljs-number">2</span>)+exp(x^<span class="hljs-number">3</span>)+exp(x^<span class="hljs-number">4</span>)<br>[(<span class="hljs-number">0</span>==<span class="hljs-number">0</span>)?<span class="hljs-number">1</span>:f(f(f(f(x))))]<br></code></pre></td></tr></table></figure>
+
+<h3 id="重复操作的防止"><a href="#重复操作的防止" class="headerlink" title="重复操作的防止"></a>重复操作的防止</h3><p>我的<code>Poly</code>类中实现了方法<code>shortExpFactors</code>，将多个exp项的乘积合并为单个exp的形式。但是我并没有将合并后的单个exp进行缓存，导致同样的exp项乘积被过多地运算，在互测中出现了CTLE问题。以下是出问题的样例。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-number">1</span><br>f(x)=(x^<span class="hljs-number">8</span>+x^<span class="hljs-number">7</span>)*(x^<span class="hljs-number">8</span>+x)*(exp(x)+x)*(exp(x^<span class="hljs-number">8</span>)+<span class="hljs-number">9</span>)^<span class="hljs-number">4</span>+x<br><span class="hljs-number">1</span><br>f&#123;<span class="hljs-number">0</span>&#125;(x)=<span class="hljs-number">9</span>*x^<span class="hljs-number">5</span>+x*<span class="hljs-number">9</span><br>f&#123;<span class="hljs-number">1</span>&#125;(x)=<span class="hljs-number">9</span>*exp(exp(x)^<span class="hljs-number">4</span>)+x*<span class="hljs-number">9</span><br>f&#123;n&#125;(x)=<span class="hljs-number">9</span>*f&#123;n-<span class="hljs-number">1</span>&#125;((<span class="hljs-number">9</span>*x))+<span class="hljs-number">9</span>*f&#123;n-<span class="hljs-number">2</span>&#125;((<span class="hljs-number">9</span>*x))+<span class="hljs-number">99</span>*x<br>(exp(x^<span class="hljs-number">8</span>)+<span class="hljs-number">9</span>)*(exp(x)+<span class="hljs-number">9</span>)*(exp(x^<span class="hljs-number">3</span>)+<span class="hljs-number">9</span>)*(exp(x^<span class="hljs-number">4</span>)+<span class="hljs-number">9</span>)*(exp(x^<span class="hljs-number">5</span>)+<span class="hljs-number">9</span>)*(exp(x^<span class="hljs-number">6</span>)+<span class="hljs-number">9</span>)*(exp(x^<span class="hljs-number">7</span>)+<span class="hljs-number">9</span>)*(x+y^<span class="hljs-number">8</span>)*x*<span class="hljs-number">9</span><br></code></pre></td></tr></table></figure>
+
+<p>此外，我的化简操作需要先合并众多exp因子，然后再提取出exp指数上的公因式，最后创建新的化简后的表达式。这一操作会消耗大量时间，因此我设置了状态位，在化简方法的开头就检测<code>simplified</code>标志位，从而减少了大量不必要的重复操作。</p>
+<p>对于下面的这份互测样例，其展开结果有上万个字符。由于我同类项判定时需要将exp项合并，若不设置标志位，合并&#x2F;化简操作就会被大量重复执行，最终导致CTLE——而这本来是可以避免的。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-number">0</span><br><span class="hljs-number">0</span><br>(x+<span class="hljs-number">1</span>)*(x^<span class="hljs-number">2</span>+<span class="hljs-number">1</span>)*(x^<span class="hljs-number">4</span>+<span class="hljs-number">1</span>)*(x^<span class="hljs-number">8</span>+<span class="hljs-number">1</span>)*(y+<span class="hljs-number">1</span>)*(y^<span class="hljs-number">2</span>+<span class="hljs-number">1</span>)*(y^<span class="hljs-number">4</span>+<span class="hljs-number">1</span>)*(y^<span class="hljs-number">8</span>+<span class="hljs-number">1</span>)*(exp(x)+<span class="hljs-number">1</span>)*(exp(y)+<span class="hljs-number">1</span>)*(x+y)<br></code></pre></td></tr></table></figure>
+
+<h2 id="大模型使用相关"><a href="#大模型使用相关" class="headerlink" title="大模型使用相关"></a>大模型使用相关</h2><ul>
+<li><p>本次作业中主要使用DeepSeek进行简单方法的补充（方法名、方法作用、大致思路会在提示词中事先给出），这确实显著提高了作业的效率。</p>
 </li>
-<li><p>当 D 级检测到 <code>eret</code> 后，PC 需要跳转到 EPC 处，修改 F 级 nextPC 模块即可。</p>
+<li><p>评测机方面，本周期仅第一次作业使用评测机来验证文法解析、Poly计算等重要功能的正确性，后续作业由于精力问题没有构造评测机。但是我会使用相对简单的样例来验证新增功能，并且让大模型辅助我判定输出是否等价。我构造的部分样例如下所示：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 第二次作业，验证自定义函数</span><br><span class="hljs-number">1</span><br>f(x)=exp(x)+exp(x^<span class="hljs-number">2</span>)+exp(x^<span class="hljs-number">3</span>)+exp(x^<span class="hljs-number">4</span>)<br>f(f(f(x)))<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 第二次作业，验证选择表达式</span><br><span class="hljs-number">1</span><br>f(x)=exp(x)+exp(x^<span class="hljs-number">2</span>)+exp(x^<span class="hljs-number">3</span>)+exp(x^<span class="hljs-number">4</span>)<br>[(exp(<span class="hljs-number">0</span>)==<span class="hljs-number">001</span>)? x : f(f(f(x)))]<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 第三次作业，验证求导和递归函数</span><br><span class="hljs-number">0</span><br><span class="hljs-number">1</span><br>f&#123;<span class="hljs-number">0</span>&#125;(x)=exp(x)+exp(x^<span class="hljs-number">2</span>)+exp(x^<span class="hljs-number">3</span>)<br>f&#123;<span class="hljs-number">1</span>&#125;(x)=exp(x^<span class="hljs-number">4</span>)+exp(x^<span class="hljs-number">5</span>)+exp(x^<span class="hljs-number">6</span>)<br>f&#123;n&#125;(x)=<span class="hljs-number">3</span>*f&#123;n-<span class="hljs-number">1</span>&#125;((x-<span class="hljs-number">1</span>))+-<span class="hljs-number">2</span>*f&#123;n-<span class="hljs-number">2</span>&#125;(x)-exp(x^<span class="hljs-number">0</span>)*exp(x)<br>f&#123;<span class="hljs-number">3</span>&#125;(grad((x^<span class="hljs-number">2</span>*y^<span class="hljs-number">3</span>*exp((x^<span class="hljs-number">2</span>*y^<span class="hljs-number">3</span>)))))<br></code></pre></td></tr></table></figure>
+</li>
+<li><p>大模型主要在正确性上进行辅助（降低了约25%工作量），优化部分我的策略比较保守，所以手写就可以达成目标。</p>
+</li>
+<li><p>互测房间内未发现过于AI的代码。</p>
 </li>
 </ul>
-<h3 id="阻塞与转发"><a href="#阻塞与转发" class="headerlink" title="阻塞与转发"></a>阻塞与转发</h3><h4 id="eret-阻塞逻辑"><a href="#eret-阻塞逻辑" class="headerlink" title="eret 阻塞逻辑"></a><code>eret</code> 阻塞逻辑</h4><p><code>eret</code> 指令需要 EPC 中的数据。如果 <code>eret</code> 的前序指令需要写 EPC，则将 <code>eret</code> 阻塞在 D 级。</p>
-<h4 id="阻塞时保留信息"><a href="#阻塞时保留信息" class="headerlink" title="阻塞时保留信息"></a>阻塞时保留信息</h4><p>这一点主要体现在 D → E 流水寄存器上。如果未发生 <code>reset</code> 和 <code>request</code>，而流水线被阻塞，需要保留 D 级的 PC 和 BD 信息。如果没有流水这两个信息会怎样？具体可以看下面这个例子来理解。</p>
-<p>考虑指令序列 <code>lw - beq - add</code>，且 <code>add</code> 会因与 <code>lw</code> 产生数据冲突而被阻塞在 D 级。设想当前流水线各级的指令如下（带“*”表示延迟槽指令）：</p>
-<table>
-<thead>
-<tr>
-<th>F</th>
-<th>D</th>
-<th>E</th>
-<th>M</th>
-<th>W</th>
-</tr>
-</thead>
-<tbody><tr>
-<td></td>
-<td>add*</td>
-<td>beq</td>
-<td>lw</td>
-<td></td>
-</tr>
-</tbody></table>
-<p>由于阻塞，下一个时钟周期时流水线状态如下：</p>
-<table>
-<thead>
-<tr>
-<th>F</th>
-<th>D</th>
-<th>E</th>
-<th>M</th>
-<th>W</th>
-</tr>
-</thead>
-<tbody><tr>
-<td></td>
-<td>add*</td>
-<td></td>
-<td>beq</td>
-<td>lw</td>
-</tr>
-</tbody></table>
-<p>再下一个时钟周期的下降沿时来了一个中断。该周期时钟信号高电平时，流水线状态为：</p>
-<table>
-<thead>
-<tr>
-<th>F</th>
-<th>D</th>
-<th>E</th>
-<th>M</th>
-<th>W</th>
-</tr>
-</thead>
-<tbody><tr>
-<td></td>
-<td>add*</td>
-<td></td>
-<td></td>
-<td>lw</td>
-</tr>
-</tbody></table>
-<p>这时 CP0 需要记录异常相关信息。如果我们在阻塞时清空了 D → E 的所有信号，则获取到 M 级 PC 为 0x3000，BD 为 0，这显然是不正确的。因此，阻塞（且无 <code>reset</code> 和 <code>request</code>）时需要保留 PC 和 BD 信息。</p>
-<p>优先级问题：请注意 <code>reset</code>，<code>request</code> 和 <code>stall</code> 信号的优先级关系依次从高到低，这一点在教程中有着重强调——复位高于一切，外部可见的请求高于不可见的阻塞。当 CPU 被封装，我们看不到内部流水线执行的细节，包括转发和阻塞，流水线的 CPU 在外人看来就仿佛是单周期的。</p>
-<h4 id="转发逻辑"><a href="#转发逻辑" class="headerlink" title="转发逻辑"></a>转发逻辑</h4><p>可以考虑转发从 CP0 寄存器读出的数据。由于在 M 级才能访问 CP0 并更新数据，所以 $T_\text{new}&#x3D;3$，这与 <code>lw</code> 本质上区别不大（一个读 CP0，一个读内存），因此转发通路没有必要做特别改造。</p>
-<h3 id="P7-思考题"><a href="#P7-思考题" class="headerlink" title="P7 思考题"></a>P7 思考题</h3><h4 id="第一题"><a href="#第一题" class="headerlink" title="第一题"></a>第一题</h4><p><strong>请查阅相关资料，说明鼠标和键盘的输入信号是如何被 CPU 知晓的？</strong></p>
-<p>CPU 通过总线和外部设备连接，输入信号会通过总线传递给 CPU。CPU 接收到中断信号后会进行处理，并反馈结果。</p>
-<h4 id="第二题"><a href="#第二题" class="headerlink" title="第二题"></a>第二题</h4><p><strong>请思考为什么我们的 CPU 处理中断异常必须是已经指定好的地址？如果你的 CPU 支持用户自定义入口地址，即处理中断异常的程序由用户提供，其还能提供我们所希望的功能吗？如果可以，请说明这样可能会出现什么问题？否则举例说明。（假设用户提供的中断处理程序合法）</strong></p>
-<p>设计上，要让用户不需要过多地考虑底层的实现，而是要让他们专注于“用户态”，这时底层指定中断异常处理地址是最为方便的选择。并且，若处理中断异常的程序由用户提供，由于用户并不知晓 CPU 的具体实现，其提供的处理代码可能会导致冒险问题，即使能够实现某些功能，但风险也很大。</p>
-<h4 id="第三题"><a href="#第三题" class="headerlink" title="第三题"></a>第三题</h4><p><strong>为何与外设通信需要 Bridge？</strong></p>
-<p>系统桥是连接 CPU 和外设的功能设备，它会给 CPU 提供一种接口，使得 CPU 可以像读写普通存储器一样（即按地址读写）来读写复杂多变的外设。系统桥统一且简化了 CPU 的对外接口，CPU 不必为每种外设单独提供接口，符合高内聚，低耦合的设计思想。尽管外设多种多样，但是 CPU 可以用统一的方法访问它们。</p>
-<h4 id="第四题"><a href="#第四题" class="headerlink" title="第四题"></a>第四题</h4><p><strong>请阅读官方提供的定时器源代码，阐述两种中断模式的异同，并分别针对每一种模式绘制状态转移图。</strong></p>
-<pre><code class=" mermaid">graph LR
-    A(IDLE)
-    B(LOAD)
-    C(CNT)
-    D(INT)
-
-    A --&gt; |ctrl_0 == 1; IRQ = 0| B
-    A --&gt; |ctrl_0 == 0; IRQ = 0| A
-    B --&gt; |无条件; IRQ = 0| C
-    C --&gt; |ctrl_0 == 1, count &gt; 1; IRQ = 0| C
-    C --&gt; |ctrl_0 == 1, count ≤ 1; IRQ = 0| D
-    C --&gt; |ctrl_0 == 0| A
-    D --&gt; |模式0：ctrl = 0; IRQ = 1|A
-    D --&gt; |模式1：ctrl不变; IRQ = 0|A
-</code></pre>
-
-<h4 id="第五题"><a href="#第五题" class="headerlink" title="第五题"></a>第五题</h4><p><strong>倘若中断信号流入的时候，在检测宏观 PC 的一级如果是一条空泡（你的 CPU 该级所有信息均为空）指令，此时会发生什么问题？在此例基础上请思考：在 P7 中，清空流水线产生的空泡指令应该保留原指令的哪些信息？</strong></p>
-<p>若 CPU 该级所有信息均为空，携带的 PC 和延迟槽信息都可能是不正确的，这对异常信息的记录是很不利的；空泡中指令应该变为 <code>nop</code>，其他信息应保持与前一条指令一致，尤其是 PC 和 BD。</p>
-<h4 id="第六题"><a href="#第六题" class="headerlink" title="第六题"></a>第六题</h4><p><strong>为什么 <code>jalr</code> 指令的两个寄存器不能相同，例如 <code>jalr $31, $31</code> ？</strong></p>
-<p><code>$31</code> 的值更新和 PC 更新在同一时刻发生，我们对同一个寄存器同时读写，这种行为是“未定义”的。</p>
-<h3 id="代码问题"><a href="#代码问题" class="headerlink" title="代码问题"></a>代码问题</h3><p>在中断部分的强测中，有很小几率触发 <code>*00007f20 &lt;= 00000000</code> 输出，导致内存操作输出内容过多。由于不知道课程组评测使用的 testbench 具体做出了什么修改，所以目前无法定位这一问题发生的原因。</p>
-<h3 id="课下部分建议"><a href="#课下部分建议" class="headerlink" title="课下部分建议"></a>课下部分建议</h3><ul>
-<li><p>尽早开始 P7 的工作，因为 P7 有一定理解难度，在高压、时间紧张的状况下可能很难完成任务。即使之前已经挂 P，但如果完全有可能推进到 P7 课下，请一定提前开始准备。</p>
-</li>
-<li><p>不要依赖课下测试，而是尝试自己另外构造新数据。异常部分的数据还算好构造，“力大砖飞”即可；中断部分的测试数据可以“小而精”，不用太长，覆盖到异常时中断、阻塞时中断等特别情况即可。我的<a href="https://github.com/kkdcymnj/buaa_co_2025/tree/main/cpu_check_p7/sample_manual">仓库</a>中有少量这样的数据，大家可以批判性地使用，注意更改 testbench 中 <code>target_pc</code> 值。</p>
-</li>
-<li><p>关于 debug 方面，如果已经验证 P6 功能能够正常实现，那么如果出现寄存器读写的错误，请考虑 CP0 部分、异常检测部分的实现。CP0 寄存器数据的特定位能给我们很大提示。例如，中测时出现了寄存器数据的第 31 位错误但其他位都正确，这时我们就可以考虑延迟槽指令的判定，因为对于延迟槽指令，<code>Cause[31] == 1</code>。</p>
-</li>
+<h2 id="心得体会"><a href="#心得体会" class="headerlink" title="心得体会"></a>心得体会</h2><ul>
+<li>好的架构相当重要：AST树的引入大大方便了语法解析，递归下降的形式可读性也很好；第一次迭代时我作出了正确的判断，采用Mono→Poly层次化结构，找到了不同表达式要素的共同点，方便了计算代码的编写，且后续迭代不会出现大量重构的“悲剧”。</li>
+<li>要运用好的容器：在这几次作业中，由于涉及到同类项的合并，<code>HashMap</code>想必是相比 <code>ArrayList</code>更有效率、更方便的选择。</li>
+<li>优化要谨慎，不能为了优化而牺牲正确性：第一次作业中，听说有同学虽在A房（优化很好），但是程序可以被 <code>-+(-x)</code>之类的简单样例“击杀”；第二次作业中，有同学为了追求绝对的exp项输出最短，优化部分的代码复杂度过高，甚至是忽略了exp项必要的括号输出。</li>
+<li>减少不必要的重复操作：对于不可变类，设置缓存是一个好方法；对于某些耗时的操作（例如化简），也可以设立状态位来防止重复操作。本单元互测中给出的样例往往嵌套层数高，如果能够减少重复计算，对计算速度的提升效果极其显著。这一优化后，原本强测中CPU时间6s+的样例可以在1s左右跑完。</li>
 </ul>
-<h3 id="终章"><a href="#终章" class="headerlink" title="终章"></a>终章</h3><p>笔者的水平和那些一次通过所有 P 的大佬不可比，但还是借助最后一次上机机会完成了 P7，达成了“通关”。通过下面的考试记录，你可以看到笔者 P5 和 P7 都是一遍通过，但在所谓“比 P5 简单”的 P6 连死两回——计算机组成上机每个 P 的难易都是因人而异的，不要认为“P5 和 P7 必有一死”，也不要认为某些“简单”的 P 可以不认真准备。对别人难的不一定对你难，对别人容易的不一定对你容易，结合自身状况认真准备每次上机才是正解。</p>
-<p>祝大家能披荆斩棘，克服困难，见到“通关”的曙光！</p>
-<img src="/images/p7_exam_record.png" width=100% height=100% align=center/>
-
-<img src="/images/p7_end.png" width=100% height=100% align=center/>]]></content>
+<h2 id="未来方向"><a href="#未来方向" class="headerlink" title="未来方向"></a>未来方向</h2><ul>
+<li>公开架构良好&#x2F;性能得分高的代码供人学习。</li>
+<li>实验课部分希望增加实时评测，而不是一周之后才返回实验结果。</li>
+</ul>
+]]></content>
       <categories>
-        <category>计算机组成课下</category>
+        <category>面向对象设计与构造</category>
       </categories>
       <tags>
-        <tag>计算机组成</tag>
-        <tag>流水线 CPU</tag>
-        <tag>MIPS 微系统</tag>
+        <tag>AST</tag>
+        <tag>递归下降</tag>
       </tags>
   </entry>
   <entry>
@@ -2177,1059 +2783,453 @@
       </tags>
   </entry>
   <entry>
-    <title>计算机组成 P3 / P4 课下——单周期 CPU</title>
-    <url>/2025/11/23/p3p4_learn/</url>
-    <content><![CDATA[<h3 id="任务描述"><a href="#任务描述" class="headerlink" title="任务描述"></a>任务描述</h3><p>搭建支持 <code>add</code>，<code>sub</code>，<code>ori</code>，<code>lui</code>，<code>lw</code>，<code>sw</code>，<code>beq</code>，<code>jal</code>，<code>jr</code>，<code>nop</code> 指令的<strong>单周期</strong> CPU。</p>
-<h3 id="明确设计"><a href="#明确设计" class="headerlink" title="明确设计"></a>明确设计</h3><p>先从 P3 的 Logisim CPU 开始，因为它比较直观，能够为 P4：用 Verilog 描述 CPU 提供较大的帮助。根据教程，我们的 CPU 大致由这几个模块构成：IFU、CTRL、GRF、EXT、ALU、DM。这些缩写对应的组件及其功能在教程中都有详细的说明，这里不再赘述。</p>
-<h4 id="IFU"><a href="#IFU" class="headerlink" title="IFU"></a>IFU</h4><p>内部包含了 IM、PC、nPC 组件。IM 根据当前 PC 值取出对应的指令；PC 中有寄存器，在时钟上升沿时写入下一个 PC 值；nPC 则是一个状态转移单元，根据当前 PC 以及其他信号的输出判断下一个 PC 值。</p>
-<ul>
-<li>IM</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th>信号名</th>
-<th>方向</th>
-<th>位宽</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>PC</td>
-<td>input</td>
-<td>32</td>
-<td>当前 PC 值</td>
-</tr>
-<tr>
-<td>Instr</td>
-<td>output</td>
-<td>32</td>
-<td>取出的指令</td>
-</tr>
-</tbody></table>
-<p>这里需要注意，在实际的 MIPS 架构中，PC 的起始地址是 0x00003000，对应存储单元的地址是 0；PC 每增加4，对应存储单元的地址增加 1。无论是在 Logisim 还是在 Verilog 中都需要注意这一映射关系。</p>
-<ul>
-<li>PC</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th>信号名</th>
-<th>方向</th>
-<th>位宽</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>clk</td>
-<td>input</td>
-<td>1</td>
-<td>时钟信号</td>
-</tr>
-<tr>
-<td>reset</td>
-<td>input</td>
-<td>1</td>
-<td>复位信号</td>
-</tr>
-<tr>
-<td>nPC</td>
-<td>input</td>
-<td>32</td>
-<td>下一个 PC 值</td>
-</tr>
-<tr>
-<td>PC</td>
-<td>output</td>
-<td>32</td>
-<td>当前 PC 值</td>
-</tr>
-</tbody></table>
-<ul>
-<li>nPC</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th>信号名</th>
-<th>方向</th>
-<th>位宽</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>PC</td>
-<td>input</td>
-<td>32</td>
-<td>当前 PC 值</td>
-</tr>
-<tr>
-<td>offset</td>
-<td>input</td>
-<td>16</td>
-<td>16 位立即数</td>
-</tr>
-<tr>
-<td>instr_index</td>
-<td>input</td>
-<td>26</td>
-<td>26 位立即数</td>
-</tr>
-<tr>
-<td>PC_from_rs</td>
-<td>input</td>
-<td>32</td>
-<td>rs 寄存器中存储的 PC（<code>jr</code> 使用）</td>
-</tr>
-<tr>
-<td>branch</td>
-<td>input</td>
-<td>1</td>
-<td>是否分支</td>
-</tr>
-<tr>
-<td>jump</td>
-<td>input</td>
-<td>1</td>
-<td>是否跳转</td>
-</tr>
-<tr>
-<td>jump_back</td>
-<td>input</td>
-<td>1</td>
-<td>是否跳回</td>
-</tr>
-<tr>
-<td>nPC</td>
-<td>output</td>
-<td>32</td>
-<td>下一个 PC 值</td>
-</tr>
-<tr>
-<td>PCwith4</td>
-<td>output</td>
-<td>32</td>
-<td>PC + 4（<code>jal</code> 使用）</td>
-</tr>
-</tbody></table>
-<ul>
-<li>IM</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th>信号名</th>
-<th>方向</th>
-<th>位宽</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>PC</td>
-<td>input</td>
-<td>32</td>
-<td>当前 PC 值</td>
-</tr>
-<tr>
-<td>Instr</td>
-<td>output</td>
-<td>32</td>
-<td>当前指令</td>
-</tr>
-</tbody></table>
-<ul>
-<li>Decode</li>
-</ul>
-<p>由于后续过程中我们需要用到 rs、rt、rd 等值，这里我们新增 Decode 模块，根据当前指令“翻译”出这些值。</p>
-<table>
-<thead>
-<tr>
-<th>信号名</th>
-<th>方向</th>
-<th>位宽</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Instr</td>
-<td>input</td>
-<td>32</td>
-<td>当前指令</td>
-</tr>
-<tr>
-<td>op</td>
-<td>output</td>
-<td>6</td>
-<td>[31:26]</td>
-</tr>
-<tr>
-<td>func</td>
-<td>output</td>
-<td>6</td>
-<td>[5:0]</td>
-</tr>
-<tr>
-<td>rs</td>
-<td>output</td>
-<td>5</td>
-<td>[25:21]</td>
-</tr>
-<tr>
-<td>rt</td>
-<td>output</td>
-<td>5</td>
-<td>[20:16]</td>
-</tr>
-<tr>
-<td>rd</td>
-<td>output</td>
-<td>5</td>
-<td>[15:11]</td>
-</tr>
-<tr>
-<td>shamt</td>
-<td>output</td>
-<td>5</td>
-<td>[10:6]（供 <code>nop</code> 和 <code>sll</code> 等使用）</td>
-</tr>
-<tr>
-<td>immediate16</td>
-<td>output</td>
-<td>16</td>
-<td>[15:0]</td>
-</tr>
-<tr>
-<td>immediate26</td>
-<td>output</td>
-<td>26</td>
-<td>[25:0]</td>
-</tr>
-</tbody></table>
-<h4 id="CTRL"><a href="#CTRL" class="headerlink" title="CTRL"></a>CTRL</h4><p>CTRL 用于根据当前指令生成控制信号，这里我们采用和教程中相同的 AND-OR 方法，即现根据 op 和 func 判断当前指令，再生成对应控制信号。</p>
-<table>
-<thead>
-<tr>
-<th>信号名</th>
-<th>方向</th>
-<th>位宽</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>op</td>
-<td>input</td>
-<td>6</td>
-<td></td>
-</tr>
-<tr>
-<td>func</td>
-<td>input</td>
-<td>6</td>
-<td></td>
-</tr>
-<tr>
-<td>RegDst</td>
-<td>output</td>
-<td>1</td>
-<td>写入寄存器是否是 rd</td>
-</tr>
-<tr>
-<td>RegWrite</td>
-<td>output</td>
-<td>1</td>
-<td>是否写寄存器</td>
-</tr>
-<tr>
-<td>MemRead</td>
-<td>output</td>
-<td>1</td>
-<td>是否读内存</td>
-</tr>
-<tr>
-<td>MemWrite</td>
-<td>output</td>
-<td>1</td>
-<td>是否写内存</td>
-</tr>
-<tr>
-<td>ExtOp</td>
-<td>output</td>
-<td>1</td>
-<td>零扩展（0），符号扩展（1）</td>
-</tr>
-<tr>
-<td>ALUSrc</td>
-<td>output</td>
-<td>1</td>
-<td>第二个操作数源于 rt（0），源于扩展后立即数（1）</td>
-</tr>
-<tr>
-<td>ALUOp</td>
-<td>output</td>
-<td>3</td>
-<td>ALU 运算类型</td>
-</tr>
-<tr>
-<td>MemToReg</td>
-<td>output</td>
-<td>1</td>
-<td>是否将内存读出的内容写入寄存器</td>
-</tr>
-<tr>
-<td>branch</td>
-<td>output</td>
-<td>1</td>
-<td>是否分支</td>
-</tr>
-<tr>
-<td>jump</td>
-<td>output</td>
-<td>1</td>
-<td>是否跳转</td>
-</tr>
-<tr>
-<td>jump_back</td>
-<td>output</td>
-<td>1</td>
-<td>是否跳回</td>
-</tr>
-<tr>
-<td>link</td>
-<td>output</td>
-<td>1</td>
-<td>是否链接 PC + 4</td>
-</tr>
-</tbody></table>
-<blockquote>
-<p>注意这里的 <code>branch</code> 信号的含义其实是“是否是<strong>分支类型的指令</strong>”，NPC 中 <code>branch</code> 的实际含义是“是否<strong>执行分支</strong>”，执行分支的条件是：是分支类型的指令，且满足某个条件。</p>
-<p>对于 <code>jump</code>、<code>jump_back</code> 等信号也是类似的，执行跳转、跳回可能也是需要条件的，这一点在课上部分会有所体现。</p>
-</blockquote>
-<h4 id="GRF"><a href="#GRF" class="headerlink" title="GRF"></a>GRF</h4><p>具有 32 个寄存器的寄存器堆，这一部分可以直接把 P0 课下的设计挪用过来。</p>
-<table>
-<thead>
-<tr>
-<th>信号名</th>
-<th>方向</th>
-<th>位宽</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>clk</td>
-<td>input</td>
-<td>1</td>
-<td>时钟信号</td>
-</tr>
-<tr>
-<td>reset</td>
-<td>input</td>
-<td>1</td>
-<td>复位信号</td>
-</tr>
-<tr>
-<td>A1</td>
-<td>input</td>
-<td>5</td>
-<td>读寄存器地址 1</td>
-</tr>
-<tr>
-<td>A2</td>
-<td>input</td>
-<td>5</td>
-<td>读寄存器地址 2</td>
-</tr>
-<tr>
-<td>A3</td>
-<td>input</td>
-<td>5</td>
-<td>写寄存器地址</td>
-</tr>
-<tr>
-<td>WD</td>
-<td>input</td>
-<td>32</td>
-<td>写寄存器数据</td>
-</tr>
-<tr>
-<td>write_enable</td>
-<td>input</td>
-<td>1</td>
-<td>是否写寄存器</td>
-</tr>
-<tr>
-<td>WD1</td>
-<td>output</td>
-<td>32</td>
-<td>读寄存器数据 1</td>
-</tr>
-<tr>
-<td>WD2</td>
-<td>output</td>
-<td>32</td>
-<td>读寄存器数据 2</td>
-</tr>
-</tbody></table>
-<h4 id="EXT"><a href="#EXT" class="headerlink" title="EXT"></a>EXT</h4><p>对 16 位立即数进行扩展，有零扩展、符号扩展两种选项。</p>
-<table>
-<thead>
-<tr>
-<th>信号名</th>
-<th>方向</th>
-<th>位宽</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>immediate16</td>
-<td>input</td>
-<td>16</td>
-<td>16 位立即数</td>
-</tr>
-<tr>
-<td>ExtOp</td>
-<td>input</td>
-<td>1</td>
-<td>零扩展（0），符号扩展（1）</td>
-</tr>
-<tr>
-<td>extended</td>
-<td>output</td>
-<td>32</td>
-<td>扩展结果</td>
-</tr>
-</tbody></table>
-<h4 id="ALU"><a href="#ALU" class="headerlink" title="ALU"></a>ALU</h4><p>根据输入的操作数及 ALUOp 进行运算。</p>
-<table>
-<thead>
-<tr>
-<th>信号名</th>
-<th>方向</th>
-<th>位宽</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>A</td>
-<td>input</td>
-<td>32</td>
-<td>操作数 1</td>
-</tr>
-<tr>
-<td>B</td>
-<td>input</td>
-<td>32</td>
-<td>操作数 2</td>
-</tr>
-<tr>
-<td>S</td>
-<td>input</td>
-<td>5</td>
-<td>shamt</td>
-</tr>
-<tr>
-<td>ALUOp</td>
-<td>input</td>
-<td>3</td>
-<td>运算类型</td>
-</tr>
-<tr>
-<td>ALUOut</td>
-<td>output</td>
-<td>32</td>
-<td>运算结果</td>
-</tr>
-<tr>
-<td>Zero</td>
-<td>output</td>
-<td>1</td>
-<td>运算结果是否为0（<code>beq</code> 使用）</td>
-</tr>
-</tbody></table>
-<blockquote>
-<p>ALUOp 值及对应的运算类型</p>
-<table>
-<thead>
-<tr>
-<th>编码</th>
-<th>操作</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>0</td>
-<td>A + B</td>
-</tr>
-<tr>
-<td>1</td>
-<td>A - B</td>
-</tr>
-<tr>
-<td>2</td>
-<td>A | B</td>
-</tr>
-<tr>
-<td>3</td>
-<td>B &lt;&lt; 16</td>
-</tr>
-<tr>
-<td>4</td>
-<td>B &lt;&lt; S</td>
-</tr>
-<tr>
-<td>5</td>
-<td>预留</td>
-</tr>
-</tbody></table>
-</blockquote>
-<h4 id="DM"><a href="#DM" class="headerlink" title="DM"></a>DM</h4><table>
-<thead>
-<tr>
-<th>信号名</th>
-<th>方向</th>
-<th>位宽</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>clk</td>
-<td>input</td>
-<td>1</td>
-<td>时钟信号</td>
-</tr>
-<tr>
-<td>reset</td>
-<td>input</td>
-<td>1</td>
-<td>复位信号</td>
-</tr>
-<tr>
-<td>address</td>
-<td>input</td>
-<td>32</td>
-<td>操作地址</td>
-</tr>
-<tr>
-<td>write_data</td>
-<td>input</td>
-<td>32</td>
-<td>写入数据</td>
-</tr>
-<tr>
-<td>write_enable</td>
-<td>input</td>
-<td>32</td>
-<td>是否写内存</td>
-</tr>
-<tr>
-<td>out_data</td>
-<td>output</td>
-<td>32</td>
-<td>读出数据</td>
-</tr>
-</tbody></table>
-<blockquote>
-<p>Logisim 中，我们的 DM 利用 RAM 实现，RAM 的地址按照字编号，但是在实际的 MIPS 架构中，<code>.space</code> 的地址按照字节编号，这中间差了一个 4 倍。所以如果我们想要读出对应的字，需要将 <code>address</code> 右移 2 位得到 RAM 中对应字的地址。</p>
-</blockquote>
-<h3 id="电路及代码参考"><a href="#电路及代码参考" class="headerlink" title="电路及代码参考"></a>电路及代码参考</h3><p>对应的作业电路以及代码已经放到了我的 Github 仓库中，都能通过课上强测（但也不代表其设计完全合理）。建议大家批判性地参考仓库中内容。</p>
-<p>顶层电路的连接如下图所示，这一工作也可以参考“黑书“和老师的 PPT 来完成。P4 和 P3 没有本质上的区别，完成 P4 比较容易的方式就是对照 P3 的设计图直接实例化各个模块，然后接线。</p>
-<img src="/images/p3p4learn_mips.png" width=100% height=100% align=center/>
-
-<h3 id="设计建议"><a href="#设计建议" class="headerlink" title="设计建议"></a>设计建议</h3><ol>
-<li><p>我们在课下作业中已经实现了 <code>lw</code> 和 <code>sw</code>，那么也可以利用类似的思路实现对 <code>byte</code> 和 <code>half</code> 的读写，具体读写哪些位由 <code>address</code> 的低两位决定，具体内容参见 MIPS 指令集手册。</p>
+    <title>计算机组成 P7 课下——MIPS 微系统</title>
+    <url>/2025/12/21/p7learn/</url>
+    <content><![CDATA[<h3 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h3><p>在 P7 中，我们需要搭建一个简单的支持<strong>异常</strong>和<strong>中断</strong>的 MIPS 微系统。在之前的 Project 中，我们的 CPU 并没有考虑这些问题（例如： <code>add</code> 指令其实是按照 <code>addu</code> 实现的），但一个合格的处理器不能抛开这些问题不管。</p>
+<p>P7 大约涉及以下几个方面的工作：</p>
+<ol>
+<li><p>在流水线各级检测指令异常，并将异常信息流水；</p>
 </li>
-<li><p>课上会要求新增一些奇怪的指令，可以试着做如下预留：</p>
-<ul>
-<li>在 CTRL 模块预留 <code>new</code> 输出（判断是否为新增指令）。</li>
-<li>在 ALU 模块预留输出，用于输出其他的判断信号等</li>
-<li>在 DM 模块预留输入接口，应对课上奇怪指令</li>
-</ul>
-<p>新增的指令在寄存器读写、内存读写上的逻辑会比较“独特”，下面我举出一例：</p>
-<blockquote>
-<p>对于新增指令 <code>new</code>，若满足一定条件才写寄存器</p>
-</blockquote>
-<p> 应对方法：改造 <code>RegWrite</code> 信号的生成逻辑，写寄存器的条件是：“是新指令且满足某个条件”或“是一定会写寄存器的指令”。注意输出的“写寄存器”的信号是<strong>经过或门的</strong>！</p>
- <img src="/images/p3p4learn_1.png" width=60% height=35% align=center/>
+<li><p>在 M 级添加协处理器 CP0；</p>
 </li>
-<li><p>课下的电路图不要画得太局促，以免课上新增数据通路时难以操作，这一点在 P3 中需要格外注意。P4 及以后都是用 Verilog 描述 CPU，应该不会存在这个问题。</p>
+<li><p>添加 Bridge 实现 CPU 与外设的交互。</p>
+</li>
+<li><p>对流水线进行其他调整（清空逻辑、转发阻塞逻辑等）</p>
 </li>
 </ol>
-<h3 id="P3-思考题"><a href="#P3-思考题" class="headerlink" title="P3 思考题"></a>P3 思考题</h3><h4 id="问题-1"><a href="#问题-1" class="headerlink" title="问题 1"></a>问题 1</h4><p><strong>上面我们介绍了通过 FSM 理解单周期 CPU 的基本方法。请大家指出单周期 CPU 所用到的模块中，哪些发挥状态存储功能，哪些发挥状态转移功能。</strong></p>
-<ul>
-<li>状态存储：GRF 和 DM 部分。GRF 模块中保存了 32 个寄存器的当前值，这是我们判断自己的 CPU 能够正确工作的重要部分；DM 模块中存储了从指定寄存器加载的数据；GRF、DM 中存储的内容与输入一起，决定了如何向下一个状态转移。</li>
-<li>状态转移：其他能够产生控制信号的部分。控制信号决定我们在这一时刻是否需要读写寄存器、是否需要读写数据存储单元、从哪些寄存器取出值、ALU 作什么运算…… 它们与当前状态存储部分一起，决定了下一个状态应该是什么。</li>
-</ul>
-<h4 id="问题-2"><a href="#问题-2" class="headerlink" title="问题 2"></a>问题 2</h4><p><strong>现在我们的模块中 IM 使用 ROM， DM 使用 RAM， GRF 使用 Register，这种做法合理吗？ 请给出分析，若有改进意见也请一并给出。</strong></p>
-<p>在这个阶段大体是合理的，由于我们不会对指令进行写操作，所以用 ROM 来存储指令足矣。不过，在实际的 MIPS 架构中，指令的起始地址为 0x00003000，而我们 ROM 的起始地址为 0x00000000，这稍显不符合；并且，我们将指令和数据段（data）分开在两个元件中存放，且二者的地址并不连续，这也和实际中的 MIPS 架构有所不同。</p>
-<h4 id="问题-3"><a href="#问题-3" class="headerlink" title="问题 3"></a>问题 3</h4><p><strong>在上述提示的模块之外，你是否在实际实现时设计了其他的模块？如果是的话，请给出介绍和设计的思路。</strong></p>
-<p>具体描述见 Decoder 部分。</p>
-<h4 id="问题-4"><a href="#问题-4" class="headerlink" title="问题 4"></a>问题 4</h4><p><strong>事实上，实现 <code>nop</code> 空指令，我们并不需要将它加入控制信号真值表，为什么？</strong></p>
-<p><code>nop</code> 对应机器码的各个位均为 0，且本质是 <code>sll</code> 指令，这并不在本次课下作业的范围中。并且，若我们不将 <code>nop</code> 指令加入控制信号真值表：</p>
-<ul>
-<li>指定读入的寄存器 rt 为 0，而 <code>$0</code> 的值一直保持为 0，不会发生改变</li>
-<li>信号 <code>MemWrite</code> 设置为 0，不会向 DM 中读入数据，DM 状态不改变</li>
-</ul>
-<p>因此，执行 <code>nop</code> 指令后，电路中状态不会有改变，这也就是执行“空指令”的体现。</p>
-<h4 id="问题-5"><a href="#问题-5" class="headerlink" title="问题 5"></a>问题 5</h4><p><strong>阅读 Pre 的 <a href="http://cscore.buaa.edu.cn/tutorial/mips/mips-6/mips6-1/">“MIPS 指令集及汇编语言”</a> 一节中给出的测试样例，评价其强度（可从各个指令的覆盖情况，单一指令各种行为的覆盖情况等方面分析），并指出具体的不足之处。</strong></p>
-<p>这些样例一定程度上能够完成检测工作，且可以发现 CPU 设计中较明显的问题。不过还有一些不足：</p>
-<ul>
-<li>对于 <code>add</code> 指令，对边界条件（例如 <code>int_max</code> 附近）的测试不够</li>
-<li>对于 <code>lw</code> 和 <code>sw</code> 指令，没有在靠近最大地址的地方进行测试，且设置的 offset 均为 0，不能很好地检测对 base 和 offset 的运算。不过，由于本次实验没有实现 <code>li</code>，<code>addi</code> 等指令，offset 直接设为 0 无疑是最方便的。</li>
-<li>对于  <code>lui</code> 和 <code>ori</code> 指令，可以适当多考虑一些更一般的值（无论正负）</li>
-<li>对于 <code>beq</code> 指令，教程中的样例都是向后跳转，可以考虑添加向前 &#x2F; 原地跳转的情况</li>
-</ul>
-<h3 id="P4-思考题"><a href="#P4-思考题" class="headerlink" title="P4 思考题"></a>P4 思考题</h3><h4 id="问题-1-1"><a href="#问题-1-1" class="headerlink" title="问题 1"></a>问题 1</h4><p><strong>阅读下面给出的 DM 的输入示例中（示例 DM 容量为 4KB，即 32bit × 1024字），根据你的理解回答，这个 addr 信号又是从哪里来的？地址信号 addr 位数为什么是 [11:2] 而不是 [9:0] ？</strong></p>
-<ul>
-<li>addr 信号来自于 ALU，ALU 要对 offset 和 base 作加法运算；</li>
-<li>输入地址是以字为单位寻址的，要求为 4 的整数倍，对应到 DM 元件中需要除以 4 来寻址（即右移 2 位）。[1:0] 这两位可以用于半字、字节为单位的寻址，能预留用于添加 lh，lb 等指令。</li>
-</ul>
-<h4 id="问题-2-1"><a href="#问题-2-1" class="headerlink" title="问题 2"></a>问题 2</h4><p><strong>思考上述两种控制器设计的译码方式，给出代码示例，并尝试对比各方式的优劣。</strong></p>
-<ul>
-<li><p>将指令对应到信号：每个指令需要产生哪些控制信号一目了然，但是代码量较大；</p>
+<h3 id="异常检测与流水"><a href="#异常检测与流水" class="headerlink" title="异常检测与流水"></a>异常检测与流水</h3><p>按照指导书要求，P7 的异常分为“内部异常”和“外部中断”，其中<strong>后者优先级更高</strong>，这一点在编写 CP0 相关代码时需要注意。</p>
+<h4 id="异常检测"><a href="#异常检测" class="headerlink" title="异常检测"></a>异常检测</h4><p>对于异常的检测，<strong>不能</strong>全部到 M 级（CP0 所在流水级）才检测。以 PC 不合法异常为例，如果我们不在 F 级检测这一异常并将指令机器码当作 0x00000000，我们的 CPU 就会尝试访问不合法的指令内存地址，这是不安全的。所以，最好尽早检测异常。</p>
+<p>教程的异常代码表格中给出了多种异常，我们可以进行如下分类，在不同的流水级检测不同的异常。</p>
+<table>
+<thead>
+<tr>
+<th>检测流水级</th>
+<th>异常类型</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>F</td>
+<td>PC 不合法</td>
+</tr>
+<tr>
+<td>D</td>
+<td>未知指令、Syscall</td>
+</tr>
+<tr>
+<td>E</td>
+<td>ALU 溢出（算术溢出 &#x2F; 读写地址计算溢出）</td>
+</tr>
+<tr>
+<td>M</td>
+<td>读写地址不合法</td>
+</tr>
+</tbody></table>
+<h4 id="异常流水"><a href="#异常流水" class="headerlink" title="异常流水"></a>异常流水</h4><p>关于检测到的异常不可以直接提交到 CP0 的原因，教程中给出了详细解释，这里不赘述。在上一部分，我们在 M 级及之前的每一个流水级进行了异常检测，这里我们只需要将异常代码通过流水线寄存器进行流水。关于异常的流水，有两个注意点：</p>
+<ol>
+<li><p>对于不同的两条异常指令，先执行的指令的异常更优先（<strong>精确异常</strong>要求的体现）；</p>
 </li>
-<li><p>将信号对应到指令：可以清楚地看到某个特定信号对应的指令，例如对于 <code>RegWrite</code>，我们可以很快就知道哪些指令需要写寄存器的操作。不过编程时要比较小心，因为不能直观地看到一个指令产生了什么控制信号，容易漏接线。</p>
+<li><p>对于同一条指令的多个异常，在更靠前的流水级检出的异常更优先（<strong>尽早发现</strong>异常）。例如，一条指令在 F、D 级都被检出了异常，异常码以 F 级给出的为准，下面这段代码可以体现这一点。</p>
 </li>
-<li><p>示例代码如下：</p>
-<figure class="highlight smalltalk"><table><tr><td class="code"><pre><code class="hljs smalltalk">//信号到指令<br>assign <span class="hljs-type">RegDst</span> = <br>(add || sub || nop) ? `rd:<br>(ori || lw || lui) ? `rt:<br>(jal) ? `ra:<br>`rd;<br><br>assign <span class="hljs-type">ALUSrc</span> = (ori || lw || sw || lui);<br><br>assign <span class="hljs-type">RegDataSrc</span> =<br>(add || sub || ori || lui || nop) ? `alu:<br>(lw) ? `mem:<br>(jal) ? `pc:<br>`alu;<br>...<br><br>//指令到信号<br>if (add) begin<br>        <span class="hljs-type">MemWrite</span>    =   <span class="hljs-number">0</span>       ;<br>        <span class="hljs-type">RegWrite</span>    =   <span class="hljs-number">1</span>       ;<br>        <span class="hljs-type">Jr</span>          =   <span class="hljs-number">0</span>       ;<br>        <span class="hljs-type">Jump</span>        =   <span class="hljs-number">0</span>       ;<br>        <span class="hljs-type">Branch</span>      =   <span class="hljs-number">0</span>	;<br>        <span class="hljs-type">ExtOp</span>       =   <span class="hljs-number">0</span>	;<br>        <span class="hljs-type">ALUSrc</span>      =   <span class="hljs-number">0</span>	;<br>        <span class="hljs-type">ALUOp</span>       =   `<span class="hljs-type">ADD</span>	；<br>        <span class="hljs-type">RegDst</span>      =   `rd	；<br>end<br>...<br></code></pre></td></tr></table></figure></li>
-</ul>
-<h4 id="问题-3-1"><a href="#问题-3-1" class="headerlink" title="问题 3"></a>问题 3</h4><p><strong>在相应的部件中，复位信号的设计都是同步复位 ，这与 P3 中的设计要求不同。请对比同步复位与异步复位这两种方式的 reset 信号与 clk 信号优先级的关系。</strong></p>
+</ol>
+<figure class="highlight verilog"><table><tr><td class="code"><pre><code class="hljs verilog"><span class="hljs-keyword">assign</span> D_exceptionCode = <br>(D_exceptionCodeTemp != <span class="hljs-number">1</span>) ? D_exceptionCodeTemp : <br>(D_Syscall) ? `cp0_Syscall :<br>(D_RI) ? `cp0_RI :<br><span class="hljs-number">1</span>;<br><br><span class="hljs-comment">//D_exceptionCodeTemp 由 F_exceptionCode 流水而来</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="添加协处理器-CP0"><a href="#添加协处理器-CP0" class="headerlink" title="添加协处理器 CP0"></a>添加协处理器 CP0</h3><p>这里我选择将 CP0 放置在 <strong>M 级</strong>，因为异常判定涉及到对内存读写地址的判定。一般情况下，内存读写地址在 E 级 ALU 部件得出，经过 E → M 流水寄存器后传递给 M 级部件。因此，将 CP0 放在 M 级是更为方便的，这样一来不需要添加额外的转发通路。（大多数人会将 CP0 放置在 M 级，如果想要后续对拍方便，我建议“随大流”。）</p>
+<h4 id="CP0-端口设计"><a href="#CP0-端口设计" class="headerlink" title="CP0 端口设计"></a>CP0 端口设计</h4><table>
+<thead>
+<tr>
+<th>端口名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>clk</td>
+<td>in</td>
+<td>1</td>
+<td></td>
+</tr>
+<tr>
+<td>reset</td>
+<td>in</td>
+<td>1</td>
+<td></td>
+</tr>
+<tr>
+<td>writeEnable</td>
+<td>in</td>
+<td>1</td>
+<td>是否写 CP0</td>
+</tr>
+<tr>
+<td>CP0Addr</td>
+<td>in</td>
+<td>5</td>
+<td>写 CP0 寄存器地址</td>
+</tr>
+<tr>
+<td>CP0In</td>
+<td>in</td>
+<td>32</td>
+<td>写入 CP0 的数据</td>
+</tr>
+<tr>
+<td>CP0Out</td>
+<td>out</td>
+<td>32</td>
+<td>从 CP0 读出的数据</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>M_PC</td>
+<td>in</td>
+<td>32</td>
+<td>M 级 PC（宏观 PC）</td>
+</tr>
+<tr>
+<td>BDIn</td>
+<td>in</td>
+<td>1</td>
+<td>是否是延迟槽指令</td>
+</tr>
+<tr>
+<td>ExcCodeIn</td>
+<td>in</td>
+<td>5</td>
+<td>异常码</td>
+</tr>
+<tr>
+<td>HWInt</td>
+<td>in</td>
+<td>6</td>
+<td>外部中断信息，<code>&#123;&#123;3&#39;b000&#125;,&#123;interrupt&#125;,&#123;timer1IRQ&#125;,&#123;timer0IRQ&#125;&#125;</code></td>
+</tr>
+<tr>
+<td>EXLClear</td>
+<td>in</td>
+<td>1</td>
+<td>清空 EXL 位</td>
+</tr>
+<tr>
+<td>EPCOut</td>
+<td>out</td>
+<td>32</td>
+<td>受害 PC</td>
+</tr>
+<tr>
+<td>Request</td>
+<td>out</td>
+<td>1</td>
+<td>异常处理请求</td>
+</tr>
+<tr>
+<td>externalInterruptRequest</td>
+<td>out</td>
+<td>1</td>
+<td>是否响应外部中断器中断信号 <code>interrupt</code></td>
+</tr>
+</tbody></table>
+<h4 id="异常处理请求"><a href="#异常处理请求" class="headerlink" title="异常处理请求"></a>异常处理请求</h4><p>异常处理请求的条件：发生外部中断或内部异常，且<strong>中断被允许</strong>。由于教程中给出的异常码表中不包含“1”，所以我用 <code>ExcCodeIn == 1</code> 表示无内部异常的情况。</p>
 <ul>
-<li>同步复位：reset 信号低级于 clk 信号，因为只有 clk 处于上升沿时 reset 信号才可能有效；</li>
-<li>异步复位：reset 信号高级于 clk 信号，因为一旦 reset 信号在高电平就复位，无所谓 clk 是否在上升沿。</li>
+<li><p>响应外部中断（INT）：</p>
+<ol>
+<li><p>全局中断使能（<code>SR[0] == 1</code>）</p>
+</li>
+<li><p>当前不在核心态（<code>SR[1] == 0</code>）</p>
+</li>
+<li><p>外部有中断且对应中断被允许（<code>HWInt &amp; SR[15:10] != 0</code>）</p>
+</li>
+</ol>
+</li>
+<li><p>响应内部异常（EXC）：  </p>
+<ol>
+<li><p>当前不在核心态（<code>SR[1] == 0</code>）</p>
+</li>
+<li><p>有内部异常（<code>ExcCodeIn != 1 &amp;&amp; ExcCodeIn != 0</code>）</p>
+</li>
+</ol>
+</li>
 </ul>
-<h4 id="问题-4-1"><a href="#问题-4-1" class="headerlink" title="问题 4"></a>问题 4</h4><p><strong>C 语言是一种弱类型程序设计语言。C 语言中不对计算结果溢出进行处理，这意味着 C 语言要求程序员必须很清楚计算结果是否会导致溢出。因此，如果仅仅支持 C 语言，MIPS 指令的所有计算指令均可以忽略溢出。 请说明为什么在忽略溢出的前提下，addi 与 addiu 是等价的，add 与 addu 是等价的。提示：阅读《MIPS32® Architecture For Programmers Volume II: The MIPS32® Instruction Set》中相关指令的 Operation 部分。</strong></p>
+<h4 id="记录异常"><a href="#记录异常" class="headerlink" title="记录异常"></a>记录异常</h4><p>当检测到异常时，需要向 SR、Cause 和 EPC 寄存器中写入信息。对于每个寄存器的特定位，需要写入的信息如下：</p>
+<table>
+<thead>
+<tr>
+<th>寄存器</th>
+<th>位域</th>
+<th>写入信息</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SR</td>
+<td>1</td>
+<td>写入 1，因为检测到异常</td>
+</tr>
+<tr>
+<td>Cause</td>
+<td>31</td>
+<td>是延迟槽指令则写入 1</td>
+</tr>
+<tr>
+<td>Cause</td>
+<td>15:10</td>
+<td>每周期更新，传入 <code>HWInt</code></td>
+</tr>
+<tr>
+<td>Casue</td>
+<td>6:2</td>
+<td>异常码</td>
+</tr>
+<tr>
+<td>EPC</td>
+<td></td>
+<td>受害 PC，注意延迟槽指令的受害 PC 为 M_PC - 4</td>
+</tr>
+</tbody></table>
+<p>需要注意的是，由于外部中断优先级更高，则响应外部中断时，即使该指令有内部异常，也需要向 <code>Cause[6:2]</code> 中写入<strong>外部中断异常码</strong>。</p>
+<h4 id="EXL-位清空"><a href="#EXL-位清空" class="headerlink" title="EXL 位清空"></a>EXL 位清空</h4><p>EXL 位置 1 代表强制进入核心态（执行异常处理程序），则当异常处理程序执行完成时，需要退出核心态。在 P7 中，<code>eret</code> 指令负责跳转到 EPC 执行接下来的主程序，所以 M 级检测到 <code>eret</code> 指令时（这个信号可以从 D 级流水过来），<code>EXLClear</code> 应当置 1，且 EXL 位应当被清空。</p>
+<h4 id="CP0-的读写"><a href="#CP0-的读写" class="headerlink" title="CP0 的读写"></a>CP0 的读写</h4><p>与 D 级 GRF 部件的读写操作没有本质上不同，这里不再赘述。</p>
+<h3 id="实现与外设的交互"><a href="#实现与外设的交互" class="headerlink" title="实现与外设的交互"></a>实现与外设的交互</h3><h4 id="系统桥"><a href="#系统桥" class="headerlink" title="系统桥"></a>系统桥</h4><p>系统桥 Bridge 需要实现对外设的读写操作。在这一部分，外设指两个 Timer。我们可以通过 Bridge 向 Timer 的特定寄存器（有对应地址）中写入数据，也可以从 Timer 读出数据（例如中断信号，HWInt 是需要的）。</p>
+<table>
+<thead>
+<tr>
+<th>端口名</th>
+<th>方向</th>
+<th>位宽</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>addrIn</td>
+<td>in</td>
+<td>32</td>
+<td>写 Timer 的地址</td>
+</tr>
+<tr>
+<td>dataIn</td>
+<td>in</td>
+<td>32</td>
+<td>写 Timer 的数据</td>
+</tr>
+<tr>
+<td>byteEnable</td>
+<td>in</td>
+<td>4</td>
+<td>写对应地址的哪些字节</td>
+</tr>
+<tr>
+<td>addrOut</td>
+<td>out</td>
+<td>32</td>
+<td>连接 Timer 地址输入端</td>
+</tr>
+<tr>
+<td>dataOut</td>
+<td>out</td>
+<td>32</td>
+<td>连接 Timer 地址输出端</td>
+</tr>
+<tr>
+<td>timerWrite0</td>
+<td>out</td>
+<td>1</td>
+<td>连接 Timer0 写使能端</td>
+</tr>
+<tr>
+<td>timerWrite1</td>
+<td>out</td>
+<td>1</td>
+<td>连接 Timer1 写使能端</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>timerIn0</td>
+<td>in</td>
+<td>32</td>
+<td>连接 Timer0 数据输出端</td>
+</tr>
+<tr>
+<td>timerIn1</td>
+<td>in</td>
+<td>32</td>
+<td>连接 Timer1 数据输出端</td>
+</tr>
+<tr>
+<td>timerIRQIn0</td>
+<td>in</td>
+<td>32</td>
+<td>连接 Timer0 中断输出端</td>
+</tr>
+<tr>
+<td>timerIRQIn1</td>
+<td>in</td>
+<td>32</td>
+<td>连接 Timer1 中断输出端</td>
+</tr>
+<tr>
+<td>timerOut</td>
+<td>in</td>
+<td>32</td>
+<td>从 Timer 读出的数据</td>
+</tr>
+<tr>
+<td>timerIRQOut0</td>
+<td>in</td>
+<td>32</td>
+<td>从 Timer0 读出的中断数据，传给 HWInt</td>
+</tr>
+<tr>
+<td>timerIRQOut1</td>
+<td>in</td>
+<td>32</td>
+<td>从 Timer1 读出的中断数据，传给 HWInt</td>
+</tr>
+</tbody></table>
+<p>对于 <code>timerWrite0</code> 和 <code>timerWrite1</code> 的使能，直接通过写地址 <code>addrIn</code> 判断即可；输出的 <code>timerOut</code> 也是根据 <code>addrIn</code> 判断输出的是哪个 <code>Timer</code> 的对应数据。Bridge 的其他端口与 Timer 对应端口的接线可以直接参考仓库里的代码。</p>
+<figure class="highlight verilog"><table><tr><td class="code"><pre><code class="hljs verilog"><span class="hljs-keyword">assign</span> timerWrite0 = <br>(addrIn &gt;= <span class="hljs-number">32&#x27;h00007f00</span> &amp;&amp; addrIn &lt;= <span class="hljs-number">32&#x27;h00007f0b</span> &amp;&amp; byteEnable != <span class="hljs-number">4&#x27;b0000</span>);<br><span class="hljs-keyword">assign</span> timerWrite1 = <br>(addrIn &gt;= <span class="hljs-number">32&#x27;h00007f10</span> &amp;&amp; addrIn &lt;= <span class="hljs-number">32&#x27;h00007f1b</span> &amp;&amp; byteEnable != <span class="hljs-number">4&#x27;b0000</span>);<br><span class="hljs-keyword">assign</span> timerOut = <br>(addrIn &gt;= <span class="hljs-number">32&#x27;h00007f00</span> &amp;&amp; addrIn &lt;= <span class="hljs-number">32&#x27;h00007f0b</span>) ? timerIn0:<br>(addrIn &gt;= <span class="hljs-number">32&#x27;h00007f10</span> &amp;&amp; addrIn &lt;= <span class="hljs-number">32&#x27;h00007f1b</span>) ? timerIn1:<br><span class="hljs-number">0</span>;<br></code></pre></td></tr></table></figure>
+
+<h4 id="响应中断发生器的中断"><a href="#响应中断发生器的中断" class="headerlink" title="响应中断发生器的中断"></a>响应中断发生器的中断</h4><p>按照教程，如果这时中断发生器产生中断（<code>interrupt == 1</code>）且允许响应外部中断器中断信号（<code>externalInterruptRequest == 1</code>），则写地址 0x7f20。官方提供了 <code>m_int_addr</code> 和 <code>m_int_byteen</code> 接口，直接更改对应输出数据即可：</p>
+<figure class="highlight verilog"><table><tr><td class="code"><pre><code class="hljs verilog"><span class="hljs-keyword">assign</span> m_int_addr = m_data_addr;<br><span class="hljs-keyword">assign</span> m_int_byteen = <br>(M_externalInterruptResponse &amp;&amp; interrupt) ? <span class="hljs-number">4&#x27;b0001</span> : <span class="hljs-number">4&#x27;b0000</span>;<br></code></pre></td></tr></table></figure>
+
+<p><code>externalInterruptRequest</code> 信号的置位逻辑与 <code>INT</code> 信号基本一致，但判断的是 <code>HWInt[2]</code> 和 <code>SR[12]</code> 是否均为 1。</p>
+<h3 id="当异常请求（Request）到来时"><a href="#当异常请求（Request）到来时" class="headerlink" title="当异常请求（Request）到来时"></a>当异常请求（Request）到来时</h3><h4 id="PC-跳转"><a href="#PC-跳转" class="headerlink" title="PC 跳转"></a>PC 跳转</h4><p>此时 PC 应当跳转到 0x4180，修改 F 级 nextPC 模块即可。</p>
+<h4 id="清空流水线"><a href="#清空流水线" class="headerlink" title="清空流水线"></a>清空流水线</h4><p>为了符合<strong>精确异常</strong>的要求，我们需要清空流水线——插入 <code>nop</code>，防止异常指令及其后续指令被真正执行产生影响。这一操作和 <code>reset</code> 时比较相像，不过由于异常处理程序从 0x4180 开始，所以 <code>request</code> 时，PC 应复位到 0x4180。</p>
+<p>同时，异常码应该清空为“1”，即表示既没有外部中断（0），也没有内部异常。</p>
+<h4 id="乘除模块"><a href="#乘除模块" class="headerlink" title="乘除模块"></a>乘除模块</h4><p>按照教程中要求，如果异常发生时 E 级有<strong>还没开始的</strong>涉及乘除模块的运算，则这一运算不应开始；若这一运算还没有执行到修改 HI、LO 寄存器的阶段，则不应当修改 HI、LO 寄存器。</p>
+<p>只需要给 MDU 的工作条件增加 <code>!request</code> 即可：</p>
 <ul>
-<li>如何判断溢出：将  GPR[rs] 的第 31 位拼接到 GPR[rs] 之前，加法结果记为 temp，如果产生了进位就会溢出，这体现为 temp[32] ≠ temp[31]。</li>
-<li>如果我们不考虑溢出，temp[32] 不会发生变化，也不会被存入到寄存器中，此时存入的结果仍然是两个 32 位数加法得到的结果，addi 与 addiu &#x2F; add 与 addu 是等价的。</li>
+<li><p>如果运算没有开始，此时运算所需数据不会被写入寄存器，<code>state</code> 不变，运算不能开始；</p>
+</li>
+<li><p>运算正在进行，还没写 HI、LO：由于此时 <code>request</code> 为高，MDU 的 <code>state</code> 不会改变，从而不会继续工作，不产生影响；</p>
+</li>
 </ul>
-<h3 id="上机提示"><a href="#上机提示" class="headerlink" title="上机提示"></a>上机提示</h3><p>上机一开始就可以将课下提交的电路提交到各题的窗口中进行评测，每道题都有大约一半的数据点是对课下内容的强测，不涉及任何新增指令。如果提交后发现每道题均有约一半的测试点可以通过，那么上机时就不要多去考虑课下的 bug 了。</p>
-]]></content>
+<h4 id="内存读写"><a href="#内存读写" class="headerlink" title="内存读写"></a>内存读写</h4><p>有异常或是 <code>request</code> 时都不应该对内存进行写入操作，以消除影响。</p>
+<h3 id="当-eret-到来时"><a href="#当-eret-到来时" class="headerlink" title="当 eret 到来时"></a>当 <code>eret</code> 到来时</h3><p>我选择在 D 级 CTRL 模块检测当前指令是否为 <code>eret</code>。</p>
+<ul>
+<li><p>由于 <code>eret</code> 没有延迟槽，若 D 级检测到 <code>eret</code>，则 F 级需要插入一个 <code>nop</code> ——这是清空延迟槽最快捷的方法。</p>
+</li>
+<li><p>当 D 级检测到 <code>eret</code> 后，PC 需要跳转到 EPC 处，修改 F 级 nextPC 模块即可。</p>
+</li>
+</ul>
+<h3 id="阻塞与转发"><a href="#阻塞与转发" class="headerlink" title="阻塞与转发"></a>阻塞与转发</h3><h4 id="eret-阻塞逻辑"><a href="#eret-阻塞逻辑" class="headerlink" title="eret 阻塞逻辑"></a><code>eret</code> 阻塞逻辑</h4><p><code>eret</code> 指令需要 EPC 中的数据。如果 <code>eret</code> 的前序指令需要写 EPC，则将 <code>eret</code> 阻塞在 D 级。</p>
+<h4 id="阻塞时保留信息"><a href="#阻塞时保留信息" class="headerlink" title="阻塞时保留信息"></a>阻塞时保留信息</h4><p>这一点主要体现在 D → E 流水寄存器上。如果未发生 <code>reset</code> 和 <code>request</code>，而流水线被阻塞，需要保留 D 级的 PC 和 BD 信息。如果没有流水这两个信息会怎样？具体可以看下面这个例子来理解。</p>
+<p>考虑指令序列 <code>lw - beq - add</code>，且 <code>add</code> 会因与 <code>lw</code> 产生数据冲突而被阻塞在 D 级。设想当前流水线各级的指令如下（带“*”表示延迟槽指令）：</p>
+<table>
+<thead>
+<tr>
+<th>F</th>
+<th>D</th>
+<th>E</th>
+<th>M</th>
+<th>W</th>
+</tr>
+</thead>
+<tbody><tr>
+<td></td>
+<td>add*</td>
+<td>beq</td>
+<td>lw</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>由于阻塞，下一个时钟周期时流水线状态如下：</p>
+<table>
+<thead>
+<tr>
+<th>F</th>
+<th>D</th>
+<th>E</th>
+<th>M</th>
+<th>W</th>
+</tr>
+</thead>
+<tbody><tr>
+<td></td>
+<td>add*</td>
+<td></td>
+<td>beq</td>
+<td>lw</td>
+</tr>
+</tbody></table>
+<p>再下一个时钟周期的下降沿时来了一个中断。该周期时钟信号高电平时，流水线状态为：</p>
+<table>
+<thead>
+<tr>
+<th>F</th>
+<th>D</th>
+<th>E</th>
+<th>M</th>
+<th>W</th>
+</tr>
+</thead>
+<tbody><tr>
+<td></td>
+<td>add*</td>
+<td></td>
+<td></td>
+<td>lw</td>
+</tr>
+</tbody></table>
+<p>这时 CP0 需要记录异常相关信息。如果我们在阻塞时清空了 D → E 的所有信号，则获取到 M 级 PC 为 0x3000，BD 为 0，这显然是不正确的。因此，阻塞（且无 <code>reset</code> 和 <code>request</code>）时需要保留 PC 和 BD 信息。</p>
+<p>优先级问题：请注意 <code>reset</code>，<code>request</code> 和 <code>stall</code> 信号的优先级关系依次从高到低，这一点在教程中有着重强调——复位高于一切，外部可见的请求高于不可见的阻塞。当 CPU 被封装，我们看不到内部流水线执行的细节，包括转发和阻塞，流水线的 CPU 在外人看来就仿佛是单周期的。</p>
+<h4 id="转发逻辑"><a href="#转发逻辑" class="headerlink" title="转发逻辑"></a>转发逻辑</h4><p>可以考虑转发从 CP0 寄存器读出的数据。由于在 M 级才能访问 CP0 并更新数据，所以 $T_\text{new}&#x3D;3$，这与 <code>lw</code> 本质上区别不大（一个读 CP0，一个读内存），因此转发通路没有必要做特别改造。</p>
+<h3 id="P7-思考题"><a href="#P7-思考题" class="headerlink" title="P7 思考题"></a>P7 思考题</h3><h4 id="第一题"><a href="#第一题" class="headerlink" title="第一题"></a>第一题</h4><p><strong>请查阅相关资料，说明鼠标和键盘的输入信号是如何被 CPU 知晓的？</strong></p>
+<p>CPU 通过总线和外部设备连接，输入信号会通过总线传递给 CPU。CPU 接收到中断信号后会进行处理，并反馈结果。</p>
+<h4 id="第二题"><a href="#第二题" class="headerlink" title="第二题"></a>第二题</h4><p><strong>请思考为什么我们的 CPU 处理中断异常必须是已经指定好的地址？如果你的 CPU 支持用户自定义入口地址，即处理中断异常的程序由用户提供，其还能提供我们所希望的功能吗？如果可以，请说明这样可能会出现什么问题？否则举例说明。（假设用户提供的中断处理程序合法）</strong></p>
+<p>设计上，要让用户不需要过多地考虑底层的实现，而是要让他们专注于“用户态”，这时底层指定中断异常处理地址是最为方便的选择。并且，若处理中断异常的程序由用户提供，由于用户并不知晓 CPU 的具体实现，其提供的处理代码可能会导致冒险问题，即使能够实现某些功能，但风险也很大。</p>
+<h4 id="第三题"><a href="#第三题" class="headerlink" title="第三题"></a>第三题</h4><p><strong>为何与外设通信需要 Bridge？</strong></p>
+<p>系统桥是连接 CPU 和外设的功能设备，它会给 CPU 提供一种接口，使得 CPU 可以像读写普通存储器一样（即按地址读写）来读写复杂多变的外设。系统桥统一且简化了 CPU 的对外接口，CPU 不必为每种外设单独提供接口，符合高内聚，低耦合的设计思想。尽管外设多种多样，但是 CPU 可以用统一的方法访问它们。</p>
+<h4 id="第四题"><a href="#第四题" class="headerlink" title="第四题"></a>第四题</h4><p><strong>请阅读官方提供的定时器源代码，阐述两种中断模式的异同，并分别针对每一种模式绘制状态转移图。</strong></p>
+<pre><code class=" mermaid">graph LR
+    A(IDLE)
+    B(LOAD)
+    C(CNT)
+    D(INT)
+
+    A --&gt; |ctrl_0 == 1; IRQ = 0| B
+    A --&gt; |ctrl_0 == 0; IRQ = 0| A
+    B --&gt; |无条件; IRQ = 0| C
+    C --&gt; |ctrl_0 == 1, count &gt; 1; IRQ = 0| C
+    C --&gt; |ctrl_0 == 1, count ≤ 1; IRQ = 0| D
+    C --&gt; |ctrl_0 == 0| A
+    D --&gt; |模式0：ctrl = 0; IRQ = 1|A
+    D --&gt; |模式1：ctrl不变; IRQ = 0|A
+</code></pre>
+
+<h4 id="第五题"><a href="#第五题" class="headerlink" title="第五题"></a>第五题</h4><p><strong>倘若中断信号流入的时候，在检测宏观 PC 的一级如果是一条空泡（你的 CPU 该级所有信息均为空）指令，此时会发生什么问题？在此例基础上请思考：在 P7 中，清空流水线产生的空泡指令应该保留原指令的哪些信息？</strong></p>
+<p>若 CPU 该级所有信息均为空，携带的 PC 和延迟槽信息都可能是不正确的，这对异常信息的记录是很不利的；空泡中指令应该变为 <code>nop</code>，其他信息应保持与前一条指令一致，尤其是 PC 和 BD。</p>
+<h4 id="第六题"><a href="#第六题" class="headerlink" title="第六题"></a>第六题</h4><p><strong>为什么 <code>jalr</code> 指令的两个寄存器不能相同，例如 <code>jalr $31, $31</code> ？</strong></p>
+<p><code>$31</code> 的值更新和 PC 更新在同一时刻发生，我们对同一个寄存器同时读写，这种行为是“未定义”的。</p>
+<h3 id="代码问题"><a href="#代码问题" class="headerlink" title="代码问题"></a>代码问题</h3><p>在中断部分的强测中，有很小几率触发 <code>*00007f20 &lt;= 00000000</code> 输出，导致内存操作输出内容过多。由于不知道课程组评测使用的 testbench 具体做出了什么修改，所以目前无法定位这一问题发生的原因。</p>
+<h3 id="课下部分建议"><a href="#课下部分建议" class="headerlink" title="课下部分建议"></a>课下部分建议</h3><ul>
+<li><p>尽早开始 P7 的工作，因为 P7 有一定理解难度，在高压、时间紧张的状况下可能很难完成任务。即使之前已经挂 P，但如果完全有可能推进到 P7 课下，请一定提前开始准备。</p>
+</li>
+<li><p>不要依赖课下测试，而是尝试自己另外构造新数据。异常部分的数据还算好构造，“力大砖飞”即可；中断部分的测试数据可以“小而精”，不用太长，覆盖到异常时中断、阻塞时中断等特别情况即可。我的<a href="https://github.com/kkdcymnj/buaa_co_2025/tree/main/cpu_check_p7/sample_manual">仓库</a>中有少量这样的数据，大家可以批判性地使用，注意更改 testbench 中 <code>target_pc</code> 值。</p>
+</li>
+<li><p>关于 debug 方面，如果已经验证 P6 功能能够正常实现，那么如果出现寄存器读写的错误，请考虑 CP0 部分、异常检测部分的实现。CP0 寄存器数据的特定位能给我们很大提示。例如，中测时出现了寄存器数据的第 31 位错误但其他位都正确，这时我们就可以考虑延迟槽指令的判定，因为对于延迟槽指令，<code>Cause[31] == 1</code>。</p>
+</li>
+</ul>
+<h3 id="终章"><a href="#终章" class="headerlink" title="终章"></a>终章</h3><p>笔者的水平和那些一次通过所有 P 的大佬不可比，但还是借助最后一次上机机会完成了 P7，达成了“通关”。通过下面的考试记录，你可以看到笔者 P5 和 P7 都是一遍通过，但在所谓“比 P5 简单”的 P6 连死两回——计算机组成上机每个 P 的难易都是因人而异的，不要认为“P5 和 P7 必有一死”，也不要认为某些“简单”的 P 可以不认真准备。对别人难的不一定对你难，对别人容易的不一定对你容易，结合自身状况认真准备每次上机才是正解。</p>
+<p>祝大家能披荆斩棘，克服困难，见到“通关”的曙光！</p>
+<img src="/images/p7_exam_record.png" width=100% height=100% align=center/>
+
+<img src="/images/p7_end.png" width=100% height=100% align=center/>]]></content>
       <categories>
         <category>计算机组成课下</category>
       </categories>
       <tags>
         <tag>计算机组成</tag>
-        <tag>单周期 CPU</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>《面向对象设计与构造》第一单元总结</title>
-    <url>/2026/03/31/oo_u1_blog/</url>
-    <content><![CDATA[<h2 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h2><p>第一单元的主题是<strong>表达式展开</strong>，主要训练层次化设计，我们需要对表达式进行解析，对不同类型元素进行建模，抽象出它们在运算上的共同特征，“以不变应万变”，这样我们才可以以尽量少的修改来应对每次新增的需求，降低维护和迭代难度。</p>
-<h2 id="最终架构"><a href="#最终架构" class="headerlink" title="最终架构"></a>最终架构</h2><img src="/images/Hw3.png" width=100% height=100% align=center/>
-
-<h2 id="第一次迭代"><a href="#第一次迭代" class="headerlink" title="第一次迭代"></a>第一次迭代</h2><h3 id="任务"><a href="#任务" class="headerlink" title="任务"></a>任务</h3><p>展开一个形式较为简单的多项式，多项式中各项的因子只能是常数因子、幂函数因子、表达式因子。</p>
-<h3 id="架构分析"><a href="#架构分析" class="headerlink" title="架构分析"></a>架构分析</h3><p>本次作业的架构主要分为以下几部分，这也为后续的作业打下了基础。</p>
-<ul>
-<li>预处理：去除多余的空格和tab符，对表达式作基本的化简（例如 <code>-+</code>化简为 <code>-</code>，<code>*+</code>化简为 <code>*</code>，<code>(+</code>化简为 <code>(</code>……），方便文法解析进行。</li>
-<li>文法解析：使用<strong>递归下降法</strong>分析表达式、项和因子。当解析Factor时碰到了括号，则调用解析Expr的方法。</li>
-<li>表达式组成：Expr→Term→Factor，其中Factor是一个接口，不同的因子都需要实现这个接口。</li>
-<li>表达式转换和运算：使用Mono→Poly结构，若干Mono相加得到一个Poly。本次作业的Mono项形式为：$Ax^b$，这一形式可以统一地表示常数和幂函数，也方便计算。</li>
-</ul>
-<h3 id="具体实现"><a href="#具体实现" class="headerlink" title="具体实现"></a>具体实现</h3><h4 id="表达式解析"><a href="#表达式解析" class="headerlink" title="表达式解析"></a>表达式解析</h4><p>具体的实现在实验课代码中已经给出。和实验课代码不同的是，我将正负号信息保存在 <code>Term</code>类中。正负号信息主要用于决定各个Mono的系数，所以它主要在“元素→Mono&#x2F;Poly”的部分发挥作用，至于后续的计算，我们并不需要具体的正负号信息。</p>
-<h4 id="表达式计算"><a href="#表达式计算" class="headerlink" title="表达式计算"></a>表达式计算</h4><p>这里借鉴了往届同学的写法，Expr，Poly，Factor等元素都实现了 <code>toPoly</code>方法，最后的计算就可以统一为<strong>多项式计算</strong>。运用基本的数学知识，<code>addPoly()</code>，<code>multPoly()</code>，<code>powerPoly()</code>等方法的编写是容易完成的。</p>
-<ul>
-<li><p>转化为Poly</p>
-<ul>
-<li>对于NumFactor和PowerFactor，转化为仅含一个Mono的Poly，在Mono中设置好系数和变量幂次即可。</li>
-<li>对于Term，将各个Factor转化出的Poly进行 <code>multPoly()</code>即可。特别地，如果这个Term的符号为 <code>-</code>，还需要对各个Mono的系数取相反数。</li>
-<li>对于Expr，将各个Term转化出的Poly进行 <code>addPoly()</code>即可。</li>
-</ul>
-</li>
-<li><p>Poly的计算</p>
-<ul>
-<li>重点是实现同类项的判定。这一作业的同类项判定很简单，只需要判断幂次相等即可。</li>
-<li>在 <code>addPoly</code>中实现同类项合并，这依赖于同类项的判定。同类项合并的好处是节省存储空间，也有利于优化输出。</li>
-<li>在 <code>addPoly</code>中完成0系数项的丢弃，节省空间，也能防止 <code>multPoly</code>和 <code>powerPoly</code>方法运行时占用过高内存。</li>
-</ul>
-</li>
-</ul>
-<h4 id="表达式输出"><a href="#表达式输出" class="headerlink" title="表达式输出"></a>表达式输出</h4><p>总体来说，表达式的输出是一个按照文法层次递归调用的过程。由于我们将各个元素统一成了Mono&#x2F;Poly的形式，所以这一工作的本质是处理好Mono&#x2F;Poly的输出。而Poly的输出又循环调用了Mono的输出，所以Mono的输出逻辑最为关键。</p>
-<p>Mono的输出处理大致可以分为以下几种情况：</p>
-<ul>
-<li>系数为0：不用输出。</li>
-<li>系数不为0，幂次为0：将系数直接输出即可。</li>
-<li>系数和幂次全不为0：<ul>
-<li>系数为±1：可以把“1”省略，只输出前面的正负号以及后面的PowerFactor。PowerFactor的输出逻辑也较为简单，遇到0次幂输出“1”，遇到1次幂输出“x”，其他幂次正常输出。</li>
-<li>系数不为±1：正常输出即可。</li>
-</ul>
-</li>
-</ul>
-<p>对于最终结果的输出，如果之前自下而上构建的输出字符串为空，则输出“0”，其他情况正常输出即可。为了优化输出长度，可以将输出表达式再进行处理（和输入处理一样，应用 <code>Processor</code>类），且输出时可以省略最开头的“+”号。</p>
-<h2 id="第二次迭代"><a href="#第二次迭代" class="headerlink" title="第二次迭代"></a>第二次迭代</h2><h3 id="任务-1"><a href="#任务-1" class="headerlink" title="任务"></a>任务</h3><p>新增exp因子、选择式因子 <code>[(A==B)?C:D]</code>、函数因子 <code>f(x)</code>。</p>
-<h3 id="架构分析-1"><a href="#架构分析-1" class="headerlink" title="架构分析"></a>架构分析</h3><p>相比第一次作业，架构有了以下调整。</p>
-<ul>
-<li>新增因子类：<code>ExpFactor</code>，<code>SelectFactor</code>，<code>FuncFactor</code>。</li>
-<li>新增函数解析与存储类：<code>FuncManager</code>。</li>
-<li>由于String→Expr，String→Poly操作会被复用，所以单独建立 <code>StrPolyExchanger</code>类。</li>
-<li>在 <code>Poly</code>类中新增方法 <code>judgeEqual</code>用于多项式判等（原理：<code>A==B</code>则必有 <code>A+B.negative==0</code>）。这一方法在同类项判定、选择表达式计算等场景会被反复使用。</li>
-</ul>
-<h3 id="具体实现-1"><a href="#具体实现-1" class="headerlink" title="具体实现"></a>具体实现</h3><h4 id="表达式解析-1"><a href="#表达式解析-1" class="headerlink" title="表达式解析"></a>表达式解析</h4><ul>
-<li><p>选择式因子</p>
-<p>将选择式因子中涉及到的4个因子分别解析为Factor后存储起来，但这时不能盲目地将因子C和因子D转化为Poly形式：不被选中的那个因子可能极为复杂，如果我们立即将它转化为Poly，则会浪费大量时间。下面的例子充分地说明了“短路处理”的必要性。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java">f(x)=exp(x)+exp(x^<span class="hljs-number">2</span>)+exp(x^<span class="hljs-number">3</span>)+exp(x^<span class="hljs-number">4</span>)<br>[(<span class="hljs-number">0</span>==<span class="hljs-number">0</span>)?<span class="hljs-number">1</span>:f(f(f(f(x))))]<br></code></pre></td></tr></table></figure>
-</li>
-<li><p>函数因子</p>
-<p>函数因子的解析分为以下几步。</p>
-<ul>
-<li>读入函数定义后，先预处理并化简（展开）<code>f(x)</code>的表达式，以方便后续实参带入计算。使用HashMap存储函数的信息，key为函数名 <code>f</code>，value为展开后的 <code>f(x)</code>定义式。</li>
-<li>在最后一行的表达式读到 <code>f</code>则代表出现了一处函数，接下来递归解析函数实参，并创建对象 <code>FuncFactor(funcName, realArg)</code>。</li>
-<li>如果<strong>需要</strong>具体计算这个函数，则将 <code>realArg</code>转化为字符串，然后<strong>直接替换</strong>掉 <code>f(x)</code>定义式中的形参 <code>x</code>，得到代入后的表达式。注意 <code>exp</code>中的 <code>x</code>不可以被替换，所以需要判定 <code>x</code>的前后是否都是字母，如果是，则不能替换。</li>
-<li>将代入实参后的函数表达式转化为Poly参与计算。</li>
-</ul>
-</li>
-</ul>
-<h4 id="表达式计算-1"><a href="#表达式计算-1" class="headerlink" title="表达式计算"></a>表达式计算</h4><ul>
-<li><p>调整Mono的组成：$Ax^b$以及一系列exp因子的乘积（用 <code>ArrayList</code>存储）。</p>
-</li>
-<li><p>同类项判定：</p>
-<ul>
-<li>x的幂次相等。如果幂次不等，应当直接<strong>熔断</strong>，不要在exp项的判等上浪费时间。这一简单的操作作用不小，尤其是碰到含有大量exp因子但x幂次各不相同的样例时。</li>
-<li>由于两个Mono中exp因子数量和形式差异很大，所以exp项是否相等要具体计算。将多个exp的乘积表示为单个exp因子的形式（将各个exp项的指数相加即可），判定新的“单exp”的指数项是否相等。例如，MonoA中含有<code>exp(a)</code>和<code>exp(b)</code>，MonoA中含有<code>exp(c)</code>和<code>exp(d)</code>，此时要判断的是<code>a+b==c+d</code>是否成立。</li>
-</ul>
-</li>
-<li><p>利用部分因子的不变性：在我的实现中，exp因子不可变，每涉及到exp的计算都会创建新的对象，而不改变当前已有对象。所以可以将exp指数项的Poly形式存储好，需要的时候直接拿取即可，而不需要重复地将同一个Expr转化为Poly。由于同类项的判定需要反复用到exp的指数项的Poly形式，这一处理的效果相当明显。</p>
-</li>
-<li><p>只在真正需要计算的时候才进行计算：在函数因子解析与计算中，需要代入实参，将Expr类的实参转化为String会相当消耗时间（如果实参极为复杂），所以这一操作只在必要时才会进行，如下面代码所示。对于exp项转化为Poly形式，也应当遵循这一原则。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> Poly <span class="hljs-title function_">toPoly</span><span class="hljs-params">()</span> &#123;<br>    <span class="hljs-keyword">if</span> (realArgStrings == <span class="hljs-literal">null</span>) &#123;<br>        realArgStrings = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ArrayList</span>&lt;&gt;();<br>        <span class="hljs-keyword">for</span> (Expr arg : realArgs) &#123;<br>            realArgStrings.add(Processor.process(arg.toPoly().toString()));<br>        &#125;<br>    &#125;<br>    convertedExpr = convert();<br>    result = convertedExpr.toPoly();<br>    <span class="hljs-keyword">return</span> result;<br>&#125;<br></code></pre></td></tr></table></figure></li>
-</ul>
-<h4 id="表达式输出-1"><a href="#表达式输出-1" class="headerlink" title="表达式输出"></a>表达式输出</h4><p>主要增加了exp的输出逻辑。</p>
-<ul>
-<li><p>exp指数为0，直接输出“+1”即可。</p>
-</li>
-<li><p>若exp的指数项是单个因子，则可以省略一层括号。判定指数项是“单个因子”的过程如下，这里检查的是指数的Poly形式。</p>
-<ul>
-<li>这个Poly是否只由1个Mono组成。</li>
-<li>这个Mono中，x的幂次是否为0。</li>
-<li>这个Mono中，exp因子的指数项是否为0。</li>
-</ul>
-</li>
-</ul>
-<h2 id="第三次迭代"><a href="#第三次迭代" class="headerlink" title="第三次迭代"></a>第三次迭代</h2><h3 id="任务-2"><a href="#任务-2" class="headerlink" title="任务"></a>任务</h3><p>新增变量 <code>y</code>；新增求导因子 <code>dx</code>&#x2F;<code>dy</code>&#x2F;<code>grad</code>；新增递归函数因子 <code>f{n}(x)</code>。</p>
-<h3 id="架构分析-2"><a href="#架构分析-2" class="headerlink" title="架构分析"></a>架构分析</h3><p>相比第二次作业，架构有了以下调整。</p>
-<ul>
-<li><p>新增因子类：<code>DeriveFactor</code>。其中标识符 <code>deriveX</code>，<code>deriveY</code>标识了结果中是否需要包含对x&#x2F;y变量求导，这将不同的求导因子的表示进行了统一。</p>
-</li>
-<li><p>调整函数解析与计算相关类：</p>
-<ul>
-<li><p><code>FuncFactor</code>类：增加属性 <code>layer</code>，如果 <code>layer == -1</code>，代表是一个普通函数；反之，代表这是一个递归函数，需要计算对应层次的函数定义式。这做到了不同函数形式的统一。</p>
-</li>
-<li><p><code>FuncManager</code>类：</p>
-<ul>
-<li>增加 <code>RecursiveFuncMap</code>对递归函数进行存储。key值 <code>HashMap&lt;String, Integer&gt;</code>即为 <code>&lt;函数名，递归层数&gt;</code>，value为 <code>f{i}</code>的定义式。</li>
-<li>对于递归函数形式 <code>f{n}(x) = 常数因子 * f{n-1}(因子) +|- 常数因子 * f{n-2}(因子) [+|- 函数表达式]</code>，对应地记录 <code>recursiveCoeffA</code>（常数因子），<code>recursiveCoeffB</code>，<code>recursiveArgA</code>（实参），<code>recursiveArgB</code>，<code>recursiveAlterExpr</code>（跟在最后的可有可无的函数表达式）。</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-<h3 id="具体实现-2"><a href="#具体实现-2" class="headerlink" title="具体实现"></a>具体实现</h3><h4 id="表达式解析-2"><a href="#表达式解析-2" class="headerlink" title="表达式解析"></a>表达式解析</h4><p>工作的重心在递归函数的解析上。</p>
-<ul>
-<li><p>输入处理</p>
-<ul>
-<li><p>如果读取到 <code>f{0}</code>和 <code>f{1}</code>， 直接向 <code>RecursiveFuncMap</code>写入定义式。</p>
-</li>
-<li><p>如果读取到 <code>f{n}</code></p>
-<ul>
-<li>读取系数，直到碰到 <code>*</code>符号。</li>
-<li>读取实参，由于实参中会有括号的嵌套，所以需要维护一个变量 <code>count</code>来记录不匹配的括号数量。若 <code>count == 0</code>，这代表读取到了 <code>f(&lt;因子&gt;)</code>最右端的那个括号，实参读取完成。</li>
-<li>读取最后附加的表达式（条件：读取完第二个实参，<code>pos</code>还没到最末尾）。</li>
-</ul>
-</li>
-</ul>
-</li>
-<li><p>表达式中的递归函数</p>
-<p>读取到 <code>f</code>，代表是函数因子；若后续字符是 <code>{</code>，相应地读取一个Number作为函数层数参数，否则当作普通函数对待，认为 <code>layer == -1</code>；读取实参的步骤不用变化。</p>
-</li>
-<li><p>递归函数定义式计算</p>
-<ul>
-<li>对于传入的 <code>&lt;函数名，递归层数&gt;</code>，先在 <code>RecursiveFuncMap</code>中查找是否存在对应的key和value，如果有，直接调用即可。</li>
-<li>否则，寻找已经计算过的最大 <code>layer</code>，并基于先前的信息逐个计算第 <code>layer+1</code>层至第 <code>n</code>层的定义式。若计算 <code>f{i}(x)</code>，从 <code>RecursiveFuncMap </code>中读出 <code>f{i-1}</code>和 <code>f{i-2}</code>的定义式，替换实参，并拼接上 <code>recursiveCoeffA </code>，<code>recursiveCoeffB </code>，<code>recursiveArgA </code>（实参），<code>recursiveArgB </code>，<code>recursiveAlterExpr </code>信息，最后计算出 <code>f{i}(x)</code>的定义式并存储起来。</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> String <span class="hljs-title function_">calcRecursiveFunc</span><span class="hljs-params">(String funcName, <span class="hljs-type">int</span> layer)</span> &#123;<br>  HashMap&lt;String, Integer&gt; key = <span class="hljs-keyword">new</span> <span class="hljs-title class_">HashMap</span>&lt;&gt;();<br>  key.put(funcName, layer);<br>  <span class="hljs-keyword">if</span> (recursiveFuncMap.containsKey(key)) &#123;<br>      <span class="hljs-keyword">return</span> recursiveFuncMap.get(key);   <span class="hljs-comment">// 如果有就不再计算</span><br>  &#125;<br><br>  <span class="hljs-comment">// 寻找已经计算过的最大阶数</span><br>  <span class="hljs-type">int</span> <span class="hljs-variable">maxLayer</span> <span class="hljs-operator">=</span> <span class="hljs-number">0</span>;<br>  <span class="hljs-keyword">for</span> (HashMap&lt;String, Integer&gt; hashKey : recursiveFuncMap.keySet()) &#123;<br>      maxLayer = Math.max(maxLayer, hashKey.get(funcName));<br>  &#125;<br>  <span class="hljs-comment">// System.out.println(&quot;current max layer: &quot; + maxLayer);</span><br><br>  <span class="hljs-comment">// 依次计算到所需阶数</span><br>  <span class="hljs-keyword">for</span> (<span class="hljs-type">int</span> <span class="hljs-variable">i</span> <span class="hljs-operator">=</span> maxLayer + <span class="hljs-number">1</span>; i &lt;= layer; i++) &#123;<br>      <span class="hljs-keyword">final</span> <span class="hljs-type">Poly</span> <span class="hljs-variable">coeAPoly</span> <span class="hljs-operator">=</span> Poly.intToPoly(recursiveCoeffA);<br>      <span class="hljs-keyword">final</span> <span class="hljs-type">Poly</span> <span class="hljs-variable">coeBPoly</span> <span class="hljs-operator">=</span> Poly.intToPoly(recursiveCoeffB);<br>      <span class="hljs-keyword">final</span> <span class="hljs-type">Poly</span> <span class="hljs-variable">alterPoly</span> <span class="hljs-operator">=</span> StrPolyExchanger.exchange(recursiveAlterExpr, <span class="hljs-literal">false</span>);<br><br>      HashMap&lt;String, Integer&gt; funcKey = <span class="hljs-keyword">new</span> <span class="hljs-title class_">HashMap</span>&lt;&gt;();<br>      funcKey.put(funcName, i - <span class="hljs-number">1</span>);<br>      <span class="hljs-keyword">final</span> <span class="hljs-type">String</span> <span class="hljs-variable">funcDefA</span> <span class="hljs-operator">=</span> recursiveFuncMap.get(funcKey);<br>      ArrayList&lt;String&gt; argList = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ArrayList</span>&lt;&gt;();<br>      argList.add(recursiveArgA);<br>      <span class="hljs-keyword">final</span> <span class="hljs-type">Poly</span> <span class="hljs-variable">funAPoly</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">FuncFactor</span>(funcDefA, argList).toPoly();<br><br>      funcKey.clear();<br>      funcKey.put(funcName, i - <span class="hljs-number">2</span>);<br>      <span class="hljs-keyword">final</span> <span class="hljs-type">String</span> <span class="hljs-variable">funcDefB</span> <span class="hljs-operator">=</span> recursiveFuncMap.get(funcKey);<br>      argList.clear();<br>      argList.add(recursiveArgB);<br>      <span class="hljs-keyword">final</span> <span class="hljs-type">Poly</span> <span class="hljs-variable">funBPoly</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">FuncFactor</span>(funcDefB, argList).toPoly();<br><br>      funcKey.clear();<br>      funcKey.put(funcName, i);<br>      <span class="hljs-type">String</span> <span class="hljs-variable">funcDef</span> <span class="hljs-operator">=</span><br>              coeAPoly.multPoly(funAPoly).<br>                      addPoly(coeBPoly.multPoly(funBPoly)).<br>                      addPoly(alterPoly).toString();<br>      recursiveFuncMap.put(funcKey, Processor.process(funcDef));<br>  &#125;<br><br>  <span class="hljs-comment">// 拿取结果</span><br>  <span class="hljs-keyword">return</span> recursiveFuncMap.get(key);<br>&#125;<br></code></pre></td></tr></table></figure></li>
-</ul>
-<h4 id="表达式计算-2"><a href="#表达式计算-2" class="headerlink" title="表达式计算"></a>表达式计算</h4><ul>
-<li><p>调整Mono的组成：新增了y的幂次项$y^c$。</p>
-</li>
-<li><p>同类项判定：新增对y的幂次是否相等的判定即可。</p>
-</li>
-<li><p>求导运算的融入：</p>
-<ul>
-<li>为了统一，求导的对象是各个元素转化出来的Poly，Poly的导数又可以分解为各个Mono的导数之和，所以重点是Mono导数的计算。Mono形式固定，计算起来也方便。</li>
-<li>为方便计算，这里选择将exp因子先合并为“单个exp因子”，这和第二次作业判定exp同类项中相关操作无异。这时Mono可以被表示成$A\cdot x^b\cdot y^c \cdot \mathrm{exp}(Expr)^d$。</li>
-<li>Mono的导数：调用 <code>derive</code>方法后，直接返回如下的Poly即可。</li>
-</ul>
-<p>$$<br>A\cdot \mathrm{d}(x^b)\cdot y^c \cdot \mathrm{exp}(Expr)^d +<br>A\cdot x^b\cdot \mathrm{d}(y^c) \cdot \mathrm{exp}(Expr)^d +<br>A\cdot x^b\cdot y^c \cdot \mathrm{d}(\mathrm{exp}(Expr)^d)<br>$$</p>
-</li>
-</ul>
-<h2 id="后续可行的迭代场景"><a href="#后续可行的迭代场景" class="headerlink" title="后续可行的迭代场景"></a>后续可行的迭代场景</h2><ul>
-<li><p>新增三角函数的运算</p>
-<ul>
-<li>新增三角函数因子 <code>sin(Expr)</code>和 <code>cos(Expr)</code>。</li>
-<li>Mono中还需要有一个三角函数项的 <code>ArrayList</code>。</li>
-<li>对于同类项的判定影响：因为三角函数的相乘形式难以简化，只能依次比较每一个sin&#x2F;cos项的内部表达式是否相等。当然，$\sin(x)$和$\sin(-x)$也可以被认为是同类项。</li>
-<li>对于化简的影响：三角函数的化简几乎只能依赖和差化积&#x2F;积化和差、$\sin^2(x)+\cos^2(x)&#x3D;1$，额外的判定和比较逻辑相当复杂，不过 <code>judgeEqualPoly</code>方法仍然是有用的。此外，可以将$\sin(0)$和$\cos(0)$等特殊三角函数直接转化为常数因子来节省存储空间。</li>
-</ul>
-</li>
-<li><p>新增含有多个参量的函数定义式</p>
-<ul>
-<li>重点是处理“，”分隔符，主要对 <code>FuncManager</code>类产生影响，如果不太复杂，直接字符串替换进行实参带入的方法仍然可以撑过去。</li>
-</ul>
-</li>
-</ul>
-<h2 id="作业中采用的优化"><a href="#作业中采用的优化" class="headerlink" title="作业中采用的优化"></a>作业中采用的优化</h2><ul>
-<li>第一次作业：合并同类项。</li>
-<li>第二次作业：<ul>
-<li>正项提前输出。例如 <code>1-x</code>的长度优于 <code>-x+1</code>。</li>
-<li>将多个exp项的乘积合并输出。例如$\exp{(A)}\times \exp{(B)} &#x3D; \exp{(AB)}$。</li>
-<li>提取exp指数项的公因式到幂次上。例如$\exp{(2x+2x^2)}&#x3D;[\exp{(x+x^2)}]^2$。（这一个优化并不总能取到最优结果，例如$\exp{(98x+94x^2)}&#x3D;[\exp{(49x+47x^2)}]^2$，反而导致输出更长。听说有同学似乎会穷举公因子&#x2F;状态压缩DP以寻求最短输出，不过我比较保守，并且代码上也不太会写。）</li>
-<li>exp的指数项若只有单个因子，则省略一层括号。</li>
-</ul>
-</li>
-<li>第三次作业：新引入的因子都被转化为带符号整数、幂函数、指数函数的组合形式参与计算，所以不需要改动优化部分的主体。在本次作业的bug修复中，减少了重复操作，提高了运行效率。</li>
-</ul>
-<h2 id="复杂度分析"><a href="#复杂度分析" class="headerlink" title="复杂度分析"></a>复杂度分析</h2><h3 id="分析指标"><a href="#分析指标" class="headerlink" title="分析指标"></a>分析指标</h3><p>Metrics工具中提供了如下的复杂度分析的指标，这里选择一部分列出。</p>
-<ul>
-<li><p>Method Metrics</p>
-<table>
-<thead>
-<tr>
-<th>指标名称</th>
-<th>含义</th>
-<th>解释</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>CogC</td>
-<td>认知复杂度</td>
-<td>衡量代码阅读和理解的难度。嵌套越深（如多层if&#x2F;for），分数越高。</td>
-</tr>
-<tr>
-<td>ev(G)</td>
-<td>基本复杂度</td>
-<td>衡量代码的非结构化程度。分数越高，代码越“乱”，难以模块化和维护。</td>
-</tr>
-<tr>
-<td>iv(G)</td>
-<td>设计复杂度</td>
-<td>衡量方法之间的调用紧密程度。分数高说明模块耦合紧，集成测试时需更多用例。</td>
-</tr>
-<tr>
-<td>v(G)</td>
-<td>圈复杂度</td>
-<td>衡量一个方法中独立路径的条数。v(G)&#x3D;分支判断数+1，代表测试该方法所需的最少用例数。</td>
-</tr>
-</tbody></table>
-</li>
-<li><p>Class Metrics</p>
-<table>
-<thead>
-<tr>
-<th>指标名称</th>
-<th>含义</th>
-<th>解释</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>WMC</td>
-<td>总圈复杂度</td>
-<td>将类中所有方法的v(G)值累加得到。数值过高说明类的职责可能过多，应遵循单一职责原则，将其拆分为多个更小、更专注的类。</td>
-</tr>
-<tr>
-<td>OCavg</td>
-<td>平均圈复杂度</td>
-<td>OCavg&#x3D;WMC&#x2F;类中方法总数。它反映了一个类的平均方法复杂度。如果OCavg值较高，说明该类中的大部分方法都比较复杂，代码的可读性和可测试性整体偏低。</td>
-</tr>
-<tr>
-<td>OCmax</td>
-<td>最大圈复杂度</td>
-<td>类中所有方法的v(G)的最大值。</td>
-</tr>
-</tbody></table>
-</li>
-</ul>
-<h3 id="分析结果"><a href="#分析结果" class="headerlink" title="分析结果"></a>分析结果</h3><p>为节省篇幅，这里只标出复杂度得分过高的方法和类。</p>
-<h4 id="高复杂度的方法"><a href="#高复杂度的方法" class="headerlink" title="高复杂度的方法"></a>高复杂度的方法</h4><table>
-<thead>
-<tr>
-<th>方法名称</th>
-<th>CovG</th>
-<th>ev(G)</th>
-<th>iv(G)</th>
-<th>v(G)</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>ExpFactor.toString()</td>
-<td></td>
-<td>6</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>Mono.isAddable(Mono)</td>
-<td></td>
-<td>5</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>Mono.mergeExpFactors()</td>
-<td></td>
-<td>5</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>Mono.toString()</td>
-<td>29</td>
-<td>7</td>
-<td>12</td>
-<td>15</td>
-</tr>
-<tr>
-<td>Poly.addPoly(Poly)</td>
-<td></td>
-<td>4</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>Poly.judgeSingularPoly()</td>
-<td>21</td>
-<td>8</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>Poly.simplifyPoly()</td>
-<td></td>
-<td>4</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>FuncManager.parseRealArg(String)</td>
-<td></td>
-<td>5</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>Parser.parseFactor</td>
-<td></td>
-<td>8</td>
-<td>14</td>
-<td>14</td>
-</tr>
-</tbody></table>
-<ul>
-<li><code>toString()</code>方法的复杂似乎是难以避免的。对于exp项，为了追求必要的短输出，需要判定指数项是不是“单个因子”；对于 <code>Mono</code>的字符串形式输出，同样也是为了追求输出更优，需要针对不同的系数、幂次、exp项情况构建不同的输出。</li>
-<li><code>judgeSingularPoly()</code>方法的复杂度也是难以避免的。如果一个Poly中只有“单个因子”，说明它只含有一项mono，且这个mono只含带符号整数项 &#x2F; 1×[x幂函数，y幂函数之一] &#x2F; 1×指数函数。多样情况的判定必然导致复杂。</li>
-<li><code>isAddable(Mono)</code>复杂度高也不是太容易避免。判定两个Mono是不是可加的同类项，要判定x幂函数次数，y幂函数次数，exp项乘积是否都相同。</li>
-<li><code>addPoly(Poly)</code>，<code>simplify(Poly)</code>，<code>mergeExpFactors()</code>都涉及到多项式的加法运算，而加法运算正常进行必然涉及 <code>isAddable(Mono)</code>方法（判定同类项）；并且，由于容器选择的问题，这几个方法几乎都需要作二重循环。</li>
-<li><code>parseRealArg(String)</code>也难以简化。方法的主要逻辑是读取到函数名后，从第一个 <code>(</code>开始读取，直到读到最后一个 <code>)</code>，就得到实参的字符串形式。对于用字符串替换来实现实参带入的方法而言，这一步也躲不开。</li>
-<li><code>parseFactor()</code>的复杂我认为几乎无法避免。作业中涉及不少种类的因子，不同因子的解析方法往往又不相同，这也必然导致分支数量较多。</li>
-</ul>
-<h4 id="高复杂度的类"><a href="#高复杂度的类" class="headerlink" title="高复杂度的类"></a>高复杂度的类</h4><table>
-<thead>
-<tr>
-<th>类名称</th>
-<th>OCavg</th>
-<th>OCmax</th>
-<th>WMC</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Mono</td>
-<td></td>
-<td></td>
-<td>56</td>
-</tr>
-<tr>
-<td>Poly</td>
-<td></td>
-<td></td>
-<td>51</td>
-</tr>
-<tr>
-<td>FuncManager</td>
-<td></td>
-<td></td>
-<td>31</td>
-</tr>
-<tr>
-<td>Parser</td>
-<td>3.09</td>
-<td></td>
-<td>34</td>
-</tr>
-<tr>
-<td>MainClass</td>
-<td>5.00</td>
-<td></td>
-<td></td>
-</tr>
-</tbody></table>
-<ul>
-<li><code>Mono</code>和 <code>Poly</code>类WMC高是意料之中的，因为所有的元素最终都可以转化为Mono&#x2F;Poly形式进行计算，并且这两个类还要承担合并、化简、去除0项等工作。这也提示了可以新建一个单独的类负责Mono&#x2F;Poly的化简。</li>
-<li><code>FuncManager</code>类方法较多，因为作业中同时涉及了普通函数和递归函数的解析。尤其是递归函数，解析完了还需要依照层次挨个计算定义式，调用其他方法较多（例如涉及到Poly运算），这也使得复杂度直线上升。</li>
-<li><code>Parser</code>类圈复杂度、总复杂度高是不可避免的。表达式分为多个层次，且因子类型多样，解析的时候必须要全面覆盖。</li>
-<li><code>MainClass</code>类的高复杂度应该是受Parser影响。<code>MainClass</code>类代码很少，只负责输入信息的传递以及必要的方法调用，关键的逻辑都在其他类中。</li>
-</ul>
-<h2 id="架构设计优劣"><a href="#架构设计优劣" class="headerlink" title="架构设计优劣"></a>架构设计优劣</h2><h3 id="优势"><a href="#优势" class="headerlink" title="优势"></a>优势</h3><ul>
-<li>建立了Mono→Poly层次结构，将表达式中不同的要素统一为 <code>Mono</code>和 <code>Poly</code>的形式，方便了计算、化简，同时也方便了输出。</li>
-<li><code>Poly</code>类中设立了 <code>judgeEqualPoly</code>方法，这一方法可以应用在选择式解析、同类项判定等多个场景，抽象出了不同功能间的共同需求。</li>
-<li>建立了专门的 <code>Preprocess</code>类进行字符串处理，以去除多余空格和重叠的符号。这个类的方法会在输入处理、输出处理情形中复用。</li>
-</ul>
-<h3 id="缺陷"><a href="#缺陷" class="headerlink" title="缺陷"></a>缺陷</h3><ul>
-<li>对于Poly中Mono的存储，只使用了 <code>ArrayList</code>，而没有使用 <code>HashMap</code>（key：不含系数的 <code>Mono</code>对象，value：系数），这也就导致合并同类项、加法运算的高复杂度，具体实现上也多出了好一些代码。使用 <code>HashMap</code>的合并预期能得到更高的效率。</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 低效代码示例</span><br><span class="hljs-keyword">public</span> Poly <span class="hljs-title function_">addPoly</span><span class="hljs-params">(Poly poly)</span> &#123;<br>    ArrayList&lt;Mono&gt; hisMonos = poly.getMonos();<br>    <span class="hljs-keyword">for</span> (Mono hisMono : hisMonos) &#123;<br>        <span class="hljs-comment">// 合并同类项</span><br>        <span class="hljs-type">boolean</span> <span class="hljs-variable">flag</span> <span class="hljs-operator">=</span> <span class="hljs-literal">false</span>;<br>        <span class="hljs-keyword">for</span> (Mono myMono : monos) &#123;<br>            <span class="hljs-keyword">if</span> (hisMono.isAddable(myMono)) &#123;<br>                flag = <span class="hljs-literal">true</span>;<br>                myMono.setCoefficient(<br>                        myMono.getCoefficient().add(hisMono.getCoefficient())<br>                );<br>                <span class="hljs-keyword">break</span>;<br>            &#125;<br>        &#125;<br>        <span class="hljs-keyword">if</span> (!flag) &#123;<br>            monos.add(hisMono);<br>        &#125;<br>    &#125;<br>    <span class="hljs-built_in">this</span>.removeZeroCoeffMonos();<br>    <span class="hljs-keyword">return</span> <span class="hljs-built_in">this</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
-
-<ul>
-<li>对于函数实参的代入仅采取简单的字符串替换方法，导致解析出的Expr形式实参要先被转化成String代入定义式，然后再把代入后的定义式转化成Poly参与计算，多出了一些迂回动作，可能导致时间复杂度上的风险。</li>
-</ul>
-<h2 id="Bug检测与成因分析"><a href="#Bug检测与成因分析" class="headerlink" title="Bug检测与成因分析"></a>Bug检测与成因分析</h2><h3 id="选择表达式的短路处理"><a href="#选择表达式的短路处理" class="headerlink" title="选择表达式的短路处理"></a>选择表达式的短路处理</h3><p>这个bug在自行构造测试样例后被发现。我当时没有优化运算部分的处理逻辑，所以程序对exp项的计算效率较低，这让我“歪打正着”地发现了选择表达式解析的bug。修改后，对于函数带入实参结果的计算不会立即进行，而是在调用诸如<code>toPoly</code>方法后才会开始计算，之前一味图方便而忽略了这部分。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java">f(x)=exp(x)+exp(x^<span class="hljs-number">2</span>)+exp(x^<span class="hljs-number">3</span>)+exp(x^<span class="hljs-number">4</span>)<br>[(<span class="hljs-number">0</span>==<span class="hljs-number">0</span>)?<span class="hljs-number">1</span>:f(f(f(f(x))))]<br></code></pre></td></tr></table></figure>
-
-<h3 id="重复操作的防止"><a href="#重复操作的防止" class="headerlink" title="重复操作的防止"></a>重复操作的防止</h3><p>我的<code>Poly</code>类中实现了方法<code>shortExpFactors</code>，将多个exp项的乘积合并为单个exp的形式。但是我并没有将合并后的单个exp进行缓存，导致同样的exp项乘积被过多地运算，在互测中出现了CTLE问题。以下是出问题的样例。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-number">1</span><br>f(x)=(x^<span class="hljs-number">8</span>+x^<span class="hljs-number">7</span>)*(x^<span class="hljs-number">8</span>+x)*(exp(x)+x)*(exp(x^<span class="hljs-number">8</span>)+<span class="hljs-number">9</span>)^<span class="hljs-number">4</span>+x<br><span class="hljs-number">1</span><br>f&#123;<span class="hljs-number">0</span>&#125;(x)=<span class="hljs-number">9</span>*x^<span class="hljs-number">5</span>+x*<span class="hljs-number">9</span><br>f&#123;<span class="hljs-number">1</span>&#125;(x)=<span class="hljs-number">9</span>*exp(exp(x)^<span class="hljs-number">4</span>)+x*<span class="hljs-number">9</span><br>f&#123;n&#125;(x)=<span class="hljs-number">9</span>*f&#123;n-<span class="hljs-number">1</span>&#125;((<span class="hljs-number">9</span>*x))+<span class="hljs-number">9</span>*f&#123;n-<span class="hljs-number">2</span>&#125;((<span class="hljs-number">9</span>*x))+<span class="hljs-number">99</span>*x<br>(exp(x^<span class="hljs-number">8</span>)+<span class="hljs-number">9</span>)*(exp(x)+<span class="hljs-number">9</span>)*(exp(x^<span class="hljs-number">3</span>)+<span class="hljs-number">9</span>)*(exp(x^<span class="hljs-number">4</span>)+<span class="hljs-number">9</span>)*(exp(x^<span class="hljs-number">5</span>)+<span class="hljs-number">9</span>)*(exp(x^<span class="hljs-number">6</span>)+<span class="hljs-number">9</span>)*(exp(x^<span class="hljs-number">7</span>)+<span class="hljs-number">9</span>)*(x+y^<span class="hljs-number">8</span>)*x*<span class="hljs-number">9</span><br></code></pre></td></tr></table></figure>
-
-<p>此外，我的化简操作需要先合并众多exp因子，然后再提取出exp指数上的公因式，最后创建新的化简后的表达式。这一操作会消耗大量时间，因此我设置了状态位，在化简方法的开头就检测<code>simplified</code>标志位，从而减少了大量不必要的重复操作。</p>
-<p>对于下面的这份互测样例，其展开结果有上万个字符。由于我同类项判定时需要将exp项合并，若不设置标志位，合并&#x2F;化简操作就会被大量重复执行，最终导致CTLE——而这本来是可以避免的。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-number">0</span><br><span class="hljs-number">0</span><br>(x+<span class="hljs-number">1</span>)*(x^<span class="hljs-number">2</span>+<span class="hljs-number">1</span>)*(x^<span class="hljs-number">4</span>+<span class="hljs-number">1</span>)*(x^<span class="hljs-number">8</span>+<span class="hljs-number">1</span>)*(y+<span class="hljs-number">1</span>)*(y^<span class="hljs-number">2</span>+<span class="hljs-number">1</span>)*(y^<span class="hljs-number">4</span>+<span class="hljs-number">1</span>)*(y^<span class="hljs-number">8</span>+<span class="hljs-number">1</span>)*(exp(x)+<span class="hljs-number">1</span>)*(exp(y)+<span class="hljs-number">1</span>)*(x+y)<br></code></pre></td></tr></table></figure>
-
-<h2 id="大模型使用相关"><a href="#大模型使用相关" class="headerlink" title="大模型使用相关"></a>大模型使用相关</h2><ul>
-<li><p>本次作业中主要使用DeepSeek进行简单方法的补充（方法名、方法作用、大致思路会在提示词中事先给出），这确实显著提高了作业的效率。</p>
-</li>
-<li><p>评测机方面，本周期仅第一次作业使用评测机来验证文法解析、Poly计算等重要功能的正确性，后续作业由于精力问题没有构造评测机。但是我会使用相对简单的样例来验证新增功能，并且让大模型辅助我判定输出是否等价。我构造的部分样例如下所示：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 第二次作业，验证自定义函数</span><br><span class="hljs-number">1</span><br>f(x)=exp(x)+exp(x^<span class="hljs-number">2</span>)+exp(x^<span class="hljs-number">3</span>)+exp(x^<span class="hljs-number">4</span>)<br>f(f(f(x)))<br></code></pre></td></tr></table></figure>
-
-<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 第二次作业，验证选择表达式</span><br><span class="hljs-number">1</span><br>f(x)=exp(x)+exp(x^<span class="hljs-number">2</span>)+exp(x^<span class="hljs-number">3</span>)+exp(x^<span class="hljs-number">4</span>)<br>[(exp(<span class="hljs-number">0</span>)==<span class="hljs-number">001</span>)? x : f(f(f(x)))]<br></code></pre></td></tr></table></figure>
-
-<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 第三次作业，验证求导和递归函数</span><br><span class="hljs-number">0</span><br><span class="hljs-number">1</span><br>f&#123;<span class="hljs-number">0</span>&#125;(x)=exp(x)+exp(x^<span class="hljs-number">2</span>)+exp(x^<span class="hljs-number">3</span>)<br>f&#123;<span class="hljs-number">1</span>&#125;(x)=exp(x^<span class="hljs-number">4</span>)+exp(x^<span class="hljs-number">5</span>)+exp(x^<span class="hljs-number">6</span>)<br>f&#123;n&#125;(x)=<span class="hljs-number">3</span>*f&#123;n-<span class="hljs-number">1</span>&#125;((x-<span class="hljs-number">1</span>))+-<span class="hljs-number">2</span>*f&#123;n-<span class="hljs-number">2</span>&#125;(x)-exp(x^<span class="hljs-number">0</span>)*exp(x)<br>f&#123;<span class="hljs-number">3</span>&#125;(grad((x^<span class="hljs-number">2</span>*y^<span class="hljs-number">3</span>*exp((x^<span class="hljs-number">2</span>*y^<span class="hljs-number">3</span>)))))<br></code></pre></td></tr></table></figure>
-</li>
-<li><p>大模型主要在正确性上进行辅助（降低了约25%工作量），优化部分我的策略比较保守，所以手写就可以达成目标。</p>
-</li>
-<li><p>互测房间内未发现过于AI的代码。</p>
-</li>
-</ul>
-<h2 id="心得体会"><a href="#心得体会" class="headerlink" title="心得体会"></a>心得体会</h2><ul>
-<li>好的架构相当重要：AST树的引入大大方便了语法解析，递归下降的形式可读性也很好；第一次迭代时我作出了正确的判断，采用Mono→Poly层次化结构，找到了不同表达式要素的共同点，方便了计算代码的编写，且后续迭代不会出现大量重构的“悲剧”。</li>
-<li>要运用好的容器：在这几次作业中，由于涉及到同类项的合并，<code>HashMap</code>想必是相比 <code>ArrayList</code>更有效率、更方便的选择。</li>
-<li>优化要谨慎，不能为了优化而牺牲正确性：第一次作业中，听说有同学虽在A房（优化很好），但是程序可以被 <code>-+(-x)</code>之类的简单样例“击杀”；第二次作业中，有同学为了追求绝对的exp项输出最短，优化部分的代码复杂度过高，甚至是忽略了exp项必要的括号输出。</li>
-<li>减少不必要的重复操作：对于不可变类，设置缓存是一个好方法；对于某些耗时的操作（例如化简），也可以设立状态位来防止重复操作。本单元互测中给出的样例往往嵌套层数高，如果能够减少重复计算，对计算速度的提升效果极其显著。这一优化后，原本强测中CPU时间6s+的样例可以在1s左右跑完。</li>
-</ul>
-<h2 id="未来方向"><a href="#未来方向" class="headerlink" title="未来方向"></a>未来方向</h2><ul>
-<li>公开架构良好&#x2F;性能得分高的代码供人学习。</li>
-<li>实验课部分希望增加实时评测，而不是一周之后才返回实验结果。</li>
-</ul>
-]]></content>
-      <categories>
-        <category>面向对象设计与构造</category>
-      </categories>
-      <tags>
-        <tag>AST</tag>
-        <tag>递归下降</tag>
+        <tag>流水线 CPU</tag>
+        <tag>MIPS 微系统</tag>
       </tags>
   </entry>
 </search>
