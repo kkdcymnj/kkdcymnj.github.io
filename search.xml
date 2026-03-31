@@ -108,7 +108,10 @@
   <entry>
     <title>2025 年数据结构与程序设计（信息类）期末考试</title>
     <url>/2025/10/18/final_test/</url>
-    <content><![CDATA[<h3 id="选择题"><a href="#选择题" class="headerlink" title="选择题"></a><strong>选择题</strong></h3><ol>
+    <content><![CDATA[<blockquote>
+<p>考试时长：3小时</p>
+</blockquote>
+<h3 id="选择题"><a href="#选择题" class="headerlink" title="选择题"></a>选择题</h3><ol>
 <li><p>若长度为$n$的线性表采用顺序存储结构，在其第$i$个位置插入一个新元素的算法的时间复杂度为________。$(1\leq i\leq n+1)$</p>
 <p>A. $O(\lg n)$</p>
 <p>B. $O(1)$</p>
@@ -194,7 +197,7 @@
 <p>D. 冒泡排序</p>
 </li>
 </ol>
-<h3 id="填空题"><a href="#填空题" class="headerlink" title="填空题"></a><strong>填空题</strong></h3><ol>
+<h3 id="填空题"><a href="#填空题" class="headerlink" title="填空题"></a>填空题</h3><ol>
 <li>一棵二叉查找树的后序遍历序列为 <code>23, 30, 38, 60, 58, 73, 70, 50</code>，则该二叉查找树的前序遍历序列为________。</li>
 <li>若以 <code>{3, 4, 5, 6, 8}</code>作为叶子结点的权值构造哈夫曼树，其带权路径长度为________。</li>
 <li>为解决程序执行过程中函数调用与返回的上下文管理问题，通常需要维护一个特殊的数据区，当调用子函数时，系统会将当前函数的返回地址、局部变量及参数等依次存入该数据区，而子函数执行完毕后则按相反顺序从数据区中读取内容恢复调用环境。该数据区的逻辑结构是________。</li>
@@ -209,10 +212,10 @@
 
 <ol start="6">
 <li>一棵完全二叉树，根节点为第1层，第5层叶子结点个数为6，该二叉树最多有________个结点。</li>
-<li>用 <code>S</code>表示入栈操作，<code>X</code>表示出栈操作，若元素入栈的顺序为 <code>12345</code>，为了得到 <code>13452</code>的出站顺序，相应的 <code>S</code>和 <code>X</code>的操作串为________。</li>
+<li>用 <code>S</code>表示入栈操作，<code>X</code>表示出栈操作，若元素入栈的顺序为 <code>12345</code>，为了得到 <code>13452</code>的出栈顺序，相应的 <code>S</code>和 <code>X</code>的操作串为________。</li>
 <li>元素 <code>A, B, C, D, E, F, G</code>依次执行入栈和出栈操作，若所有元素出栈后得到序列 <code>ADFECGB</code>，则栈的容量至少为________。</li>
 </ol>
-<h3 id="程序题"><a href="#程序题" class="headerlink" title="程序题"></a><strong>程序题</strong></h3><h4 id="第一题"><a href="#第一题" class="headerlink" title="第一题"></a><strong>第一题</strong></h4><p><strong>【问题描述】</strong></p>
+<h3 id="程序题"><a href="#程序题" class="headerlink" title="程序题"></a>程序题</h3><h4 id="第一题"><a href="#第一题" class="headerlink" title="第一题"></a>第一题</h4><p><strong>【问题描述】</strong></p>
 <p>一餐馆需要开发一套电子收银系统，提供点菜和统计分析功能。请编程实现电子收银模拟系统：点菜时，需要输入桌台号（小于等于100的正整数表示）、菜品编码、数量（正整数表示）和单价（正整数表示，单位：元），菜品编码由一个大写的英文字母（A表示热菜或凉菜，B表示饮品，C表示主食）和三位0-9的数字组成。每天打烊时，老板希望得到当天的总销售额，并需要按照菜品的销售额由低到高排序输出菜品的销售信息，销售额相同的按照菜品的销售数量由小到大输出（不存在销售数量和销售额都相同的情况）。</p>
 <p><strong>【输入形式】</strong></p>
 <p>先从控制台输入当天点菜信息条数（大于0且小于100），然后分行输入点菜信息：桌台号、菜品编码、数量和单价之间以一个空格分隔。</p>
@@ -233,7 +236,7 @@
 <li>完成统计功能，并实现按照销售额排序可得60%的分数。</li>
 <li>完成统计功能，并实现销售额和销售数量排序（如上面样例），可得100%分数。</li>
 </ol>
-<h4 id="第二题"><a href="#第二题" class="headerlink" title="第二题"></a><strong>第二题</strong></h4><p><strong>【问题描述】</strong></p>
+<h4 id="第二题"><a href="#第二题" class="headerlink" title="第二题"></a>第二题</h4><p><strong>【问题描述】</strong></p>
 <p>一家新闻社正在跟踪最近的一系列新闻，每条新闻都可以用一个事件表示，其中包含以下信息：事件类型（三种类型，以一个大写字母表示：A表示“突发新闻”、B表示“深度报道”、C表示“评论”）、事件发生时间（以8位数字表示，例如：20240305）和事件标题（不超过100字符的字符串表示，不包含空白符）。所有事件的个数不超过100。</p>
 <p>新闻社希望按以下顺序处理这些事件：</p>
 <ol>
@@ -268,7 +271,7 @@
 <p><strong>【评分标准】</strong></p>
 <p>该题要求实现新闻的事件的锁定汇总功能，提交程序名为 <code>report.c</code>。</p>
 <p>仅实现汇总指令可得30%分数。</p>
-<h4 id="第三题"><a href="#第三题" class="headerlink" title="第三题"></a><strong>第三题</strong></h4><p><strong>【问题描述】</strong></p>
+<h4 id="第三题"><a href="#第三题" class="headerlink" title="第三题"></a>第三题</h4><p><strong>【问题描述】</strong></p>
 <p>目前手机地图均提供根据当前位置查找兴趣点（如餐馆、电影院、品牌专买店、酒店、药店、加油站…）并根据距离远近给出相应路线，如在手机地图（高德、百度…）上查找加油站，将会按距离远近给出加油站及相应线路。编程实现兴趣点查找。</p>
 <p><strong>【输入形式】</strong></p>
 <p>首先从标准输入读入图顶点的个数$N$（大于0且小于200），图顶点表示地图中的各个位置。</p>
@@ -406,7 +409,10 @@
   <entry>
     <title>2025 年数据结构与程序设计（信息类）期中考试</title>
     <url>/2025/10/18/mid_test/</url>
-    <content><![CDATA[<h3 id="选择题"><a href="#选择题" class="headerlink" title="选择题"></a><strong>选择题</strong></h3><ol>
+    <content><![CDATA[<blockquote>
+<p>考试时长：2小时</p>
+</blockquote>
+<h3 id="选择题"><a href="#选择题" class="headerlink" title="选择题"></a>选择题</h3><ol>
 <li><p>若双向链表结点类型定义为：</p>
 <figure class="highlight c"><table><tr><td class="code"><pre><code class="hljs c"><span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">node</span></span><br><span class="hljs-class">&#123;</span><br>    ElemType data;<br>    <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">node</span> *<span class="hljs-title">rlink</span>,*<span class="hljs-title">llink</span>;</span><br>&#125;;<br></code></pre></td></tr></table></figure>
 
@@ -453,7 +459,7 @@
 <p>D. <code>hel/0lo\0world</code></p>
 </li>
 </ol>
-<h3 id="填空题"><a href="#填空题" class="headerlink" title="填空题"></a><strong>填空题</strong></h3><ol>
+<h3 id="填空题"><a href="#填空题" class="headerlink" title="填空题"></a>填空题</h3><ol>
 <li><p>若单向链表结点类型定义为：</p>
 <figure class="highlight c"><table><tr><td class="code"><pre><code class="hljs c"><span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">Node</span></span><br><span class="hljs-class">&#123;</span><br>    ElemType data;<br>    <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">Node</span> *<span class="hljs-title">next</span>;</span><br>&#125;;<br></code></pre></td></tr></table></figure>
 
@@ -474,7 +480,7 @@
 <li><p>已知字符串 <code>char s1[] = &quot;apple&quot;; char s2[] = &quot;banana&quot;;</code>，则 <code>strcmp(s1,s2)</code>的值________0。（填“大于”，“等于”或“小于”）</p>
 </li>
 </ol>
-<h3 id="编程题"><a href="#编程题" class="headerlink" title="编程题"></a><strong>编程题</strong></h3><p><strong>【问题描述】</strong></p>
+<h3 id="编程题"><a href="#编程题" class="headerlink" title="编程题"></a>编程题</h3><h4 id="第一题"><a href="#第一题" class="headerlink" title="第一题"></a>第一题</h4><p><strong>【问题描述】</strong></p>
 <p>论文写作时经常需要引用前人的文献（称为参考文献），引用时要在论文中以特定的格式表示。一种在人文社科领域常用的论文引用和参考文献格式是“哈佛格式”，其示例如下：</p>
 <p>There is a risk the traditional focus on intensification of agriculture to maximize yields under “normal” conditions may result in greater vulnerability of farms to climate extremes (Lin, 2008). Often management decisions more focused on minimizing variability or reducing recovery times in yields of perennial crops are reliant on enhanced ecological knowledge of a farm (Morel, 2019). Traditional smallholder systems often already use agroecological methods (Altieri, 2017), hence it is important for extension interventions to complement this knowledge.</p>
 <p>本题要求处理一种简化版的“哈佛格式”，其特点是：</p>
@@ -501,7 +507,7 @@
 <p>输入的文章有9处文献引用，但不同的参考文献只有8篇，因为参考文献(Vaast, 2016)被引用了两次，只按首次出现输出一次。</p>
 <p><strong>【评分标准】</strong></p>
 <p>该题考察标准输入输出和字符串处理，提交程序名为：hvref.c。</p>
-<p><strong>【问题描述】</strong></p>
+<h3 id="第二题"><a href="#第二题" class="headerlink" title="第二题"></a>第二题</h3><p><strong>【问题描述】</strong></p>
 <p>一家银店会购入银块、卖出特定重量的白银，以及将散碎的白银熔合成大块。</p>
 <p>请用链表形式模拟该店对白银的管理，每个链结点对应一个银块，记录该银块的重量（单位为克）；所有银块构成一个链表，且链表按照每个银块的重量始终保持升序排序。该链表允许如下操作：</p>
 <p>（1）购入银块：将该银块按重量插入链表的合适位置；</p>
@@ -2802,6 +2808,428 @@
       <tags>
         <tag>计算机组成</tag>
         <tag>单周期 CPU</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>《面向对象设计与构造》第一单元总结</title>
+    <url>/2026/03/31/oo_u1_blog/</url>
+    <content><![CDATA[<h2 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h2><p>第一单元的主题是<strong>表达式展开</strong>，主要训练层次化设计，我们需要对表达式进行解析，对不同类型元素进行建模，抽象出它们在运算上的共同特征，“以不变应万变”，这样我们才可以以尽量少的修改来应对每次新增的需求，降低维护和迭代难度。</p>
+<h2 id="最终架构"><a href="#最终架构" class="headerlink" title="最终架构"></a>最终架构</h2><img src="/images/Hw3.png" width=100% height=100% align=center/>
+
+<h2 id="第一次迭代"><a href="#第一次迭代" class="headerlink" title="第一次迭代"></a>第一次迭代</h2><h3 id="任务"><a href="#任务" class="headerlink" title="任务"></a>任务</h3><p>展开一个形式较为简单的多项式，多项式中各项的因子只能是常数因子、幂函数因子、表达式因子。</p>
+<h3 id="架构分析"><a href="#架构分析" class="headerlink" title="架构分析"></a>架构分析</h3><p>本次作业的架构主要分为以下几部分，这也为后续的作业打下了基础。</p>
+<ul>
+<li>预处理：去除多余的空格和tab符，对表达式作基本的化简（例如 <code>-+</code>化简为 <code>-</code>，<code>*+</code>化简为 <code>*</code>，<code>(+</code>化简为 <code>(</code>……），方便文法解析进行。</li>
+<li>文法解析：使用<strong>递归下降法</strong>分析表达式、项和因子。当解析Factor时碰到了括号，则调用解析Expr的方法。</li>
+<li>表达式组成：Expr→Term→Factor，其中Factor是一个接口，不同的因子都需要实现这个接口。</li>
+<li>表达式转换和运算：使用Mono→Poly结构，若干Mono相加得到一个Poly。本次作业的Mono项形式为：$Ax^b$，这一形式可以统一地表示常数和幂函数，也方便计算。</li>
+</ul>
+<h3 id="具体实现"><a href="#具体实现" class="headerlink" title="具体实现"></a>具体实现</h3><h4 id="表达式解析"><a href="#表达式解析" class="headerlink" title="表达式解析"></a>表达式解析</h4><p>具体的实现在实验课代码中已经给出。和实验课代码不同的是，我将正负号信息保存在 <code>Term</code>类中。正负号信息主要用于决定各个Mono的系数，所以它主要在“元素→Mono&#x2F;Poly”的部分发挥作用，至于后续的计算，我们并不需要具体的正负号信息。</p>
+<h4 id="表达式计算"><a href="#表达式计算" class="headerlink" title="表达式计算"></a>表达式计算</h4><p>这里借鉴了往届同学的写法，Expr，Poly，Factor等元素都实现了 <code>toPoly</code>方法，最后的计算就可以统一为<strong>多项式计算</strong>。运用基本的数学知识，<code>addPoly()</code>，<code>multPoly()</code>，<code>powerPoly()</code>等方法的编写是容易完成的。</p>
+<ul>
+<li><p>转化为Poly</p>
+<ul>
+<li>对于NumFactor和PowerFactor，转化为仅含一个Mono的Poly，在Mono中设置好系数和变量幂次即可。</li>
+<li>对于Term，将各个Factor转化出的Poly进行 <code>multPoly()</code>即可。特别地，如果这个Term的符号为 <code>-</code>，还需要对各个Mono的系数取相反数。</li>
+<li>对于Expr，将各个Term转化出的Poly进行 <code>addPoly()</code>即可。</li>
+</ul>
+</li>
+<li><p>Poly的计算</p>
+<ul>
+<li>重点是实现同类项的判定。这一作业的同类项判定很简单，只需要判断幂次相等即可。</li>
+<li>在 <code>addPoly</code>中实现同类项合并，这依赖于同类项的判定。同类项合并的好处是节省存储空间，也有利于优化输出。</li>
+<li>在 <code>addPoly</code>中完成0系数项的丢弃，节省空间，也能防止 <code>multPoly</code>和 <code>powerPoly</code>方法运行时占用过高内存。</li>
+</ul>
+</li>
+</ul>
+<h4 id="表达式输出"><a href="#表达式输出" class="headerlink" title="表达式输出"></a>表达式输出</h4><p>总体来说，表达式的输出是一个按照文法层次递归调用的过程。由于我们将各个元素统一成了Mono&#x2F;Poly的形式，所以这一工作的本质是处理好Mono&#x2F;Poly的输出。而Poly的输出又循环调用了Mono的输出，所以Mono的输出逻辑最为关键。</p>
+<p>Mono的输出处理大致可以分为以下几种情况：</p>
+<ul>
+<li>系数为0：不用输出。</li>
+<li>系数不为0，幂次为0：将系数直接输出即可。</li>
+<li>系数和幂次全不为0：<ul>
+<li>系数为±1：可以把“1”省略，只输出前面的正负号以及后面的PowerFactor。PowerFactor的输出逻辑也较为简单，遇到0次幂输出“1”，遇到1次幂输出“x”，其他幂次正常输出。</li>
+<li>系数不为±1：正常输出即可。</li>
+</ul>
+</li>
+</ul>
+<p>对于最终结果的输出，如果之前自下而上构建的输出字符串为空，则输出“0”，其他情况正常输出即可。为了优化输出长度，可以将输出表达式再进行处理（和输入处理一样，应用 <code>Processor</code>类），且输出时可以省略最开头的“+”号。</p>
+<h2 id="第二次迭代"><a href="#第二次迭代" class="headerlink" title="第二次迭代"></a>第二次迭代</h2><h3 id="任务-1"><a href="#任务-1" class="headerlink" title="任务"></a>任务</h3><p>新增exp因子、选择式因子 <code>[(A==B)?C:D]</code>、函数因子 <code>f(x)</code>。</p>
+<h3 id="架构分析-1"><a href="#架构分析-1" class="headerlink" title="架构分析"></a>架构分析</h3><p>相比第一次作业，架构有了以下调整。</p>
+<ul>
+<li>新增因子类：<code>ExpFactor</code>，<code>SelectFactor</code>，<code>FuncFactor</code>。</li>
+<li>新增函数解析与存储类：<code>FuncManager</code>。</li>
+<li>由于String→Expr，String→Poly操作会被复用，所以单独建立 <code>StrPolyExchanger</code>类。</li>
+<li>在 <code>Poly</code>类中新增方法 <code>judgeEqual</code>用于多项式判等（原理：<code>A==B</code>则必有 <code>A+B.negative==0</code>）。这一方法在同类项判定、选择表达式计算等场景会被反复使用。</li>
+</ul>
+<h3 id="具体实现-1"><a href="#具体实现-1" class="headerlink" title="具体实现"></a>具体实现</h3><h4 id="表达式解析-1"><a href="#表达式解析-1" class="headerlink" title="表达式解析"></a>表达式解析</h4><ul>
+<li><p>选择式因子</p>
+<p>将选择式因子中涉及到的4个因子分别解析为Factor后存储起来，但这时不能盲目地将因子C和因子D转化为Poly形式：不被选中的那个因子可能极为复杂，如果我们立即将它转化为Poly，则会浪费大量时间。下面的例子充分地说明了“短路处理”的必要性。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java">f(x)=exp(x)+exp(x^<span class="hljs-number">2</span>)+exp(x^<span class="hljs-number">3</span>)+exp(x^<span class="hljs-number">4</span>)<br>[(<span class="hljs-number">0</span>==<span class="hljs-number">0</span>)?<span class="hljs-number">1</span>:f(f(f(f(x))))]<br></code></pre></td></tr></table></figure>
+</li>
+<li><p>函数因子</p>
+<p>函数因子的解析分为以下几步。</p>
+<ul>
+<li>读入函数定义后，先预处理并化简（展开）<code>f(x)</code>的表达式，以方便后续实参带入计算。使用HashMap存储函数的信息，key为函数名 <code>f</code>，value为展开后的 <code>f(x)</code>定义式。</li>
+<li>在最后一行的表达式读到 <code>f</code>则代表出现了一处函数，接下来递归解析函数实参，并创建对象 <code>FuncFactor(funcName, realArg)</code>。</li>
+<li>如果<strong>需要</strong>具体计算这个函数，则将 <code>realArg</code>转化为字符串，然后<strong>直接替换</strong>掉 <code>f(x)</code>定义式中的形参 <code>x</code>，得到代入后的表达式。注意 <code>exp</code>中的 <code>x</code>不可以被替换，所以需要判定 <code>x</code>的前后是否都是字母，如果是，则不能替换。</li>
+<li>将代入实参后的函数表达式转化为Poly参与计算。</li>
+</ul>
+</li>
+</ul>
+<h4 id="表达式计算-1"><a href="#表达式计算-1" class="headerlink" title="表达式计算"></a>表达式计算</h4><ul>
+<li><p>调整Mono的组成：$Ax^b$以及一系列exp因子的乘积（用 <code>ArrayList</code>存储）。</p>
+</li>
+<li><p>同类项判定：</p>
+<ul>
+<li>x的幂次相等。如果幂次不等，应当直接<strong>熔断</strong>，不要在exp项的判等上浪费时间。这一简单的操作作用不小，尤其是碰到含有大量exp因子但x幂次各不相同的样例时。</li>
+<li>由于两个Mono中exp因子数量和形式差异很大，所以exp项是否相等要具体计算。将多个exp的乘积表示为单个exp因子的形式（将各个exp项的指数相加即可），判定新的“单exp”的指数项是否相等。例如，MonoA中含有<code>exp(a)</code>和<code>exp(b)</code>，MonoA中含有<code>exp(c)</code>和<code>exp(d)</code>，此时要判断的是<code>a+b==c+d</code>是否成立。</li>
+</ul>
+</li>
+<li><p>利用部分因子的不变性：在我的实现中，exp因子不可变，每涉及到exp的计算都会创建新的对象，而不改变当前已有对象。所以可以将exp指数项的Poly形式存储好，需要的时候直接拿取即可，而不需要重复地将同一个Expr转化为Poly。由于同类项的判定需要反复用到exp的指数项的Poly形式，这一处理的效果相当明显。</p>
+</li>
+<li><p>只在真正需要计算的时候才进行计算：在函数因子解析与计算中，需要代入实参，将Expr类的实参转化为String会相当消耗时间（如果实参极为复杂），所以这一操作只在必要时才会进行，如下面代码所示。对于exp项转化为Poly形式，也应当遵循这一原则。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> Poly <span class="hljs-title function_">toPoly</span><span class="hljs-params">()</span> &#123;<br>    <span class="hljs-keyword">if</span> (realArgStrings == <span class="hljs-literal">null</span>) &#123;<br>        realArgStrings = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ArrayList</span>&lt;&gt;();<br>        <span class="hljs-keyword">for</span> (Expr arg : realArgs) &#123;<br>            realArgStrings.add(Processor.process(arg.toPoly().toString()));<br>        &#125;<br>    &#125;<br>    convertedExpr = convert();<br>    result = convertedExpr.toPoly();<br>    <span class="hljs-keyword">return</span> result;<br>&#125;<br></code></pre></td></tr></table></figure></li>
+</ul>
+<h4 id="表达式输出-1"><a href="#表达式输出-1" class="headerlink" title="表达式输出"></a>表达式输出</h4><p>主要增加了exp的输出逻辑。</p>
+<ul>
+<li><p>exp指数为0，直接输出“+1”即可。</p>
+</li>
+<li><p>若exp的指数项是单个因子，则可以省略一层括号。判定指数项是“单个因子”的过程如下，这里检查的是指数的Poly形式。</p>
+<ul>
+<li>这个Poly是否只由1个Mono组成。</li>
+<li>这个Mono中，x的幂次是否为0。</li>
+<li>这个Mono中，exp因子的指数项是否为0。</li>
+</ul>
+</li>
+</ul>
+<h2 id="第三次迭代"><a href="#第三次迭代" class="headerlink" title="第三次迭代"></a>第三次迭代</h2><h3 id="任务-2"><a href="#任务-2" class="headerlink" title="任务"></a>任务</h3><p>新增变量 <code>y</code>；新增求导因子 <code>dx</code>&#x2F;<code>dy</code>&#x2F;<code>grad</code>；新增递归函数因子 <code>f{n}(x)</code>。</p>
+<h3 id="架构分析-2"><a href="#架构分析-2" class="headerlink" title="架构分析"></a>架构分析</h3><p>相比第二次作业，架构有了以下调整。</p>
+<ul>
+<li><p>新增因子类：<code>DeriveFactor</code>。其中标识符 <code>deriveX</code>，<code>deriveY</code>标识了结果中是否需要包含对x&#x2F;y变量求导，这将不同的求导因子的表示进行了统一。</p>
+</li>
+<li><p>调整函数解析与计算相关类：</p>
+<ul>
+<li><p><code>FuncFactor</code>类：增加属性 <code>layer</code>，如果 <code>layer == -1</code>，代表是一个普通函数；反之，代表这是一个递归函数，需要计算对应层次的函数定义式。这做到了不同函数形式的统一。</p>
+</li>
+<li><p><code>FuncManager</code>类：</p>
+<ul>
+<li>增加 <code>RecursiveFuncMap</code>对递归函数进行存储。key值 <code>HashMap&lt;String, Integer&gt;</code>即为 <code>&lt;函数名，递归层数&gt;</code>，value为 <code>f{i}</code>的定义式。</li>
+<li>对于递归函数形式 <code>f{n}(x) = 常数因子 * f{n-1}(因子) +|- 常数因子 * f{n-2}(因子) [+|- 函数表达式]</code>，对应地记录 <code>recursiveCoeffA</code>（常数因子），<code>recursiveCoeffB</code>，<code>recursiveArgA</code>（实参），<code>recursiveArgB</code>，<code>recursiveAlterExpr</code>（跟在最后的可有可无的函数表达式）。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="具体实现-2"><a href="#具体实现-2" class="headerlink" title="具体实现"></a>具体实现</h3><h4 id="表达式解析-2"><a href="#表达式解析-2" class="headerlink" title="表达式解析"></a>表达式解析</h4><p>工作的重心在递归函数的解析上。</p>
+<ul>
+<li><p>输入处理</p>
+<ul>
+<li><p>如果读取到 <code>f{0}</code>和 <code>f{1}</code>， 直接向 <code>RecursiveFuncMap</code>写入定义式。</p>
+</li>
+<li><p>如果读取到 <code>f{n}</code></p>
+<ul>
+<li>读取系数，直到碰到 <code>*</code>符号。</li>
+<li>读取实参，由于实参中会有括号的嵌套，所以需要维护一个变量 <code>count</code>来记录不匹配的括号数量。若 <code>count == 0</code>，这代表读取到了 <code>f(&lt;因子&gt;)</code>最右端的那个括号，实参读取完成。</li>
+<li>读取最后附加的表达式（条件：读取完第二个实参，<code>pos</code>还没到最末尾）。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>表达式中的递归函数</p>
+<p>读取到 <code>f</code>，代表是函数因子；若后续字符是 <code>{</code>，相应地读取一个Number作为函数层数参数，否则当作普通函数对待，认为 <code>layer == -1</code>；读取实参的步骤不用变化。</p>
+</li>
+<li><p>递归函数定义式计算</p>
+<ul>
+<li>对于传入的 <code>&lt;函数名，递归层数&gt;</code>，先在 <code>RecursiveFuncMap</code>中查找是否存在对应的key和value，如果有，直接调用即可。</li>
+<li>否则，寻找已经计算过的最大 <code>layer</code>，并基于先前的信息逐个计算第 <code>layer+1</code>层至第 <code>n</code>层的定义式。若计算 <code>f{i}(x)</code>，从 <code>RecursiveFuncMap </code>中读出 <code>f{i-1}</code>和 <code>f{i-2}</code>的定义式，替换实参，并拼接上 <code>recursiveCoeffA </code>，<code>recursiveCoeffB </code>，<code>recursiveArgA </code>（实参），<code>recursiveArgB </code>，<code>recursiveAlterExpr </code>信息，最后计算出 <code>f{i}(x)</code>的定义式并存储起来。</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> String <span class="hljs-title function_">calcRecursiveFunc</span><span class="hljs-params">(String funcName, <span class="hljs-type">int</span> layer)</span> &#123;<br>  HashMap&lt;String, Integer&gt; key = <span class="hljs-keyword">new</span> <span class="hljs-title class_">HashMap</span>&lt;&gt;();<br>  key.put(funcName, layer);<br>  <span class="hljs-keyword">if</span> (recursiveFuncMap.containsKey(key)) &#123;<br>      <span class="hljs-keyword">return</span> recursiveFuncMap.get(key);   <span class="hljs-comment">// 如果有就不再计算</span><br>  &#125;<br><br>  <span class="hljs-comment">// 寻找已经计算过的最大阶数</span><br>  <span class="hljs-type">int</span> <span class="hljs-variable">maxLayer</span> <span class="hljs-operator">=</span> <span class="hljs-number">0</span>;<br>  <span class="hljs-keyword">for</span> (HashMap&lt;String, Integer&gt; hashKey : recursiveFuncMap.keySet()) &#123;<br>      maxLayer = Math.max(maxLayer, hashKey.get(funcName));<br>  &#125;<br>  <span class="hljs-comment">// System.out.println(&quot;current max layer: &quot; + maxLayer);</span><br><br>  <span class="hljs-comment">// 依次计算到所需阶数</span><br>  <span class="hljs-keyword">for</span> (<span class="hljs-type">int</span> <span class="hljs-variable">i</span> <span class="hljs-operator">=</span> maxLayer + <span class="hljs-number">1</span>; i &lt;= layer; i++) &#123;<br>      <span class="hljs-keyword">final</span> <span class="hljs-type">Poly</span> <span class="hljs-variable">coeAPoly</span> <span class="hljs-operator">=</span> Poly.intToPoly(recursiveCoeffA);<br>      <span class="hljs-keyword">final</span> <span class="hljs-type">Poly</span> <span class="hljs-variable">coeBPoly</span> <span class="hljs-operator">=</span> Poly.intToPoly(recursiveCoeffB);<br>      <span class="hljs-keyword">final</span> <span class="hljs-type">Poly</span> <span class="hljs-variable">alterPoly</span> <span class="hljs-operator">=</span> StrPolyExchanger.exchange(recursiveAlterExpr, <span class="hljs-literal">false</span>);<br><br>      HashMap&lt;String, Integer&gt; funcKey = <span class="hljs-keyword">new</span> <span class="hljs-title class_">HashMap</span>&lt;&gt;();<br>      funcKey.put(funcName, i - <span class="hljs-number">1</span>);<br>      <span class="hljs-keyword">final</span> <span class="hljs-type">String</span> <span class="hljs-variable">funcDefA</span> <span class="hljs-operator">=</span> recursiveFuncMap.get(funcKey);<br>      ArrayList&lt;String&gt; argList = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ArrayList</span>&lt;&gt;();<br>      argList.add(recursiveArgA);<br>      <span class="hljs-keyword">final</span> <span class="hljs-type">Poly</span> <span class="hljs-variable">funAPoly</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">FuncFactor</span>(funcDefA, argList).toPoly();<br><br>      funcKey.clear();<br>      funcKey.put(funcName, i - <span class="hljs-number">2</span>);<br>      <span class="hljs-keyword">final</span> <span class="hljs-type">String</span> <span class="hljs-variable">funcDefB</span> <span class="hljs-operator">=</span> recursiveFuncMap.get(funcKey);<br>      argList.clear();<br>      argList.add(recursiveArgB);<br>      <span class="hljs-keyword">final</span> <span class="hljs-type">Poly</span> <span class="hljs-variable">funBPoly</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">FuncFactor</span>(funcDefB, argList).toPoly();<br><br>      funcKey.clear();<br>      funcKey.put(funcName, i);<br>      <span class="hljs-type">String</span> <span class="hljs-variable">funcDef</span> <span class="hljs-operator">=</span><br>              coeAPoly.multPoly(funAPoly).<br>                      addPoly(coeBPoly.multPoly(funBPoly)).<br>                      addPoly(alterPoly).toString();<br>      recursiveFuncMap.put(funcKey, Processor.process(funcDef));<br>  &#125;<br><br>  <span class="hljs-comment">// 拿取结果</span><br>  <span class="hljs-keyword">return</span> recursiveFuncMap.get(key);<br>&#125;<br></code></pre></td></tr></table></figure></li>
+</ul>
+<h4 id="表达式计算-2"><a href="#表达式计算-2" class="headerlink" title="表达式计算"></a>表达式计算</h4><ul>
+<li><p>调整Mono的组成：新增了y的幂次项$y^c$。</p>
+</li>
+<li><p>同类项判定：新增对y的幂次是否相等的判定即可。</p>
+</li>
+<li><p>求导运算的融入：</p>
+<ul>
+<li>为了统一，求导的对象是各个元素转化出来的Poly，Poly的导数又可以分解为各个Mono的导数之和，所以重点是Mono导数的计算。Mono形式固定，计算起来也方便。</li>
+<li>为方便计算，这里选择将exp因子先合并为“单个exp因子”，这和第二次作业判定exp同类项中相关操作无异。这时Mono可以被表示成$A\cdot x^b\cdot y^c \cdot \mathrm{exp}(Expr)^d$。</li>
+<li>Mono的导数：调用 <code>derive</code>方法后，直接返回如下的Poly即可。</li>
+</ul>
+<p>$$<br>A\cdot \mathrm{d}(x^b)\cdot y^c \cdot \mathrm{exp}(Expr)^d +<br>A\cdot x^b\cdot \mathrm{d}(y^c) \cdot \mathrm{exp}(Expr)^d +<br>A\cdot x^b\cdot y^c \cdot \mathrm{d}(\mathrm{exp}(Expr)^d)<br>$$</p>
+</li>
+</ul>
+<h2 id="后续可行的迭代场景"><a href="#后续可行的迭代场景" class="headerlink" title="后续可行的迭代场景"></a>后续可行的迭代场景</h2><ul>
+<li><p>新增三角函数的运算</p>
+<ul>
+<li>新增三角函数因子 <code>sin(Expr)</code>和 <code>cos(Expr)</code>。</li>
+<li>Mono中还需要有一个三角函数项的 <code>ArrayList</code>。</li>
+<li>对于同类项的判定影响：因为三角函数的相乘形式难以简化，只能依次比较每一个sin&#x2F;cos项的内部表达式是否相等。当然，$\sin(x)$和$\sin(-x)$也可以被认为是同类项。</li>
+<li>对于化简的影响：三角函数的化简几乎只能依赖和差化积&#x2F;积化和差、$\sin^2(x)+\cos^2(x)&#x3D;1$，额外的判定和比较逻辑相当复杂，不过 <code>judgeEqualPoly</code>方法仍然是有用的。此外，可以将$\sin(0)$和$\cos(0)$等特殊三角函数直接转化为常数因子来节省存储空间。</li>
+</ul>
+</li>
+<li><p>新增含有多个参量的函数定义式</p>
+<ul>
+<li>重点是处理“，”分隔符，主要对 <code>FuncManager</code>类产生影响，如果不太复杂，直接字符串替换进行实参带入的方法仍然可以撑过去。</li>
+</ul>
+</li>
+</ul>
+<h2 id="作业中采用的优化"><a href="#作业中采用的优化" class="headerlink" title="作业中采用的优化"></a>作业中采用的优化</h2><ul>
+<li>第一次作业：合并同类项。</li>
+<li>第二次作业：<ul>
+<li>正项提前输出。例如 <code>1-x</code>的长度优于 <code>-x+1</code>。</li>
+<li>将多个exp项的乘积合并输出。例如$\exp{(A)}\times \exp{(B)} &#x3D; \exp{(AB)}$。</li>
+<li>提取exp指数项的公因式到幂次上。例如$\exp{(2x+2x^2)}&#x3D;[\exp{(x+x^2)}]^2$。（这一个优化并不总能取到最优结果，例如$\exp{(98x+94x^2)}&#x3D;[\exp{(49x+47x^2)}]^2$，反而导致输出更长。听说有同学似乎会穷举公因子&#x2F;状态压缩DP以寻求最短输出，不过我比较保守，并且代码上也不太会写。）</li>
+<li>exp的指数项若只有单个因子，则省略一层括号。</li>
+</ul>
+</li>
+<li>第三次作业：新引入的因子都被转化为带符号整数、幂函数、指数函数的组合形式参与计算，所以不需要改动优化部分的主体。在本次作业的bug修复中，减少了重复操作，提高了运行效率。</li>
+</ul>
+<h2 id="复杂度分析"><a href="#复杂度分析" class="headerlink" title="复杂度分析"></a>复杂度分析</h2><h3 id="分析指标"><a href="#分析指标" class="headerlink" title="分析指标"></a>分析指标</h3><p>Metrics工具中提供了如下的复杂度分析的指标，这里选择一部分列出。</p>
+<ul>
+<li><p>Method Metrics</p>
+<table>
+<thead>
+<tr>
+<th>指标名称</th>
+<th>含义</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CogC</td>
+<td>认知复杂度</td>
+<td>衡量代码阅读和理解的难度。嵌套越深（如多层if&#x2F;for），分数越高。</td>
+</tr>
+<tr>
+<td>ev(G)</td>
+<td>基本复杂度</td>
+<td>衡量代码的非结构化程度。分数越高，代码越“乱”，难以模块化和维护。</td>
+</tr>
+<tr>
+<td>iv(G)</td>
+<td>设计复杂度</td>
+<td>衡量方法之间的调用紧密程度。分数高说明模块耦合紧，集成测试时需更多用例。</td>
+</tr>
+<tr>
+<td>v(G)</td>
+<td>圈复杂度</td>
+<td>衡量一个方法中独立路径的条数。v(G)&#x3D;分支判断数+1，代表测试该方法所需的最少用例数。</td>
+</tr>
+</tbody></table>
+</li>
+<li><p>Class Metrics</p>
+<table>
+<thead>
+<tr>
+<th>指标名称</th>
+<th>含义</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>WMC</td>
+<td>总圈复杂度</td>
+<td>将类中所有方法的v(G)值累加得到。数值过高说明类的职责可能过多，应遵循单一职责原则，将其拆分为多个更小、更专注的类。</td>
+</tr>
+<tr>
+<td>OCavg</td>
+<td>平均圈复杂度</td>
+<td>OCavg&#x3D;WMC&#x2F;类中方法总数。它反映了一个类的平均方法复杂度。如果OCavg值较高，说明该类中的大部分方法都比较复杂，代码的可读性和可测试性整体偏低。</td>
+</tr>
+<tr>
+<td>OCmax</td>
+<td>最大圈复杂度</td>
+<td>类中所有方法的v(G)的最大值。</td>
+</tr>
+</tbody></table>
+</li>
+</ul>
+<h3 id="分析结果"><a href="#分析结果" class="headerlink" title="分析结果"></a>分析结果</h3><p>为节省篇幅，这里只标出复杂度得分过高的方法和类。</p>
+<h4 id="高复杂度的方法"><a href="#高复杂度的方法" class="headerlink" title="高复杂度的方法"></a>高复杂度的方法</h4><table>
+<thead>
+<tr>
+<th>方法名称</th>
+<th>CovG</th>
+<th>ev(G)</th>
+<th>iv(G)</th>
+<th>v(G)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ExpFactor.toString()</td>
+<td></td>
+<td>6</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Mono.isAddable(Mono)</td>
+<td></td>
+<td>5</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Mono.mergeExpFactors()</td>
+<td></td>
+<td>5</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Mono.toString()</td>
+<td>29</td>
+<td>7</td>
+<td>12</td>
+<td>15</td>
+</tr>
+<tr>
+<td>Poly.addPoly(Poly)</td>
+<td></td>
+<td>4</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Poly.judgeSingularPoly()</td>
+<td>21</td>
+<td>8</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Poly.simplifyPoly()</td>
+<td></td>
+<td>4</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>FuncManager.parseRealArg(String)</td>
+<td></td>
+<td>5</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Parser.parseFactor</td>
+<td></td>
+<td>8</td>
+<td>14</td>
+<td>14</td>
+</tr>
+</tbody></table>
+<ul>
+<li><code>toString()</code>方法的复杂似乎是难以避免的。对于exp项，为了追求必要的短输出，需要判定指数项是不是“单个因子”；对于 <code>Mono</code>的字符串形式输出，同样也是为了追求输出更优，需要针对不同的系数、幂次、exp项情况构建不同的输出。</li>
+<li><code>judgeSingularPoly()</code>方法的复杂度也是难以避免的。如果一个Poly中只有“单个因子”，说明它只含有一项mono，且这个mono只含带符号整数项 &#x2F; 1×[x幂函数，y幂函数之一] &#x2F; 1×指数函数。多样情况的判定必然导致复杂。</li>
+<li><code>isAddable(Mono)</code>复杂度高也不是太容易避免。判定两个Mono是不是可加的同类项，要判定x幂函数次数，y幂函数次数，exp项乘积是否都相同。</li>
+<li><code>addPoly(Poly)</code>，<code>simplify(Poly)</code>，<code>mergeExpFactors()</code>都涉及到多项式的加法运算，而加法运算正常进行必然涉及 <code>isAddable(Mono)</code>方法（判定同类项）；并且，由于容器选择的问题，这几个方法几乎都需要作二重循环。</li>
+<li><code>parseRealArg(String)</code>也难以简化。方法的主要逻辑是读取到函数名后，从第一个 <code>(</code>开始读取，直到读到最后一个 <code>)</code>，就得到实参的字符串形式。对于用字符串替换来实现实参带入的方法而言，这一步也躲不开。</li>
+<li><code>parseFactor()</code>的复杂我认为几乎无法避免。作业中涉及不少种类的因子，不同因子的解析方法往往又不相同，这也必然导致分支数量较多。</li>
+</ul>
+<h4 id="高复杂度的类"><a href="#高复杂度的类" class="headerlink" title="高复杂度的类"></a>高复杂度的类</h4><table>
+<thead>
+<tr>
+<th>类名称</th>
+<th>OCavg</th>
+<th>OCmax</th>
+<th>WMC</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Mono</td>
+<td></td>
+<td></td>
+<td>56</td>
+</tr>
+<tr>
+<td>Poly</td>
+<td></td>
+<td></td>
+<td>51</td>
+</tr>
+<tr>
+<td>FuncManager</td>
+<td></td>
+<td></td>
+<td>31</td>
+</tr>
+<tr>
+<td>Parser</td>
+<td>3.09</td>
+<td></td>
+<td>34</td>
+</tr>
+<tr>
+<td>MainClass</td>
+<td>5.00</td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<ul>
+<li><code>Mono</code>和 <code>Poly</code>类WMC高是意料之中的，因为所有的元素最终都可以转化为Mono&#x2F;Poly形式进行计算，并且这两个类还要承担合并、化简、去除0项等工作。这也提示了可以新建一个单独的类负责Mono&#x2F;Poly的化简。</li>
+<li><code>FuncManager</code>类方法较多，因为作业中同时涉及了普通函数和递归函数的解析。尤其是递归函数，解析完了还需要依照层次挨个计算定义式，调用其他方法较多（例如涉及到Poly运算），这也使得复杂度直线上升。</li>
+<li><code>Parser</code>类圈复杂度、总复杂度高是不可避免的。表达式分为多个层次，且因子类型多样，解析的时候必须要全面覆盖。</li>
+<li><code>MainClass</code>类的高复杂度应该是受Parser影响。<code>MainClass</code>类代码很少，只负责输入信息的传递以及必要的方法调用，关键的逻辑都在其他类中。</li>
+</ul>
+<h2 id="架构设计优劣"><a href="#架构设计优劣" class="headerlink" title="架构设计优劣"></a>架构设计优劣</h2><h3 id="优势"><a href="#优势" class="headerlink" title="优势"></a>优势</h3><ul>
+<li>建立了Mono→Poly层次结构，将表达式中不同的要素统一为 <code>Mono</code>和 <code>Poly</code>的形式，方便了计算、化简，同时也方便了输出。</li>
+<li><code>Poly</code>类中设立了 <code>judgeEqualPoly</code>方法，这一方法可以应用在选择式解析、同类项判定等多个场景，抽象出了不同功能间的共同需求。</li>
+<li>建立了专门的 <code>Preprocess</code>类进行字符串处理，以去除多余空格和重叠的符号。这个类的方法会在输入处理、输出处理情形中复用。</li>
+</ul>
+<h3 id="缺陷"><a href="#缺陷" class="headerlink" title="缺陷"></a>缺陷</h3><ul>
+<li>对于Poly中Mono的存储，只使用了 <code>ArrayList</code>，而没有使用 <code>HashMap</code>（key：不含系数的 <code>Mono</code>对象，value：系数），这也就导致合并同类项、加法运算的高复杂度，具体实现上也多出了好一些代码。使用 <code>HashMap</code>的合并预期能得到更高的效率。</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 低效代码示例</span><br><span class="hljs-keyword">public</span> Poly <span class="hljs-title function_">addPoly</span><span class="hljs-params">(Poly poly)</span> &#123;<br>    ArrayList&lt;Mono&gt; hisMonos = poly.getMonos();<br>    <span class="hljs-keyword">for</span> (Mono hisMono : hisMonos) &#123;<br>        <span class="hljs-comment">// 合并同类项</span><br>        <span class="hljs-type">boolean</span> <span class="hljs-variable">flag</span> <span class="hljs-operator">=</span> <span class="hljs-literal">false</span>;<br>        <span class="hljs-keyword">for</span> (Mono myMono : monos) &#123;<br>            <span class="hljs-keyword">if</span> (hisMono.isAddable(myMono)) &#123;<br>                flag = <span class="hljs-literal">true</span>;<br>                myMono.setCoefficient(<br>                        myMono.getCoefficient().add(hisMono.getCoefficient())<br>                );<br>                <span class="hljs-keyword">break</span>;<br>            &#125;<br>        &#125;<br>        <span class="hljs-keyword">if</span> (!flag) &#123;<br>            monos.add(hisMono);<br>        &#125;<br>    &#125;<br>    <span class="hljs-built_in">this</span>.removeZeroCoeffMonos();<br>    <span class="hljs-keyword">return</span> <span class="hljs-built_in">this</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>对于函数实参的代入仅采取简单的字符串替换方法，导致解析出的Expr形式实参要先被转化成String代入定义式，然后再把代入后的定义式转化成Poly参与计算，多出了一些迂回动作，可能导致时间复杂度上的风险。</li>
+</ul>
+<h2 id="Bug检测与成因分析"><a href="#Bug检测与成因分析" class="headerlink" title="Bug检测与成因分析"></a>Bug检测与成因分析</h2><h3 id="选择表达式的短路处理"><a href="#选择表达式的短路处理" class="headerlink" title="选择表达式的短路处理"></a>选择表达式的短路处理</h3><p>这个bug在自行构造测试样例后被发现。我当时没有优化运算部分的处理逻辑，所以程序对exp项的计算效率较低，这让我“歪打正着”地发现了选择表达式解析的bug。修改后，对于函数带入实参结果的计算不会立即进行，而是在调用诸如<code>toPoly</code>方法后才会开始计算，之前一味图方便而忽略了这部分。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java">f(x)=exp(x)+exp(x^<span class="hljs-number">2</span>)+exp(x^<span class="hljs-number">3</span>)+exp(x^<span class="hljs-number">4</span>)<br>[(<span class="hljs-number">0</span>==<span class="hljs-number">0</span>)?<span class="hljs-number">1</span>:f(f(f(f(x))))]<br></code></pre></td></tr></table></figure>
+
+<h3 id="重复操作的防止"><a href="#重复操作的防止" class="headerlink" title="重复操作的防止"></a>重复操作的防止</h3><p>我的<code>Poly</code>类中实现了方法<code>shortExpFactors</code>，将多个exp项的乘积合并为单个exp的形式。但是我并没有将合并后的单个exp进行缓存，导致同样的exp项乘积被过多地运算，在互测中出现了CTLE问题。以下是出问题的样例。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-number">1</span><br>f(x)=(x^<span class="hljs-number">8</span>+x^<span class="hljs-number">7</span>)*(x^<span class="hljs-number">8</span>+x)*(exp(x)+x)*(exp(x^<span class="hljs-number">8</span>)+<span class="hljs-number">9</span>)^<span class="hljs-number">4</span>+x<br><span class="hljs-number">1</span><br>f&#123;<span class="hljs-number">0</span>&#125;(x)=<span class="hljs-number">9</span>*x^<span class="hljs-number">5</span>+x*<span class="hljs-number">9</span><br>f&#123;<span class="hljs-number">1</span>&#125;(x)=<span class="hljs-number">9</span>*exp(exp(x)^<span class="hljs-number">4</span>)+x*<span class="hljs-number">9</span><br>f&#123;n&#125;(x)=<span class="hljs-number">9</span>*f&#123;n-<span class="hljs-number">1</span>&#125;((<span class="hljs-number">9</span>*x))+<span class="hljs-number">9</span>*f&#123;n-<span class="hljs-number">2</span>&#125;((<span class="hljs-number">9</span>*x))+<span class="hljs-number">99</span>*x<br>(exp(x^<span class="hljs-number">8</span>)+<span class="hljs-number">9</span>)*(exp(x)+<span class="hljs-number">9</span>)*(exp(x^<span class="hljs-number">3</span>)+<span class="hljs-number">9</span>)*(exp(x^<span class="hljs-number">4</span>)+<span class="hljs-number">9</span>)*(exp(x^<span class="hljs-number">5</span>)+<span class="hljs-number">9</span>)*(exp(x^<span class="hljs-number">6</span>)+<span class="hljs-number">9</span>)*(exp(x^<span class="hljs-number">7</span>)+<span class="hljs-number">9</span>)*(x+y^<span class="hljs-number">8</span>)*x*<span class="hljs-number">9</span><br></code></pre></td></tr></table></figure>
+
+<p>此外，我的化简操作需要先合并众多exp因子，然后再提取出exp指数上的公因式，最后创建新的化简后的表达式。这一操作会消耗大量时间，因此我设置了状态位，在化简方法的开头就检测<code>simplified</code>标志位，从而减少了大量不必要的重复操作。</p>
+<p>对于下面的这份互测样例，其展开结果有上万个字符。由于我同类项判定时需要将exp项合并，若不设置标志位，合并&#x2F;化简操作就会被大量重复执行，最终导致CTLE——而这本来是可以避免的。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-number">0</span><br><span class="hljs-number">0</span><br>(x+<span class="hljs-number">1</span>)*(x^<span class="hljs-number">2</span>+<span class="hljs-number">1</span>)*(x^<span class="hljs-number">4</span>+<span class="hljs-number">1</span>)*(x^<span class="hljs-number">8</span>+<span class="hljs-number">1</span>)*(y+<span class="hljs-number">1</span>)*(y^<span class="hljs-number">2</span>+<span class="hljs-number">1</span>)*(y^<span class="hljs-number">4</span>+<span class="hljs-number">1</span>)*(y^<span class="hljs-number">8</span>+<span class="hljs-number">1</span>)*(exp(x)+<span class="hljs-number">1</span>)*(exp(y)+<span class="hljs-number">1</span>)*(x+y)<br></code></pre></td></tr></table></figure>
+
+<h2 id="大模型使用相关"><a href="#大模型使用相关" class="headerlink" title="大模型使用相关"></a>大模型使用相关</h2><ul>
+<li><p>本次作业中主要使用DeepSeek进行简单方法的补充（方法名、方法作用、大致思路会在提示词中事先给出），这确实显著提高了作业的效率。</p>
+</li>
+<li><p>评测机方面，本周期仅第一次作业使用评测机来验证文法解析、Poly计算等重要功能的正确性，后续作业由于精力问题没有构造评测机。但是我会使用相对简单的样例来验证新增功能，并且让大模型辅助我判定输出是否等价。我构造的部分样例如下所示：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 第二次作业，验证自定义函数</span><br><span class="hljs-number">1</span><br>f(x)=exp(x)+exp(x^<span class="hljs-number">2</span>)+exp(x^<span class="hljs-number">3</span>)+exp(x^<span class="hljs-number">4</span>)<br>f(f(f(x)))<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 第二次作业，验证选择表达式</span><br><span class="hljs-number">1</span><br>f(x)=exp(x)+exp(x^<span class="hljs-number">2</span>)+exp(x^<span class="hljs-number">3</span>)+exp(x^<span class="hljs-number">4</span>)<br>[(exp(<span class="hljs-number">0</span>)==<span class="hljs-number">001</span>)? x : f(f(f(x)))]<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 第三次作业，验证求导和递归函数</span><br><span class="hljs-number">0</span><br><span class="hljs-number">1</span><br>f&#123;<span class="hljs-number">0</span>&#125;(x)=exp(x)+exp(x^<span class="hljs-number">2</span>)+exp(x^<span class="hljs-number">3</span>)<br>f&#123;<span class="hljs-number">1</span>&#125;(x)=exp(x^<span class="hljs-number">4</span>)+exp(x^<span class="hljs-number">5</span>)+exp(x^<span class="hljs-number">6</span>)<br>f&#123;n&#125;(x)=<span class="hljs-number">3</span>*f&#123;n-<span class="hljs-number">1</span>&#125;((x-<span class="hljs-number">1</span>))+-<span class="hljs-number">2</span>*f&#123;n-<span class="hljs-number">2</span>&#125;(x)-exp(x^<span class="hljs-number">0</span>)*exp(x)<br>f&#123;<span class="hljs-number">3</span>&#125;(grad((x^<span class="hljs-number">2</span>*y^<span class="hljs-number">3</span>*exp((x^<span class="hljs-number">2</span>*y^<span class="hljs-number">3</span>)))))<br></code></pre></td></tr></table></figure>
+</li>
+<li><p>大模型主要在正确性上进行辅助（降低了约25%工作量），优化部分我的策略比较保守，所以手写就可以达成目标。</p>
+</li>
+<li><p>互测房间内未发现过于AI的代码。</p>
+</li>
+</ul>
+<h2 id="心得体会"><a href="#心得体会" class="headerlink" title="心得体会"></a>心得体会</h2><ul>
+<li>好的架构相当重要：AST树的引入大大方便了语法解析，递归下降的形式可读性也很好；第一次迭代时我作出了正确的判断，采用Mono→Poly层次化结构，找到了不同表达式要素的共同点，方便了计算代码的编写，且后续迭代不会出现大量重构的“悲剧”。</li>
+<li>要运用好的容器：在这几次作业中，由于涉及到同类项的合并，<code>HashMap</code>想必是相比 <code>ArrayList</code>更有效率、更方便的选择。</li>
+<li>优化要谨慎，不能为了优化而牺牲正确性：第一次作业中，听说有同学虽在A房（优化很好），但是程序可以被 <code>-+(-x)</code>之类的简单样例“击杀”；第二次作业中，有同学为了追求绝对的exp项输出最短，优化部分的代码复杂度过高，甚至是忽略了exp项必要的括号输出。</li>
+<li>减少不必要的重复操作：对于不可变类，设置缓存是一个好方法；对于某些耗时的操作（例如化简），也可以设立状态位来防止重复操作。本单元互测中给出的样例往往嵌套层数高，如果能够减少重复计算，对计算速度的提升效果极其显著。这一优化后，原本强测中CPU时间6s+的样例可以在1s左右跑完。</li>
+</ul>
+<h2 id="未来方向"><a href="#未来方向" class="headerlink" title="未来方向"></a>未来方向</h2><ul>
+<li>公开架构良好&#x2F;性能得分高的代码供人学习。</li>
+<li>实验课部分希望增加实时评测，而不是一周之后才返回实验结果。</li>
+</ul>
+]]></content>
+      <categories>
+        <category>面向对象设计与构造</category>
+      </categories>
+      <tags>
+        <tag>AST</tag>
+        <tag>递归下降</tag>
       </tags>
   </entry>
 </search>
